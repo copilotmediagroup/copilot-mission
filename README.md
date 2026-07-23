@@ -1,24 +1,14 @@
-# Co Pilot Guard Living Dashboard v0.3.0
+# Co Pilot Guard Living Dashboard v0.4.0
 
-Interactive Guard application prototype.
+Visual prototype update introducing the Intelligent Patrol System:
 
-## Production experience
-Open `/`.
+- Named patrol locations instead of generic checkpoint numbers
+- Site-specific mission brief at every location
+- Photo, video, and notes captured while the guard is already at the checkpoint
+- Evidence may be optional, recommended, or required
+- Required evidence blocks only that checkpoint's completion
+- Final Upload Proof step replaced by Review & Submit
+- Responsive production route at `/`
+- Experience Lab at `/developer`
 
-Flow: Offline → Online Waiting → New Assignment → En Route → Arrived → On Patrol → Upload Proof → Completed → Online Waiting.
-
-A demo assignment arrives automatically after several seconds in Online Waiting.
-
-## Experience Lab
-Open `/developer` to review all eight mission states directly.
-
-## Run
-```bash
-npm install
-npm run dev
-```
-
-
-## v0.3.0
-
-Production route is now fully responsive: full desktop workspace, tablet layout, and edge-to-edge mobile. The phone simulator remains only on `/developer`.
+No backend or Supabase integration is included yet.

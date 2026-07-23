@@ -67,6 +67,6 @@ function GuardApp() {
       />
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v0.3.0</div>
+    <div className="build-badge">v0.4.0</div>
   </div>
 }

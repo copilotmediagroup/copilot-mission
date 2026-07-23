@@ -16,8 +16,8 @@ export function PrimaryButton({ children, tone = 'blue', onClick }: { children: 
   return <button className={`primary-button ${tone}`} onClick={onClick}>{children}</button>
 }
 
-export function SecondaryButton({ children }: { children: ReactNode }) {
-  return <button className="secondary-button">{children}</button>
+export function SecondaryButton({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
+  return <button className="secondary-button" onClick={onClick}>{children}</button>
 }
 
 export function PhoneShell({ children, light = false }: { children: ReactNode; light?: boolean }) {
