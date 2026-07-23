@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Bell, BriefcaseBusiness, Home, Menu, MessageSquare, UserRound } from 'lucide-react'
+import { Bell, BriefcaseBusiness, Home, Menu, MessageSquare, ShieldCheck, UserRound } from 'lucide-react'
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return <div className={`brand ${compact ? 'compact' : ''}`}>
@@ -24,6 +24,10 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
   return <div className={`phone-shell ${light ? 'light' : ''}`}>
     <div className="phone-notch" />
     <div className="phone-screen">
+      <div className="desktop-topbar">
+        <div className="desktop-logo"><span><ShieldCheck /></span><div><strong>CO <em>PILOT</em></strong><small>SECURITY MARKETPLACE</small></div></div>
+        <div className="desktop-role"><span>GUARD PORTAL</span><b>David Martinez</b></div>
+      </div>
       <div className="statusbar"><strong>9:41</strong><span>▮▮ ◔ ▰</span></div>
       {children}
     </div>

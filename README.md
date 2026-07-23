@@ -1,4 +1,4 @@
-# Co Pilot Guard Living Dashboard v0.2.0
+# Co Pilot Guard Living Dashboard v0.3.0
 
 Interactive Guard application prototype.
 
@@ -17,3 +17,8 @@ Open `/developer` to review all eight mission states directly.
 npm install
 npm run dev
 ```
+
+
+## v0.3.0
+
+Production route is now fully responsive: full desktop workspace, tablet layout, and edge-to-edge mobile. The phone simulator remains only on `/developer`.
