@@ -38,3 +38,9 @@ export type IncidentRecord = {
   timestamp: string
   location: string
 }
+
+export type SkippedCheckpoint = {
+  checkpoint: number
+  reason: string
+  timestamp: string
+}

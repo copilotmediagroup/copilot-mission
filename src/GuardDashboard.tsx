@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, FileText, Flame, Image, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Power, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UserRound, Video, Waves, X } from 'lucide-react'
-import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
+import { AlertTriangle, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Clock3, Copy, FileText, Image, MapPin, MessageCircle, Navigation, Phone, Power, RefreshCw, RotateCcw, ShieldCheck, SkipForward, Trash2, Video, X } from 'lucide-react'
+import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence, SkippedCheckpoint } from './types'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 
 const propertyImage = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=85'
@@ -40,6 +40,8 @@ export interface GuardDashboardProps {
   onEvidenceChange?: (records: PatrolEvidence[]) => void
   incidents?: IncidentRecord[]
   onIncidentsChange?: (records: IncidentRecord[]) => void
+  skippedCheckpoints?: SkippedCheckpoint[]
+  onSkippedChange?: (records: SkippedCheckpoint[]) => void
 }
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
@@ -151,15 +153,42 @@ function NotesSheet({ existing, onClose, onSave, onRemove }: { existing: string;
   </div>
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void }) {
+
+function formatDuration(seconds: number) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
+}
+
+function SkipSheet({ checkpoint, onClose, onSkip }: { checkpoint: number; onClose: () => void; onSkip: (item: SkippedCheckpoint) => void }) {
+  const reasons = ['Area inaccessible','Safety concern','Client requested skip','Obstruction or construction','Other']
+  const [reason, setReason] = useState('')
+  return <div className="capture-overlay" role="dialog" aria-modal="true">
+    <button className="capture-backdrop" onClick={onClose} aria-label="Close skip checkpoint"/>
+    <section className="capture-sheet skip-sheet">
+      <div className="capture-handle"/>
+      <header><button onClick={onClose}><X/></button><strong>Skip Checkpoint</strong><span/></header>
+      <p className="sheet-copy">A reason is required. The agency and client will see this in the mission report.</p>
+      <div className="skip-reasons">{reasons.map(item=><button key={item} className={reason===item?'active':''} onClick={()=>setReason(item)}>{item}</button>)}</div>
+      <PrimaryButton tone="orange" onClick={()=>reason&&onSkip({checkpoint,reason,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})})}><SkipForward/> CONFIRM SKIP</PrimaryButton>
+      {!reason&&<p className="incident-required">Choose a reason to continue.</p>}
+    </section>
+  </div>
+}
+
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, skipped, onSkippedChange }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; skipped: SkippedCheckpoint[]; onSkippedChange: (records: SkippedCheckpoint[]) => void }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
-  const [sheet, setSheet] = useState<CaptureKind | 'notes' | 'incident' | null>(null)
+  const [sheet, setSheet] = useState<CaptureKind | 'notes' | 'incident' | 'skip' | null>(null)
+  const [missionStarted] = useState(() => Date.now())
+  const [checkpointStarted, setCheckpointStarted] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const [warning, setWarning] = useState('')
   const checkpointIncidents = incidents.filter(item => item.checkpoint === index)
 
-  useEffect(() => { setSheet(null); setWarning('') }, [index])
+  useEffect(() => { setSheet(null); setWarning(''); setCheckpointStarted(Date.now()) }, [index])
+  useEffect(() => { const timer=window.setInterval(()=>setNow(Date.now()),1000); return ()=>window.clearInterval(timer) }, [])
 
   const update = (patch: Partial<PatrolEvidence>) => {
     const nextRecord = { ...record, ...patch }
@@ -172,13 +201,30 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     current.notes === 'required' && !record.note ? 'notes' : '',
   ].filter(Boolean), [current, record])
 
+  const missionSeconds = Math.floor((now - missionStarted)/1000)
+  const checkpointSeconds = Math.floor((now - checkpointStarted)/1000)
+  const completedCount = index
+  const remaining = checkpoints.length - index
+  const estimatedMinutes = Math.max(1, remaining * 4)
+  const estimatedFinish = new Date(now + estimatedMinutes*60000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})
+  const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
+  const isTakingLong = checkpointSeconds >= 180
+
   const complete = () => {
     if (missing.length) { setWarning(`Required before completion: ${missing.join(', ')}`); return }
     next()
   }
 
   return <PhoneShell><AppHeader title="ON PATROL"/><main className="screen-content compact-content patrol-content">
-    <div className="patrol-property-row"><div><small>PUBLIX SUPER MARKET</small><span>Checkpoint {index + 1} of {checkpoints.length}</span></div><div className="patrol-mini-progress"><i style={{width:`${((index + 1)/checkpoints.length)*100}%`}}/></div></div>
+    <div className="patrol-property-row"><div><small>PUBLIX SUPER MARKET</small><span>{completedCount} of {checkpoints.length} locations complete</span></div><div className="patrol-mini-progress"><i style={{width:`${(completedCount/checkpoints.length)*100}%`}}/></div></div>
+    <section className="mission-intelligence">
+      <div><Clock3/><span><small>MISSION TIME</small><strong>{formatDuration(missionSeconds)}</strong></span></div>
+      <div><span><small>THIS LOCATION</small><strong className={isTakingLong?'warning-time':''}>{formatDuration(checkpointSeconds)}</strong></span></div>
+      <div><span><small>EST. FINISH</small><strong>{estimatedFinish}</strong></span></div>
+    </section>
+    <div className="live-summary"><span>{incidents.length} incident{incidents.length===1?'':'s'}</span><i/> <span>{totalEvidence} evidence item{totalEvidence===1?'':'s'}</span><i/> <span>{skipped.length} skipped</span></div>
+    {isTakingLong&&<div className="time-advisory"><AlertTriangle/><span><strong>Extended checkpoint time</strong><small>Take the time needed. Report an incident if something is delaying the patrol.</small></span></div>}
+    <div className="mission-timeline">{checkpoints.map((cp,i)=>{const hasIncident=incidents.some(item=>item.checkpoint===i);const wasSkipped=skipped.some(item=>item.checkpoint===i);return <div key={cp.name} className={wasSkipped?'skipped':i<index?'done':i===index?'current':'upcoming'}><span>{wasSkipped?<SkipForward/>:hasIncident?<AlertTriangle/>:i<index?<Check/>:<Circle/>}</span><small>{cp.name}</small></div>})}</div>
     <section className="checkpoint-hero"><div className="location-mark"><MapPin/></div><div><small>CURRENT PATROL LOCATION</small><h2>{current.name}</h2></div></section>
     <section className="mission-brief"><div className="brief-heading"><ClipboardCheck/><strong>Mission Brief</strong></div>{current.instructions.map(item => <div className="brief-item" key={item}><Circle/><span>{item}</span></div>)}</section>
     <section className="evidence-section"><div className="evidence-heading"><strong>Evidence</strong><span>Capture while at this location</span></div>
@@ -188,33 +234,36 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     </section>
     <button className={`incident-action ${checkpointIncidents.length ? 'reported' : ''}`} onClick={()=>setSheet('incident')}><span><AlertTriangle/></span><div><strong>{checkpointIncidents.length ? `${checkpointIncidents.length} Incident${checkpointIncidents.length>1?'s':''} Reported` : 'Report Incident'}</strong><small>{checkpointIncidents.length ? 'Attached to this patrol location' : 'Document an issue without leaving patrol'}</small></div><ChevronRight/></button>
     {warning && <div className="evidence-warning">{warning}</div>}
+    <button className="skip-checkpoint" onClick={()=>setSheet('skip')}><SkipForward/> Skip checkpoint</button>
     <PrimaryButton tone="orange" onClick={complete}><Check/> COMPLETE CHECKPOINT</PrimaryButton>
   </main><BottomNav/>
     {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={()=>{update({photos:record.photos+1});setSheet(null)}} onRemove={()=>{update({photos:0});setSheet(null)}}/>}
     {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={()=>{update({videos:record.videos+1});setSheet(null)}} onRemove={()=>{update({videos:0});setSheet(null)}}/>}
     {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{update({note});setSheet(null)}} onRemove={()=>{update({note:''});setSheet(null)}}/>}
+    {sheet === 'skip' && <SkipSheet checkpoint={index} onClose={()=>setSheet(null)} onSkip={(item)=>{onSkippedChange([...skipped,item]);setSheet(null);next()}}/>}
     {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onSave={(incident)=>{onIncidentsChange([...incidents,incident]);setSheet(null)}}/>}
   </PhoneShell>
 }
 
-function Review({ next, records, incidents }: { next: () => void; records: PatrolEvidence[]; incidents: IncidentRecord[] }) {
+function Review({ next, records, incidents, skipped }: { next: () => void; records: PatrolEvidence[]; incidents: IncidentRecord[]; skipped: SkippedCheckpoint[] }) {
   const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
   return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>37 min</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{checkpoints.map((checkpoint,index)=>{
     const item=records.find(record=>record.checkpoint===index)
     const parts=[item?.photos?`${item.photos} photo${item.photos>1?'s':''}`:'',item?.videos?`${item.videos} video${item.videos>1?'s':''}`:'',item?.note?'1 note':''].filter(Boolean)
-    return <div key={checkpoint.name}><CheckCircle2/><span><strong>{checkpoint.name}</strong><small>{parts.length?parts.join(' · '):'No evidence'}</small></span><ChevronRight/></div>
+    const skip=skipped.find(record=>record.checkpoint===index)
+    return <div key={checkpoint.name} className={skip?'review-skipped':''}>{skip?<SkipForward/>:<CheckCircle2/>}<span><strong>{checkpoint.name}</strong><small>{skip?`Skipped · ${skip.reason}`:(parts.length?parts.join(' · '):'No evidence')}</small></span><ChevronRight/></div>
   })}</div>{incidents.length>0&&<><h4 className="section-label incident-review-label">INCIDENTS <span>{incidents.length}</span></h4><div className="incident-review-list">{incidents.map(incident=><div key={incident.id} className={`severity-${incident.severity}`}><AlertTriangle/><span><strong>{checkpoints[incident.checkpoint].name}</strong><small>{incident.type} · {incident.severity} severity · {incident.timestamp}</small></span><ChevronRight/></div>)}</div></>}<div className="review-note"><FileText/><span><strong>Mission record ready</strong><small>All checkpoint evidence and incidents are attached.</small></span></div><PrimaryButton tone="purple" onClick={next}><Check/> SUBMIT PATROL</PrimaryButton></main><BottomNav/></PhoneShell>
 }
 function Completed({ next, incidents }: { next: () => void; incidents: IncidentRecord[] }) { return <PhoneShell><AppHeader title="COMPLETED"/><main className="screen-content completed-screen"><h2 className="property-title">Publix Super Market</h2><p>Assignment complete!</p><div className="success-orbit"><Check/></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>4 Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton onClick={next}><RefreshCw/> RETURN ONLINE</PrimaryButton></main><BottomNav/></PhoneShell> }
 
 export default function GuardDashboard(props: GuardDashboardProps) {
-  const { state, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined } = props
+  const { state, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, skippedCheckpoints=[], onSkippedChange=()=>undefined } = props
   if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)}/>
   if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)}/>
   if (state === 'assignment') return <Assignment accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived next={action(props.onMarkArrived,onAdvance)}/>
-  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange}/>
-  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents}/>
+  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} skipped={skippedCheckpoints} onSkippedChange={onSkippedChange}/>
+  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents} skipped={skippedCheckpoints}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)} incidents={incidents}/>
 }

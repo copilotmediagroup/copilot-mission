@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Code2 } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
 import ExperienceLab from './ExperienceLab'
-import type { IncidentRecord, MissionState, PatrolEvidence } from './types'
+import type { IncidentRecord, MissionState, PatrolEvidence, SkippedCheckpoint } from './types'
 
 const isDeveloperRoute = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -17,6 +17,7 @@ function GuardApp() {
   const [notice, setNotice] = useState('')
   const [patrolEvidence, setPatrolEvidence] = useState<PatrolEvidence[]>([])
   const [incidents, setIncidents] = useState<IncidentRecord[]>([])
+  const [skippedCheckpoints, setSkippedCheckpoints] = useState<SkippedCheckpoint[]>([])
 
   useEffect(() => {
     if (state !== 'waiting') return
@@ -35,7 +36,7 @@ function GuardApp() {
   }, [notice])
 
   const goTo = useCallback((next: MissionState) => {
-    if (next === 'patrol') { setCheckpoint(0); setPatrolEvidence([]); setIncidents([]) }
+    if (next === 'patrol') { setCheckpoint(0); setPatrolEvidence([]); setIncidents([]); setSkippedCheckpoints([]) }
     setState(next)
   }, [])
 
@@ -61,6 +62,8 @@ function GuardApp() {
         onEvidenceChange={setPatrolEvidence}
         incidents={incidents}
         onIncidentsChange={setIncidents}
+        skippedCheckpoints={skippedCheckpoints}
+        onSkippedChange={setSkippedCheckpoints}
         onGoOnline={() => goTo('waiting')}
         onGoOffline={() => goTo('offline')}
         onAccept={() => goTo('enroute')}
@@ -73,6 +76,6 @@ function GuardApp() {
       />
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v0.6.0</div>
+    <div className="build-badge">v0.7.0</div>
   </div>
 }
