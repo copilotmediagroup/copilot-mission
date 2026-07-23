@@ -5,6 +5,7 @@ import ExperienceLab from './ExperienceLab'
 import { GuardianProvider } from './modules/guardian/GuardianProvider'
 import GuardianButton from './modules/guardian/GuardianButton'
 import { useMissionEngine } from './modules/mission/useMissionEngine'
+import MissionTimeline from './modules/timeline/MissionTimeline'
 
 const isDeveloperRoute = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -37,7 +38,8 @@ function GuardApp() {
     <div className="ambient ambient-one" />
     <div className="ambient ambient-two" />
     {notice && <div className="mission-toast">{notice}</div>}
-    <div className="production-stage" key={mission.state}>
+    <div className="production-workspace">
+      <div className="production-stage" key={mission.state}>
       <GuardDashboard
         state={mission.state}
         checkpoint={mission.checkpoint}
@@ -56,9 +58,11 @@ function GuardApp() {
         onSubmitProof={actions.submitProof}
         onReturnOnline={actions.returnOnline}
       />
+      </div>
+      <MissionTimeline/>
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
     <GuardianButton missionState={mission.state}/>
-    <div className="build-badge">v0.7.1 · EVENT BUS</div>
+    <div className="build-badge">v0.7.2 · TIMELINE ENGINE</div>
   </div></GuardianProvider>
 }
