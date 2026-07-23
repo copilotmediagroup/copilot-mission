@@ -59,6 +59,6 @@ function GuardApp() {
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
     <GuardianButton missionState={mission.state}/>
-    <div className="build-badge">v0.7.0 · MISSION ENGINE</div>
+    <div className="build-badge">v0.7.1 · EVENT BUS</div>
   </div></GuardianProvider>
 }

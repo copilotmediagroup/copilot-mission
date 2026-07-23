@@ -1,26 +1,20 @@
-# Co Pilot Guard OS — v0.7.0 Mission Engine
+# Co Pilot Guard OS v0.7.1 — Event Bus
 
-The Guard OS now uses an event-driven Mission Engine as the single source of truth for mission state, checkpoint progress, evidence, incidents, timestamps, and completion.
+This build adds the event-driven communication foundation beneath the existing Guard OS interface.
 
-## Added in v0.7.0
+## Added
 
-- Central mission reducer and immutable mission snapshot
-- Typed mission actions and events
-- Centralized state transitions
-- Mission event history capped at 50 events
-- Evidence and incident updates routed through the engine
-- Existing Guardian system subscribed to Mission Engine state
-- Existing dashboard screens and interaction design preserved
+- Typed central Event Bus
+- Mission and Guardian event channels
+- Wildcard subscriptions for future Timeline, Notification, Realtime, and Reporting engines
+- In-memory event history capped at 100 system events
+- Mission Engine automatically publishes every newly generated mission event
+- Guardian actions publish typed safety events
+- Guardian subscribes to mission completion/reset events for automatic cleanup
+- Reusable `useEventBus` hook
 
-## Development
+## Architecture
 
-```bash
-npm install
-npm run dev
-```
+Guard Action → Mission Engine → Event Bus → Guardian / Timeline / Notifications / Realtime / Reports
 
-Production build:
-
-```bash
-npm run build
-```
+The visual mission experience and navigation remain unchanged.

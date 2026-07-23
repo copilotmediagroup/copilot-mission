@@ -1,9 +1,18 @@
-import { useCallback, useMemo, useReducer } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { IncidentRecord, PatrolEvidence } from '../../types'
+import { eventBus } from '../events/EventBus'
 import { initialMissionSnapshot, missionReducer } from './MissionEngine'
 
 export function useMissionEngine() {
   const [mission, dispatch] = useReducer(missionReducer, initialMissionSnapshot)
+  const publishedEventId = useRef<string | null>(null)
+
+  useEffect(() => {
+    const latest = mission.events[0]
+    if (!latest || latest.id === publishedEventId.current) return
+    publishedEventId.current = latest.id
+    eventBus.publish({ channel: 'mission', payload: latest })
+  }, [mission.events])
 
   const actions = useMemo(() => ({
     goOnline: () => dispatch({ type: 'GO_ONLINE' }),
