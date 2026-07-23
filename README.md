@@ -1,14 +1,26 @@
-# Co Pilot Guard OS v0.6.2
+# Co Pilot Guard OS — v0.7.0 Mission Engine
 
-## Guardian Foundation
+The Guard OS now uses an event-driven Mission Engine as the single source of truth for mission state, checkpoint progress, evidence, incidents, timestamps, and completion.
 
-Adds a separate Guardian safety engine without changing the existing mission flow.
+## Added in v0.7.0
 
-- Guardian monitoring during en route, arrival, patrol, and proof states
-- Persistent one-tap Guardian control
-- Emergency assistance and silent alert paths
-- Agency acknowledgement, backup en route, and resolution states
-- GPS, network, battery, and activity signal surface
-- Modular provider/context/button architecture ready for Supabase Realtime
+- Central mission reducer and immutable mission snapshot
+- Typed mission actions and events
+- Centralized state transitions
+- Mission event history capped at 50 events
+- Evidence and incident updates routed through the engine
+- Existing Guardian system subscribed to Mission Engine state
+- Existing dashboard screens and interaction design preserved
 
-This is a front-end Guardian foundation. Live agency delivery, device sensors, and automated escalation connect in the realtime phase.
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+```
