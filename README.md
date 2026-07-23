@@ -1,6 +1,6 @@
-# Co Pilot Guard Living Dashboard v0.6.0
+# Co Pilot Guard Living Dashboard v0.6.1
 
-Visual prototype milestone: Smart Incident.
+Visual prototype milestone: Live Mission Intelligence.
 
 ## Included
 - Full responsive Guard Living Dashboard
@@ -19,3 +19,12 @@ npm run dev
 ```
 
 No backend or Supabase integration is included yet. Camera, GPS, and media upload are simulated for visual workflow approval.
+
+
+## v0.6.1 additions
+- Live mission timer
+- Mission progress percentage
+- Evidence and incident counters
+- Mission health status
+- Live activity feed
+- Responsive desktop intelligence panel

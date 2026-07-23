@@ -17,6 +17,7 @@ function GuardApp() {
   const [notice, setNotice] = useState('')
   const [patrolEvidence, setPatrolEvidence] = useState<PatrolEvidence[]>([])
   const [incidents, setIncidents] = useState<IncidentRecord[]>([])
+  const [missionStartedAt, setMissionStartedAt] = useState<number | null>(null)
 
   useEffect(() => {
     if (state !== 'waiting') return
@@ -35,7 +36,8 @@ function GuardApp() {
   }, [notice])
 
   const goTo = useCallback((next: MissionState) => {
-    if (next === 'patrol') { setCheckpoint(0); setPatrolEvidence([]); setIncidents([]) }
+    if (next === 'patrol') { setCheckpoint(0); setPatrolEvidence([]); setIncidents([]); setMissionStartedAt(Date.now()) }
+    if (next === 'waiting' || next === 'offline') setMissionStartedAt(null)
     setState(next)
   }, [])
 
@@ -60,6 +62,7 @@ function GuardApp() {
         patrolEvidence={patrolEvidence}
         onEvidenceChange={setPatrolEvidence}
         incidents={incidents}
+        missionStartedAt={missionStartedAt}
         onIncidentsChange={setIncidents}
         onGoOnline={() => goTo('waiting')}
         onGoOffline={() => goTo('offline')}
@@ -73,6 +76,6 @@ function GuardApp() {
       />
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v0.6.0</div>
+    <div className="build-badge">v0.6.1 · LIVE MISSION INTELLIGENCE</div>
   </div>
 }

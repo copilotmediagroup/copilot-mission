@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, FileText, Flame, Image, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Power, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UserRound, Video, Waves, X } from 'lucide-react'
 import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
@@ -40,6 +40,7 @@ export interface GuardDashboardProps {
   onEvidenceChange?: (records: PatrolEvidence[]) => void
   incidents?: IncidentRecord[]
   onIncidentsChange?: (records: IncidentRecord[]) => void
+  missionStartedAt?: number | null
 }
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
@@ -151,15 +152,47 @@ function NotesSheet({ existing, onClose, onSave, onRemove }: { existing: string;
   </div>
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void }) {
+function formatElapsed(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':')
+}
+
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
   const [sheet, setSheet] = useState<CaptureKind | 'notes' | 'incident' | null>(null)
   const [warning, setWarning] = useState('')
+  const [elapsed, setElapsed] = useState(() => missionStartedAt ? Math.max(0, Math.floor((Date.now() - missionStartedAt) / 1000)) : 0)
+  const [activity, setActivity] = useState<string[]>(['Mission started'])
+  const previousTotals = useRef({ photos: 0, videos: 0, notes: 0, incidents: 0, checkpoint: 0 })
   const checkpointIncidents = incidents.filter(item => item.checkpoint === index)
+  const totals = useMemo(() => records.reduce((sum,item)=>({ photos:sum.photos+item.photos, videos:sum.videos+item.videos, notes:sum.notes+(item.note?1:0) }), {photos:0,videos:0,notes:0}), [records])
+  const progress = Math.min(100, Math.round(((index + 1) / checkpoints.length) * 100))
+  const highSeverity = incidents.some(item => item.severity === 'high')
+  const health = highSeverity ? 'Attention' : incidents.length ? 'Good' : 'Excellent'
 
   useEffect(() => { setSheet(null); setWarning('') }, [index])
+  useEffect(() => {
+    if (!missionStartedAt) return
+    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - missionStartedAt) / 1000)))
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [missionStartedAt])
+  useEffect(() => {
+    const previous = previousTotals.current
+    const entries: string[] = []
+    if (totals.photos > previous.photos) entries.push('Photo captured')
+    if (totals.videos > previous.videos) entries.push('Video recorded')
+    if (totals.notes > previous.notes) entries.push('Note saved')
+    if (incidents.length > previous.incidents) entries.push('Incident logged')
+    if (index > previous.checkpoint) entries.push(`Checkpoint ${index} completed`)
+    if (entries.length) setActivity(currentActivity => [...entries.reverse(), ...currentActivity].slice(0, 10))
+    previousTotals.current = { ...totals, incidents: incidents.length, checkpoint: index }
+  }, [totals, incidents.length, index])
 
   const update = (patch: Partial<PatrolEvidence>) => {
     const nextRecord = { ...record, ...patch }
@@ -176,9 +209,20 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     if (missing.length) { setWarning(`Required before completion: ${missing.join(', ')}`); return }
     next()
   }
+  const started = missionStartedAt ? new Date(missionStartedAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : 'Now'
 
   return <PhoneShell><AppHeader title="ON PATROL"/><main className="screen-content compact-content patrol-content">
-    <div className="patrol-property-row"><div><small>PUBLIX SUPER MARKET</small><span>Checkpoint {index + 1} of {checkpoints.length}</span></div><div className="patrol-mini-progress"><i style={{width:`${((index + 1)/checkpoints.length)*100}%`}}/></div></div>
+    <section className="mission-intelligence-strip">
+      <div><small>MISSION</small><strong>Retail Patrol</strong><span>Publix Super Market</span></div>
+      <div><small>STARTED</small><strong>{started}</strong><span>{formatElapsed(elapsed)} elapsed</span></div>
+      <div className={`mission-health health-${health.toLowerCase()}`}><small>MISSION HEALTH</small><strong><i/>{health}</strong><span>{incidents.length ? `${incidents.length} incident${incidents.length>1?'s':''}` : 'No incidents'}</span></div>
+    </section>
+    <section className="mission-live-grid">
+      <div className="live-stat"><small>MISSION TIME</small><strong>{formatElapsed(elapsed)}</strong></div>
+      <div className="live-stat"><small>EVIDENCE</small><strong>{totals.photos + totals.videos + totals.notes}</strong><span>{totals.photos} photos · {totals.videos} videos · {totals.notes} notes</span></div>
+      <button className="live-stat incident-stat" onClick={()=>setSheet('incident')}><small>INCIDENTS</small><strong>{incidents.length}</strong><span>Tap to report</span></button>
+    </section>
+    <div className="patrol-property-row"><div><small>PUBLIX SUPER MARKET</small><span>Checkpoint {index + 1} of {checkpoints.length}</span></div><div className="patrol-progress-block"><b>{progress}%</b><div className="patrol-mini-progress"><i style={{width:`${progress}%`}}/></div></div></div>
     <section className="checkpoint-hero"><div className="location-mark"><MapPin/></div><div><small>CURRENT PATROL LOCATION</small><h2>{current.name}</h2></div></section>
     <section className="mission-brief"><div className="brief-heading"><ClipboardCheck/><strong>Mission Brief</strong></div>{current.instructions.map(item => <div className="brief-item" key={item}><Circle/><span>{item}</span></div>)}</section>
     <section className="evidence-section"><div className="evidence-heading"><strong>Evidence</strong><span>Capture while at this location</span></div>
@@ -187,6 +231,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
       <EvidenceAction icon={<FileText/>} label="Notes" level={current.notes} count={0} detail={record.note ? 'Note saved' : ''} onClick={()=>setSheet('notes')}/>
     </section>
     <button className={`incident-action ${checkpointIncidents.length ? 'reported' : ''}`} onClick={()=>setSheet('incident')}><span><AlertTriangle/></span><div><strong>{checkpointIncidents.length ? `${checkpointIncidents.length} Incident${checkpointIncidents.length>1?'s':''} Reported` : 'Report Incident'}</strong><small>{checkpointIncidents.length ? 'Attached to this patrol location' : 'Document an issue without leaving patrol'}</small></div><ChevronRight/></button>
+    <section className="mission-activity"><div className="evidence-heading"><strong>Latest Activity</strong><span>Live mission timeline</span></div>{activity.map((item,activityIndex)=><div key={`${item}-${activityIndex}`}><i/><span>{item}</span><time>{activityIndex===0 ? 'Now' : 'Earlier'}</time></div>)}</section>
     {warning && <div className="evidence-warning">{warning}</div>}
     <PrimaryButton tone="orange" onClick={complete}><Check/> COMPLETE CHECKPOINT</PrimaryButton>
   </main><BottomNav/>
@@ -208,13 +253,13 @@ function Review({ next, records, incidents }: { next: () => void; records: Patro
 function Completed({ next, incidents }: { next: () => void; incidents: IncidentRecord[] }) { return <PhoneShell><AppHeader title="COMPLETED"/><main className="screen-content completed-screen"><h2 className="property-title">Publix Super Market</h2><p>Assignment complete!</p><div className="success-orbit"><Check/></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>4 Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton onClick={next}><RefreshCw/> RETURN ONLINE</PrimaryButton></main><BottomNav/></PhoneShell> }
 
 export default function GuardDashboard(props: GuardDashboardProps) {
-  const { state, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined } = props
+  const { state, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
   if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)}/>
   if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)}/>
   if (state === 'assignment') return <Assignment accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived next={action(props.onMarkArrived,onAdvance)}/>
-  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange}/>
+  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt}/>
   if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)} incidents={incidents}/>
 }
