@@ -1,14 +1,19 @@
-# Co Pilot Guard Living Dashboard v0.1.1
+# Co Pilot Guard Living Dashboard v0.2.0
 
-Visual-only React/Vite prototype for the approved Guard Mission Mode experience.
+Interactive Guard application prototype.
+
+## Production experience
+Open `/`.
+
+Flow: Offline → Online Waiting → New Assignment → En Route → Arrived → On Patrol → Upload Proof → Completed → Online Waiting.
+
+A demo assignment arrives automatically after several seconds in Online Waiting.
+
+## Experience Lab
+Open `/developer` to review all eight mission states directly.
 
 ## Run
-
 ```bash
 npm install
 npm run dev
 ```
-
-This repair release pins all package versions instead of using `latest`, keeps runtime and build dependencies separated, and removes generated TypeScript build artifacts.
-
-No authentication, Supabase, GPS, or backend logic is included.
