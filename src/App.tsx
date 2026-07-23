@@ -3,6 +3,8 @@ import { Code2 } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
 import ExperienceLab from './ExperienceLab'
 import type { IncidentRecord, MissionState, PatrolEvidence } from './types'
+import { GuardianProvider } from './modules/guardian/GuardianProvider'
+import GuardianButton from './modules/guardian/GuardianButton'
 
 const isDeveloperRoute = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -51,7 +53,7 @@ function GuardApp() {
     })
   }, [])
 
-  return <div className={`guard-app state-${state}`}>
+  return <GuardianProvider missionState={state}><div className={`guard-app state-${state}`}>
     <div className="ambient ambient-one" />
     <div className="ambient ambient-two" />
     {notice && <div className="mission-toast">{notice}</div>}
@@ -76,6 +78,7 @@ function GuardApp() {
       />
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v0.6.1 · LIVE MISSION INTELLIGENCE</div>
-  </div>
+    <GuardianButton missionState={state}/>
+    <div className="build-badge">v0.6.2 · GUARDIAN FOUNDATION</div>
+  </div></GuardianProvider>
 }
