@@ -1,5 +1,21 @@
-# Co Pilot Guard Living Dashboard v0.5.0
+# Co Pilot Guard Living Dashboard v0.6.0
 
-Smart Capture visual prototype. Photo and video actions open a native-style capture sheet, notes support quick selections and custom text, captured evidence is attached to its patrol location, and Review & Submit reflects the evidence collected during the patrol.
+Visual prototype milestone: Smart Incident.
 
-No backend or Supabase integration is included yet. Camera capture is simulated for design approval.
+## Included
+- Full responsive Guard Living Dashboard
+- Named patrol locations and configurable evidence rules
+- Smart Capture photo, video, and notes prototype
+- Smart Incident reporting from inside any checkpoint
+- Incident type, severity, evidence, note, timestamp, checkpoint, and simulated GPS context
+- Patrol progress preserved after saving an incident
+- Incident markers in patrol and mission review
+- `/developer` Experience Lab
+
+## Run
+```bash
+npm install
+npm run dev
+```
+
+No backend or Supabase integration is included yet. Camera, GPS, and media upload are simulated for visual workflow approval.
