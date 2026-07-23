@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, FileText, MapPin, MessageCircle, Navigation, Phone, Play, Power, RefreshCw, ShieldCheck, Video } from 'lucide-react'
-import type { MissionState } from './types'
+import { Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, FileText, Image, MapPin, MessageCircle, Navigation, Phone, Power, RefreshCw, RotateCcw, ShieldCheck, Trash2, Video, X } from 'lucide-react'
+import type { MissionState, PatrolEvidence } from './types'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 
 const propertyImage = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=85'
@@ -36,6 +36,8 @@ export interface GuardDashboardProps {
   onNextCheckpoint?: () => void
   onSubmitProof?: () => void
   onReturnOnline?: () => void
+  patrolEvidence?: PatrolEvidence[]
+  onEvidenceChange?: (records: PatrolEvidence[]) => void
 }
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
@@ -51,35 +53,79 @@ function Assignment({ accept, decline }: { accept: () => void; decline: () => vo
 function EnRoute({ next }: { next: () => void }) { return <PhoneShell><AppHeader title="EN ROUTE"/><main className="screen-content compact-content"><PropertyHeader eyebrow="EN ROUTE"/><div className="map-card"><div className="map-grid"/><svg viewBox="0 0 240 250" preserveAspectRatio="none"><path d="M44 220 C70 185, 72 160, 105 144 S130 92, 175 72 S187 32, 215 18"/><circle cx="44" cy="220" r="11"/><circle cx="215" cy="18" r="10" className="pin-dot"/></svg><div className="map-a">A</div><MapPin className="map-pin"/></div><div className="two-stats"><div><small>ETA</small><strong>9 min</strong></div><div><small>DISTANCE</small><strong>4.2 mi</strong></div></div><div className="route-progress"><div><span>ROUTE PROGRESS</span><b>22%</b></div><i><em/></i></div><PrimaryButton onClick={next}><Navigation/> START ROUTE</PrimaryButton></main><BottomNav/></PhoneShell> }
 function Arrived({ next }: { next: () => void }) { return <PhoneShell><AppHeader title="ARRIVED"/><main className="screen-content compact-content"><PropertyHeader eyebrow="ARRIVED"/><img className="property-image" src={propertyImage} alt="Publix Super Market"/><PrimaryButton tone="green" onClick={next}><CheckCircle2/> MARK ARRIVED</PrimaryButton><section className="property-info"><small>PROPERTY INFO</small><div><strong>Maria Contact</strong><Phone/></div><div><strong>Gate / Entry Code<br/><span>#4826</span></strong><Copy/></div><div><strong>Special Instructions<br/><span>Check back entrance and loading dock.</span></strong><ChevronRight/></div></section><SecondaryButton>VIEW DETAILS</SecondaryButton></main><BottomNav/></PhoneShell> }
 
-function EvidenceAction({ icon, label, level, captured, onClick }: { icon: ReactNode; label: string; level: EvidenceLevel; captured: boolean; onClick: () => void }) {
+function EvidenceAction({ icon, label, level, count, detail, onClick }: { icon: ReactNode; label: string; level: EvidenceLevel; count: number; detail?: string; onClick: () => void }) {
+  const captured = count > 0 || Boolean(detail)
   return <button className={`evidence-action ${captured ? 'captured' : ''}`} onClick={onClick}>
     <span className="evidence-icon">{captured ? <CheckCircle2/> : icon}</span>
-    <span><strong>{label}</strong><small className={`requirement ${level}`}>{captured ? 'Captured' : level}</small></span>
+    <span><strong>{label}</strong><small className={`requirement ${level}`}>{captured ? (detail || `${count} captured`) : level}</small></span>
     <ChevronRight/>
   </button>
 }
 
-function Patrol({ count, next }: { count: number; next: () => void }) {
+type CaptureKind = 'photo' | 'video'
+function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: CaptureKind; existing: number; onClose: () => void; onUse: () => void; onRemove: () => void }) {
+  const [captured, setCaptured] = useState(false)
+  const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
+  return <div className="capture-overlay" role="dialog" aria-modal="true">
+    <button className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
+    <section className="capture-sheet">
+      <div className="capture-handle"/>
+      <header><button onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
+      <div className={`camera-preview ${captured ? 'captured' : ''}`}>
+        <div className="camera-grid"/>
+        {captured ? <div className="captured-preview"><CheckCircle2/><strong>{kind === 'photo' ? 'Photo captured' : 'Video recorded'}</strong><small>Preview ready to attach</small></div> : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>Smart Capture preview</small></div>}
+        {kind === 'video' && !captured && <div className="recording-time">00:00</div>}
+      </div>
+      {!captured ? <div className="capture-controls"><button className="gallery-button"><Image/><span>Gallery</span></button><button className={`shutter ${kind}`} onClick={()=>setCaptured(true)}><i/></button><button className="flip-button"><RotateCcw/><span>Flip</span></button></div> : <div className="capture-confirm">
+        <SecondaryButton onClick={()=>setCaptured(false)}><RotateCcw/> RETAKE</SecondaryButton>
+        <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={onUse}><Check/> USE {kind.toUpperCase()}</PrimaryButton>
+      </div>}
+      {existing > 0 && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing {kind}</button>}
+      <p className="prototype-note">Camera capture is simulated in this visual prototype.</p>
+    </section>
+  </div>
+}
+
+const quickNotes = ['All secure','Lighting issue','Door unlocked','Property damage','Suspicious activity','Maintenance needed']
+function NotesSheet({ existing, onClose, onSave, onRemove }: { existing: string; onClose: () => void; onSave: (note: string) => void; onRemove: () => void }) {
+  const [note, setNote] = useState(existing)
+  return <div className="capture-overlay" role="dialog" aria-modal="true">
+    <button className="capture-backdrop" onClick={onClose} aria-label="Close notes" />
+    <section className="capture-sheet notes-sheet">
+      <div className="capture-handle"/>
+      <header><button onClick={onClose}><X/></button><strong>Checkpoint Notes</strong><span/></header>
+      <p className="sheet-copy">Choose a quick note or enter a custom observation.</p>
+      <div className="quick-notes">{quickNotes.map(item=><button key={item} className={note===item?'active':''} onClick={()=>setNote(item)}>{item}</button>)}</div>
+      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Describe what you observed…" maxLength={300}/>
+      <div className="note-count">{note.length}/300</div>
+      <PrimaryButton tone="purple" onClick={()=>onSave(note)}><Check/> SAVE NOTE</PrimaryButton>
+      {existing && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove note</button>}
+    </section>
+  </div>
+}
+
+function Patrol({ count, next, records, onRecordsChange }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
-  const [photo, setPhoto] = useState(false)
-  const [video, setVideo] = useState(false)
-  const [notes, setNotes] = useState(false)
+  const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
+  const [sheet, setSheet] = useState<CaptureKind | 'notes' | null>(null)
   const [warning, setWarning] = useState('')
 
-  useEffect(() => { setPhoto(false); setVideo(false); setNotes(false); setWarning('') }, [index])
+  useEffect(() => { setSheet(null); setWarning('') }, [index])
 
+  const update = (patch: Partial<PatrolEvidence>) => {
+    const nextRecord = { ...record, ...patch }
+    onRecordsChange([...records.filter(item => item.checkpoint !== index), nextRecord].sort((a,b)=>a.checkpoint-b.checkpoint))
+    setWarning('')
+  }
   const missing = useMemo(() => [
-    current.photo === 'required' && !photo ? 'photo' : '',
-    current.video === 'required' && !video ? 'video' : '',
-    current.notes === 'required' && !notes ? 'notes' : '',
-  ].filter(Boolean), [current, photo, video, notes])
+    current.photo === 'required' && record.photos === 0 ? 'photo' : '',
+    current.video === 'required' && record.videos === 0 ? 'video' : '',
+    current.notes === 'required' && !record.note ? 'notes' : '',
+  ].filter(Boolean), [current, record])
 
   const complete = () => {
-    if (missing.length) {
-      setWarning(`Required before completion: ${missing.join(', ')}`)
-      return
-    }
+    if (missing.length) { setWarning(`Required before completion: ${missing.join(', ')}`); return }
     next()
   }
 
@@ -87,30 +133,38 @@ function Patrol({ count, next }: { count: number; next: () => void }) {
     <div className="patrol-property-row"><div><small>PUBLIX SUPER MARKET</small><span>Checkpoint {index + 1} of {checkpoints.length}</span></div><div className="patrol-mini-progress"><i style={{width:`${((index + 1)/checkpoints.length)*100}%`}}/></div></div>
     <section className="checkpoint-hero"><div className="location-mark"><MapPin/></div><div><small>CURRENT PATROL LOCATION</small><h2>{current.name}</h2></div></section>
     <section className="mission-brief"><div className="brief-heading"><ClipboardCheck/><strong>Mission Brief</strong></div>{current.instructions.map(item => <div className="brief-item" key={item}><Circle/><span>{item}</span></div>)}</section>
-    <section className="evidence-section"><div className="evidence-heading"><strong>Evidence</strong><span>Capture only what is needed</span></div>
-      <EvidenceAction icon={<Camera/>} label="Photo" level={current.photo} captured={photo} onClick={()=>setPhoto(v=>!v)}/>
-      <EvidenceAction icon={<Video/>} label="Video" level={current.video} captured={video} onClick={()=>setVideo(v=>!v)}/>
-      <EvidenceAction icon={<FileText/>} label="Notes" level={current.notes} captured={notes} onClick={()=>setNotes(v=>!v)}/>
+    <section className="evidence-section"><div className="evidence-heading"><strong>Evidence</strong><span>Capture while at this location</span></div>
+      <EvidenceAction icon={<Camera/>} label="Photo" level={current.photo} count={record.photos} onClick={()=>setSheet('photo')}/>
+      <EvidenceAction icon={<Video/>} label="Video" level={current.video} count={record.videos} onClick={()=>setSheet('video')}/>
+      <EvidenceAction icon={<FileText/>} label="Notes" level={current.notes} count={0} detail={record.note ? 'Note saved' : ''} onClick={()=>setSheet('notes')}/>
     </section>
     {warning && <div className="evidence-warning">{warning}</div>}
     <PrimaryButton tone="orange" onClick={complete}><Check/> COMPLETE CHECKPOINT</PrimaryButton>
-  </main><BottomNav/></PhoneShell>
+  </main><BottomNav/>
+    {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={()=>{update({photos:record.photos+1});setSheet(null)}} onRemove={()=>{update({photos:0});setSheet(null)}}/>}
+    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={()=>{update({videos:record.videos+1});setSheet(null)}} onRemove={()=>{update({videos:0});setSheet(null)}}/>}
+    {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{update({note});setSheet(null)}} onRemove={()=>{update({note:''});setSheet(null)}}/>}
+  </PhoneShell>
 }
 
-const reviewItems = [
-  ['Exterior Perimeter','1 photo'],['Parking Lot','No evidence'],['Main Entrance','1 photo'],['Back Entrance','1 note'],['Rear Loading Dock','1 photo'],['Side Doors','No evidence'],
-]
-function Review({ next }: { next: () => void }) { return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>37 min</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>4 items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{reviewItems.map(([name,evidence])=><div key={name}><CheckCircle2/><span><strong>{name}</strong><small>{evidence}</small></span><ChevronRight/></div>)}</div><div className="review-note"><FileText/><span><strong>Final patrol note</strong><small>All areas checked. No issues observed.</small></span></div><PrimaryButton tone="purple" onClick={next}><Check/> SUBMIT PATROL</PrimaryButton></main><BottomNav/></PhoneShell> }
+function Review({ next, records }: { next: () => void; records: PatrolEvidence[] }) {
+  const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
+  return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>37 min</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{checkpoints.map((checkpoint,index)=>{
+    const item=records.find(record=>record.checkpoint===index)
+    const parts=[item?.photos?`${item.photos} photo${item.photos>1?'s':''}`:'',item?.videos?`${item.videos} video${item.videos>1?'s':''}`:'',item?.note?'1 note':''].filter(Boolean)
+    return <div key={checkpoint.name}><CheckCircle2/><span><strong>{checkpoint.name}</strong><small>{parts.length?parts.join(' · '):'No evidence'}</small></span><ChevronRight/></div>
+  })}</div><div className="review-note"><FileText/><span><strong>Mission record ready</strong><small>All checkpoint evidence is already attached.</small></span></div><PrimaryButton tone="purple" onClick={next}><Check/> SUBMIT PATROL</PrimaryButton></main><BottomNav/></PhoneShell>
+}
 function Completed({ next }: { next: () => void }) { return <PhoneShell><AppHeader title="COMPLETED"/><main className="screen-content completed-screen"><h2 className="property-title">Publix Super Market</h2><p>Assignment complete!</p><div className="success-orbit"><Check/></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>4 Items</strong></div><div><small>REPORT STATUS</small><strong>Submitted</strong></div></div><PrimaryButton onClick={next}><RefreshCw/> RETURN ONLINE</PrimaryButton></main><BottomNav/></PhoneShell> }
 
 export default function GuardDashboard(props: GuardDashboardProps) {
-  const { state, checkpoint=0, onAdvance } = props
+  const { state, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined } = props
   if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)}/>
   if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)}/>
   if (state === 'assignment') return <Assignment accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived next={action(props.onMarkArrived,onAdvance)}/>
-  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)}/>
-  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)}/>
+  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange}/>
+  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)}/>
 }

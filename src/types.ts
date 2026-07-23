@@ -16,3 +16,10 @@ export type StateMeta = {
   description: string
   accent: string
 }
+
+export type PatrolEvidence = {
+  checkpoint: number
+  photos: number
+  videos: number
+  note: string
+}

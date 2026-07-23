@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Code2 } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
 import ExperienceLab from './ExperienceLab'
-import type { MissionState } from './types'
+import type { MissionState, PatrolEvidence } from './types'
 
 const isDeveloperRoute = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -15,6 +15,7 @@ function GuardApp() {
   const [state, setState] = useState<MissionState>('offline')
   const [checkpoint, setCheckpoint] = useState(0)
   const [notice, setNotice] = useState('')
+  const [patrolEvidence, setPatrolEvidence] = useState<PatrolEvidence[]>([])
 
   useEffect(() => {
     if (state !== 'waiting') return
@@ -33,7 +34,7 @@ function GuardApp() {
   }, [notice])
 
   const goTo = useCallback((next: MissionState) => {
-    if (next === 'patrol') setCheckpoint(0)
+    if (next === 'patrol') { setCheckpoint(0); setPatrolEvidence([]) }
     setState(next)
   }, [])
 
@@ -55,6 +56,8 @@ function GuardApp() {
       <GuardDashboard
         state={state}
         checkpoint={checkpoint}
+        patrolEvidence={patrolEvidence}
+        onEvidenceChange={setPatrolEvidence}
         onGoOnline={() => goTo('waiting')}
         onGoOffline={() => goTo('offline')}
         onAccept={() => goTo('enroute')}
@@ -67,6 +70,6 @@ function GuardApp() {
       />
     </div>
     <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v0.4.0</div>
+    <div className="build-badge">v0.5.0</div>
   </div>
 }

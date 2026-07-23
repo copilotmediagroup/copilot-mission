@@ -1,14 +1,5 @@
-# Co Pilot Guard Living Dashboard v0.4.0
+# Co Pilot Guard Living Dashboard v0.5.0
 
-Visual prototype update introducing the Intelligent Patrol System:
+Smart Capture visual prototype. Photo and video actions open a native-style capture sheet, notes support quick selections and custom text, captured evidence is attached to its patrol location, and Review & Submit reflects the evidence collected during the patrol.
 
-- Named patrol locations instead of generic checkpoint numbers
-- Site-specific mission brief at every location
-- Photo, video, and notes captured while the guard is already at the checkpoint
-- Evidence may be optional, recommended, or required
-- Required evidence blocks only that checkpoint's completion
-- Final Upload Proof step replaced by Review & Submit
-- Responsive production route at `/`
-- Experience Lab at `/developer`
-
-No backend or Supabase integration is included yet.
+No backend or Supabase integration is included yet. Camera capture is simulated for design approval.
