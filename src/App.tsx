@@ -1,89 +1,26 @@
-import { useEffect, useState } from 'react'
-import { Clock3, Code2, ShieldCheck, UserRound, X } from 'lucide-react'
+import { useCallback, useState, type CSSProperties } from 'react'
+import { ChevronDown, Code2 } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
-import ExperienceLab from './ExperienceLab'
-import { GuardianProvider } from './modules/guardian/GuardianProvider'
-import GuardianButton from './modules/guardian/GuardianButton'
-import { useMissionEngine } from './modules/mission/useMissionEngine'
-import MissionTimeline from './modules/timeline/MissionTimeline'
-import AgencyMarketplace from './AgencyMarketplace'
-import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { AuthGateway } from './modules/auth/AuthGateway'
-import ClientPortal from './ClientPortal'
-
-const isDeveloperRoute = window.location.pathname.replace(/\/+$/, '') === '/developer'
+import { states } from './data'
+import type { MissionState } from './types'
+import { BrandMark } from './ui'
 
 export default function App() {
-  return <AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider>
-}
+  const [state, setState] = useState<MissionState>('offline')
+  const [devOpen, setDevOpen] = useState(true)
+  const current = states.find(s => s.id === state)!
+  const advance = useCallback(() => {
+    const i = states.findIndex(s => s.id === state)
+    setState(states[(i + 1) % states.length].id)
+  }, [state])
 
-function AppShell() {
-  const auth = useAuth()
-  if (isDeveloperRoute) return <ExperienceLab />
-  if (auth.role === 'guard') return <GuardApp />
-  if (auth.role === 'agency_admin') return <div className="portal-root"><button className="portal-auth-logout" onClick={() => void auth.signOut()}>Log out</button><AgencyMarketplace /></div>
-  if (auth.role === 'platform_admin') return <PortalPlaceholder title="Platform Command" body="The Platform Admin workspace is authenticated and ready for its live dashboard integration." onLogout={() => void auth.signOut()} />
-  return <ClientPortal />
-}
-
-function PortalPlaceholder({ title, body, onLogout }: { title: string; body: string; onLogout: () => void }) {
-  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">v1.3.2 · ADDRESS ACCURACY + MAP CONFIRMATION</div></div></div>
-}
-
-function GuardApp() {
-  const { mission, actions, setEvidence, setIncidents } = useMissionEngine()
-  const [notice, setNotice] = useState('')
-  const [timelineOpen, setTimelineOpen] = useState(false)
-
-  useEffect(() => {
-    if (mission.state !== 'waiting') return
-    setNotice('Scanning for nearby assignments…')
-    const assignmentTimer = window.setTimeout(() => {
-      setNotice('New assignment received')
-      actions.receiveAssignment()
-    }, 4200)
-    return () => window.clearTimeout(assignmentTimer)
-  }, [mission.state, actions])
-
-  useEffect(() => {
-    if (!notice) return
-    const timer = window.setTimeout(() => setNotice(''), 2400)
-    return () => window.clearTimeout(timer)
-  }, [notice])
-
-  return <GuardianProvider missionState={mission.state}><div className={`guard-app state-${mission.state}`}>
-    <div className="ambient ambient-one" />
-    <div className="ambient ambient-two" />
-    {notice && <div className="mission-toast">{notice}</div>}
-    <div className="production-workspace">
-      <div className="production-stage" key={mission.state}>
-      <GuardDashboard
-        state={mission.state}
-        checkpoint={mission.checkpoint}
-        patrolEvidence={mission.patrolEvidence}
-        onEvidenceChange={setEvidence}
-        incidents={mission.incidents}
-        missionStartedAt={mission.missionStartedAt}
-        onIncidentsChange={setIncidents}
-        onGoOnline={actions.goOnline}
-        onGoOffline={actions.goOffline}
-        onAccept={actions.acceptAssignment}
-        onDecline={actions.declineAssignment}
-        onStartRoute={actions.startRoute}
-        onMarkArrived={actions.markArrived}
-        onNextCheckpoint={actions.completeCheckpoint}
-        onSubmitProof={actions.submitProof}
-        onReturnOnline={actions.returnOnline}
-      />
-      </div>
-      <MissionTimeline className={timelineOpen ? 'timeline-open' : ''} onClose={() => setTimelineOpen(false)}/>
-    </div>
-    <div className="mission-utility-dock">
-      <GuardianButton missionState={mission.state}/>
-      <button className="timeline-trigger" onClick={() => setTimelineOpen(true)} aria-label="Open mission timeline"><Clock3/><span>Timeline</span></button>
-    </div>
-    {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}
-    <a className="developer-link" href="/developer" aria-label="Open Experience Lab"><Code2 /></a>
-    <div className="build-badge">v1.3.2 · ADDRESS ACCURACY + MAP CONFIRMATION</div>
-  </div></GuardianProvider>
+  return <div className={`app state-${state}`}>
+    <header className="site-header"><BrandMark/><div className="hero-title"><h1>THE <em>LIVING</em> DASHBOARD</h1><p>The dashboard evolves with every step of the mission.</p></div><div className="version"><strong>v0.1.0</strong><span>VISUAL PROTOTYPE</span></div></header>
+    <section className="state-rail">{states.map(s => <button key={s.id} className={s.id===state?'active':''} style={{'--accent':s.accent} as CSSProperties} onClick={()=>setState(s.id)}><i>{s.number}</i><span><strong>{s.label}</strong><small>{s.description}</small></span></button>)}</section>
+    <main className="showcase"><div className="phone-stage" key={state}><GuardDashboard state={state} onAdvance={advance}/><div className="state-caption"><strong style={{color:current.accent}}>{current.short}</strong><span>{current.description}</span></div></div>
+      <aside className="design-notes"><div className="note-kicker">MISSION STATE {current.number}</div><h2>{current.label}</h2><p>{current.description}</p><div className="principle"><strong>One primary action.</strong><span>The interface reveals only what the guard needs, exactly when it is needed.</span></div><div className="principle"><strong>Living, not navigating.</strong><span>The same dashboard transforms instead of sending the guard through disconnected pages.</span></div><div className="principle"><strong>Context becomes color.</strong><span>Blue guides movement, green confirms progress, orange focuses patrol, and purple owns evidence.</span></div></aside>
+    </main>
+    <footer><BrandMark compact/><span>One App. One Mission. <b>Complete Every Assignment.</b></span><div className="roles"><span>GUARD</span><span>AGENCY</span><span>CLIENT</span><span>ADMIN</span></div></footer>
+    <div className={`developer ${devOpen?'open':''}`}><button className="dev-trigger" onClick={()=>setDevOpen(v=>!v)}><Code2/>Developer Mode<ChevronDown/></button>{devOpen&&<div className="dev-panel"><small>MISSION STATE</small>{states.map(s=><button className={s.id===state?'active':''} onClick={()=>setState(s.id)} key={s.id}><i style={{background:s.accent}}/>{s.number}. {s.label}</button>)}</div>}</div>
+  </div>
 }

@@ -16,29 +16,3 @@ export type StateMeta = {
   description: string
   accent: string
 }
-
-export type PatrolEvidence = {
-  checkpoint: number
-  photos: number
-  videos: number
-  note: string
-}
-
-
-export type IncidentSeverity = 'low' | 'medium' | 'high'
-export type IncidentStatus = 'draft' | 'submitted' | 'resolved'
-
-export type IncidentRecord = {
-  id: string
-  checkpoint: number
-  type: string
-  severity: IncidentSeverity
-  note: string
-  photos: number
-  videos: number
-  timestamp: string
-  location: string
-  status: IncidentStatus
-  peopleOrVehicles: string
-  emergencyServices: boolean
-}
