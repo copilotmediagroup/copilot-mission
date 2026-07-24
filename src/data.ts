@@ -7,6 +7,6 @@ export const states: StateMeta[] = [
   { id: 'enroute', number: 4, label: 'En Route', short: 'En Route', description: 'Guard is on the way to the property.', accent: '#1685ff' },
   { id: 'arrived', number: 5, label: 'Arrived', short: 'Arrived', description: 'Guard has arrived at the property.', accent: '#00d87a' },
   { id: 'patrol', number: 6, label: 'On Patrol', short: 'On Patrol', description: 'Patrol in progress. Complete checkpoints.', accent: '#ff7a00' },
-  { id: 'proof', number: 7, label: 'Review & Submit', short: 'Review', description: 'Review checkpoint evidence and submit the patrol.', accent: '#b754f6' },
+  { id: 'proof', number: 7, label: 'Upload Proof', short: 'Upload Proof', description: 'Patrol complete. Upload proof.', accent: '#b754f6' },
   { id: 'completed', number: 8, label: 'Completed', short: 'Completed', description: 'Assignment complete. Return online.', accent: '#00d87a' },
 ]
