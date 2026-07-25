@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Building2, Code2, LogOut, Shield, ShieldCheck, UserRound, X } from 'lucide-react'
+import { Building2, Code2, Shield, ShieldCheck, UserRound, X } from 'lucide-react'
 import type { AppRole } from './modules/auth/AuthProvider'
 
 export type DeveloperPreview = AppRole | 'guard_lab'
@@ -27,7 +27,6 @@ export function DeveloperPortalSwitcher({
   onExit,
   accessMode,
   onAccessModeChange,
-  onSignOut,
 }: {
   value: DeveloperPreview
   actualRole: AppRole | null
@@ -35,11 +34,9 @@ export function DeveloperPortalSwitcher({
   onExit: () => void
   accessMode: DeveloperAccessMode
   onAccessModeChange: (mode: DeveloperAccessMode) => void
-  onSignOut: () => void
 }) {
   const [compactOpen, setCompactOpen] = useState(false)
-  const displayedRole = accessMode === 'live' && actualRole ? actualRole : value
-  const selected = useMemo(() => options.find(option => option.id === displayedRole) ?? options[0], [displayedRole])
+  const selected = useMemo(() => options.find(option => option.id === value) ?? options[0], [value])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, value)
@@ -56,13 +53,11 @@ export function DeveloperPortalSwitcher({
         const Icon = option.icon
         return <button
           key={option.id}
-          className={option.id === displayedRole ? 'active' : ''}
-          disabled={accessMode === 'live' && option.id !== actualRole}
-          title={accessMode === 'live' && option.id !== actualRole ? 'Live Test uses the authenticated account role' : undefined}
-          onClick={() => { if (accessMode === 'live' && option.id !== actualRole) return; onChange(option.id); setCompactOpen(false) }}
+          className={option.id === value ? 'active' : ''}
+          onClick={() => { onChange(option.id); setCompactOpen(false) }}
         ><Icon/><span>{option.label}</span></button>
       })}
     </div>
-    <div className="portal-switcher-actions"><button className="portal-switcher-signout" onClick={onSignOut} title="Sign out"><LogOut/><span>Sign Out</span></button><button className="portal-switcher-exit" onClick={onExit} title="Exit developer mode"><X/><span>Exit</span></button></div>
+    <button className="portal-switcher-exit" onClick={onExit} title="Exit developer mode"><X/><span>Exit</span></button>
   </div>
 }

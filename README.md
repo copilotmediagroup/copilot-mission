@@ -1,6 +1,6 @@
-# Co Pilot Security Marketplace v1.5.4
+# Co Pilot Security Marketplace v1.5.2
 
-## Marketplace Lifecycle Stabilization
+## Platform Owner & Mission Control Access
 
 This build preserves the stable v1.5.1 application and adds server-authoritative Platform Owner access.
 
@@ -39,53 +39,3 @@ npm install
 npm run build
 npm run dev
 ```
-
-
-## v1.5.4 Mission Control Session Access
-
-Adds a visible authenticated Sign Out control to Mission Control while preserving Supabase-backed role authorization, Developer Mode Preview, and Live Test behavior.
-
-
-## v1.5.4 Portal Access Stability
-
-- Shared authenticated session dock exposes Developer Mode and Sign Out from every portal.
-- Developer Mode retains Preview and Live Test and now includes Sign Out in its control rail.
-- Agency live marketplace no longer paints simulated opportunities before the Supabase query resolves.
-- Live empty results remain stable and display a deliberate empty state while realtime remains subscribed.
-
-## v1.5.7.2 one-time migration
-
-Run `supabase/migrations/202607250001_property_photos_claim_reliability.sql` once on an existing database. It adds property photo fields, creates the `property-photos` Storage bucket and client-scoped Storage policies, and updates the atomic claim function to return accurate claim failure reasons.
-
-
-## v1.5.7.2 migration
-Run `supabase/migrations/202607250002_complete_property_management.sql` once after the v1.5.5 migration. It adds safe property editing, archiving, and permanent deletion rules.
-
-
-## v1.5.7.2 Marketplace Lifecycle Stabilization
-
-- Preview is a sealed simulation and never writes to Supabase.
-- Live Test is locked to the authenticated account role; role previewing is disabled.
-- Switching environments clears the previous environment state before loading the next source.
-- Agency Live Test never falls back to demo opportunities.
-- Client mission submission uses the database-authoritative `create_marketplace_job` RPC.
-- Agency RLS can read linked client/property presentation data only for missions already visible through marketplace job RLS.
-- Realtime subscriptions reload open and claimed missions after inserts, updates, claims, and mission events.
-
-### Required one-time migration
-
-Run `supabase/migrations/202607250003_marketplace_lifecycle_stabilization.sql` after the earlier migrations.
-
-
-## v1.5.7.2 compile hotfix
-
-- Renamed the property image preview state to `photoPreview` so it no longer collides with the `preview` environment prop in `ClientPortal.tsx`.
-- No database migration is required for this hotfix.
-
-## v1.5.7.2 required migration
-
-Run once after the v1.5.7 migration:
-
-`supabase/migrations/202607250004_live_workspace_recovery.sql`
-
-This migration backfills missing `clients` companion rows and adds the database-authoritative `ensure_client_workspace()` resolver. Live Test does not fabricate a client ID and does not fall back to preview data.

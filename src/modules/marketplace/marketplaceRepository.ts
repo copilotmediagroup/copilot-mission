@@ -14,7 +14,7 @@ export type MarketplaceJobRow = {
   required_guards: number
   created_at: string
   updated_at: string
-  property?: { name?: string; address?: string; latitude?: number | null; longitude?: number | null; photo_url?: string | null } | null
+  property?: { name?: string; address?: string; latitude?: number | null; longitude?: number | null } | null
   client?: { display_name?: string } | null
 }
 
@@ -49,7 +49,7 @@ export async function getAgencyMarketplace(agencyId: string) {
   const db = requireSupabase()
   const { data, error } = await db
     .from('marketplace_jobs')
-    .select('id,title,instructions,status,priority,accepted_agency_id,accepted_at,scheduled_for,duration_minutes,payout_cents,required_guards,created_at,updated_at,property:properties(name,address,latitude,longitude,photo_url),client:clients(display_name)')
+    .select('id,title,instructions,status,priority,accepted_agency_id,accepted_at,scheduled_for,duration_minutes,payout_cents,required_guards,created_at,updated_at,property:properties(name,address,latitude,longitude),client:clients(display_name)')
     .or(`status.eq.open,accepted_agency_id.eq.${agencyId}`)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -63,7 +63,7 @@ export async function getAgencyMarketplace(agencyId: string) {
 export async function getPlatformMarketplace() {
   const db = requireSupabase()
   const [{ data: jobs, error: jobsError }, { data: events, error: eventsError }, { count: onlineGuards, error: guardsError }] = await Promise.all([
-    db.from('marketplace_jobs').select('id,title,instructions,status,priority,accepted_agency_id,accepted_at,scheduled_for,duration_minutes,payout_cents,required_guards,created_at,updated_at,property:properties(name,address,latitude,longitude,photo_url),client:clients(display_name)').order('created_at', { ascending: false }).limit(100),
+    db.from('marketplace_jobs').select('id,title,instructions,status,priority,accepted_agency_id,accepted_at,scheduled_for,duration_minutes,payout_cents,required_guards,created_at,updated_at,property:properties(name,address,latitude,longitude),client:clients(display_name)').order('created_at', { ascending: false }).limit(100),
     db.from('mission_events').select('id,job_id,event_type,payload,created_at').order('created_at', { ascending: false }).limit(40),
     db.from('guards').select('*', { count: 'exact', head: true }).neq('availability', 'offline'),
   ])
