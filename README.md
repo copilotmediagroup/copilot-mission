@@ -1,4 +1,4 @@
-# Co Pilot Security Marketplace v1.5.3
+# Co Pilot Security Marketplace v1.5.2
 
 ## Platform Owner & Mission Control Access
 
@@ -39,8 +39,3 @@ npm install
 npm run build
 npm run dev
 ```
-
-
-## v1.5.3 Mission Control Session Access
-
-Adds a visible authenticated Sign Out control to Mission Control while preserving Supabase-backed role authorization, Developer Mode Preview, and Live Test behavior.
