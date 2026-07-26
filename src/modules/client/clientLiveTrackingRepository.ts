@@ -14,13 +14,12 @@ export type ClientTrackingExperience={
 }|null
 
 function db(){if(!supabase)throw new Error('Supabase is not configured.');return supabase}
-export async function getClientTrackingExperience(){const {data,error}=await db().rpc('get_client_live_tracking_experience_rc13');if(error)throw new Error(error.message);return (data??null) as ClientTrackingExperience}
+export async function getClientTrackingExperience(){const {data,error}=await db().rpc('get_client_live_tracking_experience');if(error)throw new Error(error.message);return (data??null) as ClientTrackingExperience}
 export function subscribeToClientTracking(onChange:()=>void){if(!supabase)return()=>undefined;const channel=supabase.channel(`client-tracking-${crypto.randomUUID()}`)
   .on('postgres_changes',{event:'*',schema:'public',table:'marketplace_jobs'},onChange)
   .on('postgres_changes',{event:'*',schema:'public',table:'job_assignments'},onChange)
   .on('postgres_changes',{event:'*',schema:'public',table:'mission_engine_state'},onChange)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'mission_events'},onChange)
   .on('postgres_changes',{event:'*',schema:'public',table:'guards'},onChange)
-  .on('postgres_changes',{event:'INSERT',schema:'public',table:'guard_location_history'},onChange)
   .on('postgres_changes',{event:'*',schema:'public',table:'mission_reports'},onChange)
   .subscribe();return()=>{void supabase?.removeChannel(channel)}}
