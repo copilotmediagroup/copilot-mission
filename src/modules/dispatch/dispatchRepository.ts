@@ -24,6 +24,28 @@ export async function getGuardDispatchWorkspace():Promise<GuardDispatchWorkspace
   const {data,error}=await db().rpc('get_guard_dispatch_workspace_rc2'); if(error) throw new Error(error.message); return data as GuardDispatchWorkspace
 }
 
+
+export type GuardDailySummary = { jobsToday:number; onDutySeconds:number; checkInsToday:number }
+export async function getGuardDailySummary(timezone:string):Promise<GuardDailySummary>{
+  const {data,error}=await db().rpc('get_guard_daily_summary_rc21b',{p_timezone:timezone})
+  if(error) throw new Error(error.message)
+  const payload=(data??{}) as Record<string,unknown>
+  return {
+    jobsToday:Number(payload.jobs_today??0),
+    onDutySeconds:Number(payload.on_duty_seconds??0),
+    checkInsToday:Number(payload.check_ins_today??0),
+  }
+}
+export function subscribeToGuardDailySummary(onChange:()=>void){
+  if(!supabase)return()=>undefined
+  const channel=supabase.channel(`guard-daily-summary-${crypto.randomUUID()}`)
+    .on('postgres_changes',{event:'*',schema:'public',table:'mission_engine_state'},onChange)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'guard_presence_events'},onChange)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'patrol_checkpoint_completions'},onChange)
+    .subscribe()
+  return()=>{void supabase?.removeChannel(channel)}
+}
+
 export type GuardPresence = { guard_id:string; agency_id:string; availability:'offline'|'available'|'reserved'|'on_mission'; online:boolean; changed?:boolean }
 export async function setGuardPresence(online:boolean):Promise<GuardPresence>{
   const {data,error}=await db().rpc('set_guard_presence_rc13',{p_online:online}); if(error) throw new Error(error.message); return data as GuardPresence

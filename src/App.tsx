@@ -8,7 +8,7 @@ import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, transitionGuardMission, completePatrolCheckpointRC21, type DispatchMission, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
+import { getGuardDailySummary, getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, subscribeToGuardDailySummary, transitionGuardMission, completePatrolCheckpointRC21, type DispatchMission, type GuardDailySummary, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
@@ -24,8 +24,12 @@ export default function App() {
 function AppShell() {
   const auth = useAuth()
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
-  const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
+  const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>(() => (localStorage.getItem('co-pilot-developer-access-mode') as DeveloperAccessMode | null) ?? 'live')
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))
+
+  useEffect(() => {
+    localStorage.setItem('co-pilot-developer-access-mode', developerAccessMode)
+  }, [developerAccessMode])
 
   useEffect(() => {
     if (!auth.role || developerMode) return
@@ -75,6 +79,7 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
   const [engineMission, setEngineMission] = useState<MissionEngineRecord | null>(null)
+  const [dailySummary, setDailySummary] = useState<GuardDailySummary>({ jobsToday: 0, onDutySeconds: 0, checkInsToday: 0 })
   const liveDispatch = auth.mode === 'supabase' && auth.role === 'guard'
   const reportLocationError = useCallback((message:string) => setNotice(message), [])
   useGuardLocationPublisher(liveDispatch && mission.state !== 'offline', reportLocationError)
@@ -118,7 +123,18 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
     }
   }, [liveDispatch, mission.state, actions])
 
-  useEffect(() => { if (liveDispatch) void loadDispatch() }, [liveDispatch, loadDispatch])
+  const loadDailySummary = useCallback(async () => {
+    if (!liveDispatch) return
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      setDailySummary(await getGuardDailySummary(timezone))
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Guard summary unavailable')
+    }
+  }, [liveDispatch])
+
+  useEffect(() => { if (liveDispatch) { void loadDispatch(); void loadDailySummary() } }, [liveDispatch, loadDispatch, loadDailySummary])
+  useEffect(() => liveDispatch ? subscribeToGuardDailySummary(() => void loadDailySummary()) : undefined, [liveDispatch, loadDailySummary])
   useEffect(() => liveDispatch ? subscribeToDispatch(() => void loadDispatch()) : undefined, [liveDispatch, loadDispatch])
 
   useEffect(() => {
@@ -259,6 +275,7 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
         missionStartedAt={mission.missionStartedAt}
         missionCompletedAt={mission.completedAt}
         checkpointSaving={checkpointSaving}
+        dailySummary={dailySummary}
         onIncidentsChange={(records) => void updateIncidents(records)}
         onGoOnline={() => void goOnline()}
         onGoOffline={() => void goOffline()}
