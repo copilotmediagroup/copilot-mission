@@ -184,6 +184,12 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
 
   useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),3200);return()=>window.clearTimeout(timer)},[toast])
 
+  useEffect(()=>{
+    const navigate=(event:Event)=>{const detail=(event as CustomEvent<{kind?:string;target?:string;jobId?:string}>).detail;if(detail?.kind==='open_marketplace_job'){setTab('marketplace');if(detail.jobId){window.setTimeout(()=>document.querySelector(`[data-job-id=\"${detail.jobId}\"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),120)}}}
+    window.addEventListener('copilot:notification-action',navigate)
+    return()=>window.removeEventListener('copilot:notification-action',navigate)
+  },[])
+
   const accept=async(job:Job)=>{
     if(claimingId)return
     if(isPreview){setToast(isRoleMatch?'Preview Mode: claim simulated only.':'Preview Mode: signed in as Client. Switch to an approved Agency account for Live Test.');return}

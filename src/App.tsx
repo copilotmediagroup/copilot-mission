@@ -14,11 +14,12 @@ import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { useGuardLocationPublisher } from './modules/location/useGuardLocationPublisher'
+import { NotificationEngine } from './modules/notifications/NotificationEngine'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
 export default function App() {
-  return <AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider>
+  return <AuthProvider><AuthGateway><NotificationEngine><AppShell /></NotificationEngine></AuthGateway></AuthProvider>
 }
 
 function AppShell() {
