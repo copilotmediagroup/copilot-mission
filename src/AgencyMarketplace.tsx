@@ -15,6 +15,7 @@ import ReportingWorkspace from './ReportingWorkspace'
 import { useAgencyLiveLocations } from './modules/location/useAgencyLiveLocations'
 import type { LocationFreshness } from './modules/location/liveLocationRepository'
 import AgencyOperationsMap from './modules/maps/AgencyOperationsMap'
+import AgencyOperationsCenter from './AgencyOperationsCenter'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
 type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null }
@@ -224,7 +225,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     </header>
 
     <main className="agency-main premium-main">
-      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
+      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview}/>:tab==='operations'?<AgencyOperationsCenter preview={isPreview} onMarketplace={()=>setTab('marketplace')} onToast={setToast}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
     </main>
   </div>
 }
