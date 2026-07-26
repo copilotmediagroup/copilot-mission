@@ -119,6 +119,33 @@ export async function getGuardMissionSnapshot(jobId?:string):Promise<GuardMissio
   return data as GuardMissionSnapshot
 }
 
+
+export type PatrolCheckpointPosition = { latitude:number|null; longitude:number|null; accuracyMeters:number|null }
+
+export async function completePatrolCheckpointRC21(args:{
+  jobId:string
+  expectedVersion:number
+  checkpoint:number
+  checkpointName:string
+  evidence:import('../../types').PatrolEvidence[]
+  incidents:import('../../types').IncidentRecord[]
+  position?:PatrolCheckpointPosition|null
+}):Promise<MissionEngineRecord>{
+  const {data,error}=await db().rpc('complete_patrol_checkpoint_rc21',{
+    p_job_id:args.jobId,
+    p_expected_version:args.expectedVersion,
+    p_checkpoint:args.checkpoint,
+    p_checkpoint_name:args.checkpointName,
+    p_evidence:args.evidence,
+    p_incidents:args.incidents,
+    p_latitude:args.position?.latitude ?? null,
+    p_longitude:args.position?.longitude ?? null,
+    p_accuracy_meters:args.position?.accuracyMeters ?? null,
+  })
+  if(error) throw new Error(error.message)
+  return data as MissionEngineRecord
+}
+
 export async function transitionGuardMission(args:{
   jobId:string
   action:'accept'|'decline'|'start_route'|'mark_arrived'|'save_payload'|'complete_checkpoint'|'submit'

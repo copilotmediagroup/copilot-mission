@@ -1221,3 +1221,10 @@ body{overflow-x:hidden;}
 .unified-map-unavailable{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:7px;color:#8fa5b8}.unified-map-unavailable svg{margin:auto}.unified-map-unavailable span{font-size:10px}
 .guard-route-screen .unified-mission-map{height:300px;min-height:300px;border-radius:12px;margin:10px 0 12px}.guard-route-screen .unified-map-address{max-width:70%;padding:9px 10px}.guard-route-screen .unified-map-freshness{top:12px;right:12px;bottom:auto}.guard-route-screen .two-stats{margin-top:0}
 @media(max-width:720px){.unified-map-address{max-width:72%}.unified-mission-map{min-height:280px}}
+
+/* RC2.1 Patrol Execution Engine */
+.arrival-ready-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:14px 0;border:1px solid rgba(46,204,113,.28);border-radius:16px;background:rgba(46,204,113,.08)}
+.arrival-ready-card>svg{width:22px;height:22px;flex:0 0 auto;color:#62e49a;margin-top:1px}
+.arrival-ready-card span{display:flex;flex-direction:column;gap:4px}
+.arrival-ready-card strong{font-size:14px;color:inherit}
+.arrival-ready-card small{font-size:12px;line-height:1.45;color:var(--muted,#98a2b3)}

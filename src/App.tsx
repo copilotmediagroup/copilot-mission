@@ -8,7 +8,7 @@ import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, transitionGuardMission, type DispatchMission, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
+import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, transitionGuardMission, completePatrolCheckpointRC21, type DispatchMission, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
@@ -207,8 +207,28 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   }
 
   const nextCheckpoint = async () => {
-    if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:engineMission?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+    if (liveDispatch && dispatchMission && engineMission) {
+      try {
+        const position = await new Promise<{latitude:number|null;longitude:number|null;accuracyMeters:number|null}>((resolve) => {
+          if (!navigator.geolocation) { resolve({latitude:null,longitude:null,accuracyMeters:null}); return }
+          navigator.geolocation.getCurrentPosition(
+            ({coords}) => resolve({latitude:coords.latitude,longitude:coords.longitude,accuracyMeters:coords.accuracy}),
+            () => resolve({latitude:null,longitude:null,accuracyMeters:null}),
+            {enableHighAccuracy:true,timeout:8000,maximumAge:15000},
+          )
+        })
+        const checkpointNames=['Exterior Perimeter','Parking Lot','Main Entrance','Back Entrance','Rear Loading Dock','Side Doors']
+        await completePatrolCheckpointRC21({
+          jobId:dispatchMission.job_id,
+          expectedVersion:engineMission.version,
+          checkpoint:mission.checkpoint,
+          checkpointName:checkpointNames[mission.checkpoint] ?? `Checkpoint ${mission.checkpoint + 1}`,
+          evidence:mission.patrolEvidence,
+          incidents:mission.incidents,
+          position,
+        })
+        await loadDispatch()
+      }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
       return
     }
