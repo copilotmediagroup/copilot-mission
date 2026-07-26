@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase'
 
 export type LocationFreshness='live'|'stale'|'expired'|'waiting'|'offline'
-export type GuardLiveLocation={guard_id:string;name:string;availability:'offline'|'available'|'reserved'|'on_mission';latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:LocationFreshness;agency_id?:string;agency_name?:string}
+export type GuardLiveLocation={guard_id:string;name:string;availability:'offline'|'available'|'reserved'|'on_mission';latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:LocationFreshness;agency_id?:string;agency_name?:string;avatar_url?:string|null;current_address?:string|null}
 export type LocationPoint={latitude:number;longitude:number;accuracy_meters:number|null;heading_degrees:number|null;speed_mps:number|null;recorded_at:string}
 export type PublishedLocation={success:boolean;guard_id:string;agency_id:string;job_id:string|null;latitude:number;longitude:number;recorded_at:string}
 
