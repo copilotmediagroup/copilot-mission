@@ -8,13 +8,12 @@ import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, transitionGuardMission, type DispatchMission, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
+import { getGuardDailySummary, getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, subscribeToGuardDailySummary, transitionGuardMission, completePatrolCheckpointRC21, type DispatchMission, type GuardDailySummary, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
-import { writeGuardLocation } from './modules/location/liveLocationRepository'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
-import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
+import { useGuardLocationPublisher } from './modules/location/useGuardLocationPublisher'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -25,8 +24,12 @@ export default function App() {
 function AppShell() {
   const auth = useAuth()
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
-  const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
+  const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>(() => (localStorage.getItem('co-pilot-developer-access-mode') as DeveloperAccessMode | null) ?? 'live')
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))
+
+  useEffect(() => {
+    localStorage.setItem('co-pilot-developer-access-mode', developerAccessMode)
+  }, [developerAccessMode])
 
   useEffect(() => {
     if (!auth.role || developerMode) return
@@ -65,17 +68,21 @@ function AppShell() {
 }
 
 function PortalPlaceholder({ title, body, onLogout }: { title: string; body: string; onLogout: () => void }) {
-  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div></div></div>
+  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">MISSION ENGINE · ACCEPTANCE BUILD</div></div></div>
 }
 
 function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boolean; onEnableDeveloperMode: () => void }) {
   const auth = useAuth()
   const { mission, actions, setEvidence, setIncidents } = useMissionEngine()
   const [notice, setNotice] = useState('')
+  const [checkpointSaving,setCheckpointSaving]=useState(false)
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
   const [engineMission, setEngineMission] = useState<MissionEngineRecord | null>(null)
+  const [dailySummary, setDailySummary] = useState<GuardDailySummary>({ jobsToday: 0, onDutySeconds: 0, checkInsToday: 0 })
   const liveDispatch = auth.mode === 'supabase' && auth.role === 'guard'
+  const reportLocationError = useCallback((message:string) => setNotice(message), [])
+  useGuardLocationPublisher(liveDispatch && mission.state !== 'offline', reportLocationError)
 
   const loadDispatch = useCallback(async () => {
     if (!liveDispatch) return
@@ -116,29 +123,19 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
     }
   }, [liveDispatch, mission.state, actions])
 
-  useEffect(() => { if (liveDispatch) void loadDispatch() }, [liveDispatch, loadDispatch])
+  const loadDailySummary = useCallback(async () => {
+    if (!liveDispatch) return
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      setDailySummary(await getGuardDailySummary(timezone))
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Guard summary unavailable')
+    }
+  }, [liveDispatch])
+
+  useEffect(() => { if (liveDispatch) { void loadDispatch(); void loadDailySummary() } }, [liveDispatch, loadDispatch, loadDailySummary])
+  useEffect(() => liveDispatch ? subscribeToGuardDailySummary(() => void loadDailySummary()) : undefined, [liveDispatch, loadDailySummary])
   useEffect(() => liveDispatch ? subscribeToDispatch(() => void loadDispatch()) : undefined, [liveDispatch, loadDispatch])
-
-  useEffect(() => {
-    if (!liveDispatch || mission.state === 'offline' || !navigator.geolocation) return
-    let lastWrite = 0
-    const watchId = navigator.geolocation.watchPosition(
-      position => {
-        const now = Date.now()
-        if (now - lastWrite < 8000) return
-        lastWrite = now
-        void writeGuardLocation(position).catch(error => setNotice(error instanceof Error ? error.message : 'Location update failed'))
-      },
-      error => setNotice(error.code === error.PERMISSION_DENIED ? 'Location permission is required while online.' : 'Waiting for GPS signal…'),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
-  }, [liveDispatch, mission.state])
-
-  useEffect(() => {
-    const locationEnabled = liveDispatch && mission.state !== 'offline' && mission.state !== 'completed'
-    return startGuardLocationPublisher({enabled:locationEnabled,onError:(message)=>setNotice(message.includes('denied')?'Location permission is required for live operations.':message)})
-  }, [liveDispatch, mission.state])
 
   useEffect(() => {
     if (!liveDispatch) return
@@ -227,12 +224,30 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   }
 
   const nextCheckpoint = async () => {
-    if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:engineMission?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
-      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
-      return
-    }
+    if (checkpointSaving) return
+    const previous={state:mission.state,checkpoint:mission.checkpoint,startedAt:mission.missionStartedAt,evidence:mission.patrolEvidence,incidents:mission.incidents,completedAt:mission.completedAt}
     actions.completeCheckpoint()
+    if (!liveDispatch || !dispatchMission || !engineMission) return
+    setCheckpointSaving(true)
+    try {
+      const checkpointNames=['Exterior Perimeter','Parking Lot','Main Entrance','Back Entrance','Rear Loading Dock','Side Doors']
+      const next=await completePatrolCheckpointRC21({
+        jobId:dispatchMission.job_id,
+        expectedVersion:engineMission.version,
+        checkpoint:previous.checkpoint,
+        checkpointName:checkpointNames[previous.checkpoint] ?? `Checkpoint ${previous.checkpoint + 1}`,
+        evidence:previous.evidence,
+        incidents:previous.incidents,
+        position:{latitude:null,longitude:null,accuracyMeters:null},
+      })
+      setEngineMission(next)
+      actions.hydrateLiveState(next.state==='review'?'proof':'patrol',next.mission_started_at?new Date(next.mission_started_at).getTime():previous.startedAt,next.checkpoint_index,next.evidence??previous.evidence,next.incidents??previous.incidents,next.completed_at?new Date(next.completed_at).getTime():previous.completedAt)
+    } catch (error) {
+      actions.hydrateLiveState(previous.state,previous.startedAt,previous.checkpoint,previous.evidence,previous.incidents,previous.completedAt)
+      setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint')
+    } finally {
+      setCheckpointSaving(false)
+    }
   }
 
   const submitProof = async () => {
@@ -258,6 +273,9 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
         onEvidenceChange={(records) => void updateEvidence(records)}
         incidents={mission.incidents}
         missionStartedAt={mission.missionStartedAt}
+        missionCompletedAt={mission.completedAt}
+        checkpointSaving={checkpointSaving}
+        dailySummary={dailySummary}
         onIncidentsChange={(records) => void updateIncidents(records)}
         onGoOnline={() => void goOnline()}
         onGoOffline={() => void goOffline()}
@@ -278,6 +296,6 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
     </div>
     {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}
     {!developerMode && <button className="developer-link" onClick={onEnableDeveloperMode} aria-label="Open Developer Mode"><Code2 /></button>}
-    <div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div>
+    <div className="build-badge">MISSION ENGINE · ACCEPTANCE BUILD</div>
   </div></GuardianProvider>
 }

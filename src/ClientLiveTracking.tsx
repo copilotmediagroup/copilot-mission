@@ -1,5 +1,6 @@
-import { Building2, Check, CheckCircle2, Clock3, FileText, LocateFixed, MapPin, Navigation, Radio, Shield, UserRound } from 'lucide-react'
+import { Check, CheckCircle2, Clock3, FileText, Navigation, Radio, Shield, UserRound } from 'lucide-react'
 import type { ClientTrackingExperience, TrackingTimelineEvent } from './modules/client/clientLiveTrackingRepository'
+import ClientMissionMap from './ClientMissionMap'
 
 type Props={experience:ClientTrackingExperience;onViewReport:()=>void}
 const stages=['marketplace','offered','accepted','en_route','active','checkpoint','review','completed']
@@ -16,13 +17,7 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
   </div>
 
   <div className="tracking-map-panel">
-   <div className="tracking-map-grid" aria-label="Live mission map presentation">
-    <div className="tracking-route-line"/>
-    <span className="tracking-property-marker"><Building2/></span>
-    {guard?.latitude!=null&&guard?.longitude!=null&&!completed?<span className="tracking-guard-marker"><Shield/></span>:null}
-    <div className="tracking-map-address"><MapPin/><span><small>SECURITY LOCATION</small><b>{experience.property.name}</b><em>{experience.property.address}</em></span></div>
-    <span className={`tracking-freshness ${guard?.freshness||'none'}`}><LocateFixed/>{freshnessLabel(guard?.freshness)}</span>
-   </div>
+   <ClientMissionMap experience={experience} completed={completed}/>
    <div className="tracking-mission-card">
     {guard?<div className="tracking-guard"><span><UserRound/></span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong><em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE DISPATCH</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
     <div className="tracking-metrics"><div><Navigation/><span><small>STATUS</small><b>{labels[state]||state.replaceAll('_',' ')}</b></span></div><div><Clock3/><span><small>UPDATED</small><b>{relativeTime(experience.mission.updated_at||experience.created_at)}</b></span></div></div>
@@ -35,7 +30,6 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
 }
 
 function statusMessage(state:string,name?:string){if(state==='marketplace')return 'Approved agencies are reviewing your request.';if(state==='offered'||state==='awaiting_guard')return 'The agency is confirming the right professional for your property.';if(state==='accepted')return `${name||'Your guard'} is preparing to begin the route.`;if(state==='en_route')return `${name||'Your guard'} is traveling to your property now.`;if(['active','checkpoint'].includes(state))return `${name||'Your guard'} is on site and completing the patrol.`;if(state==='review')return 'The patrol is finished and the agency is verifying the mission record.';if(state==='completed')return 'Coverage is complete. The verified mission record replaces live tracking.';return 'Your security request is progressing.'}
-function freshnessLabel(value?:string){return value==='live'?'LIVE GPS':value==='stale'?'GPS DELAYED':value==='expired'?'GPS UNAVAILABLE':'WAITING FOR GPS'}
 function relativeTime(value:string|null){if(!value)return 'Just now';const seconds=Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/1000));if(seconds<60)return 'Just now';if(seconds<3600)return `${Math.floor(seconds/60)} min ago`;return `${Math.floor(seconds/3600)} hr ago`}
 function formatTime(value:string){return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date(value))}
 function eventLabel(type:string){const map:Record<string,string>={job_created:'Security requested',agency_claimed:'Agency accepted mission',guard_assigned:'Guard assigned',guard_accepted:'Guard confirmed assignment',route_started:'Guard started route',guard_arrived:'Guard arrived',mission_started:'Patrol started',checkpoint_completed:'Checkpoint completed',mission_completed:'Patrol finished',report_published:'Verified report published'};return map[type]||type.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}
