@@ -12,7 +12,9 @@ import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, s
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
+import { writeGuardLocation } from './modules/location/liveLocationRepository'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
+import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -63,7 +65,7 @@ function AppShell() {
 }
 
 function PortalPlaceholder({ title, body, onLogout }: { title: string; body: string; onLogout: () => void }) {
-  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">MISSION ENGINE · ACCEPTANCE BUILD</div></div></div>
+  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div></div></div>
 }
 
 function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boolean; onEnableDeveloperMode: () => void }) {
@@ -116,6 +118,27 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
 
   useEffect(() => { if (liveDispatch) void loadDispatch() }, [liveDispatch, loadDispatch])
   useEffect(() => liveDispatch ? subscribeToDispatch(() => void loadDispatch()) : undefined, [liveDispatch, loadDispatch])
+
+  useEffect(() => {
+    if (!liveDispatch || mission.state === 'offline' || !navigator.geolocation) return
+    let lastWrite = 0
+    const watchId = navigator.geolocation.watchPosition(
+      position => {
+        const now = Date.now()
+        if (now - lastWrite < 8000) return
+        lastWrite = now
+        void writeGuardLocation(position).catch(error => setNotice(error instanceof Error ? error.message : 'Location update failed'))
+      },
+      error => setNotice(error.code === error.PERMISSION_DENIED ? 'Location permission is required while online.' : 'Waiting for GPS signal…'),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [liveDispatch, mission.state])
+
+  useEffect(() => {
+    const locationEnabled = liveDispatch && mission.state !== 'offline' && mission.state !== 'completed'
+    return startGuardLocationPublisher({enabled:locationEnabled,onError:(message)=>setNotice(message.includes('denied')?'Location permission is required for live operations.':message)})
+  }, [liveDispatch, mission.state])
 
   useEffect(() => {
     if (!liveDispatch) return
@@ -255,6 +278,6 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
     </div>
     {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}
     {!developerMode && <button className="developer-link" onClick={onEnableDeveloperMode} aria-label="Open Developer Mode"><Code2 /></button>}
-    <div className="build-badge">MISSION ENGINE · ACCEPTANCE BUILD</div>
+    <div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div>
   </div></GuardianProvider>
 }

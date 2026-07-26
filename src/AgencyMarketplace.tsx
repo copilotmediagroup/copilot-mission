@@ -12,6 +12,7 @@ import { createGuardInvitation, getGuardRoster, guardActivationUrl, revokeGuardI
 import { useAgencyGuardState } from './modules/marketplace/useAgencyGuardState'
 import { assignGuard, getAgencyDispatchWorkspace, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission } from './modules/dispatch/dispatchRepository'
 import ReportingWorkspace from './ReportingWorkspace'
+import { getAgencyLiveLocations, subscribeToLiveLocations, type GuardLiveLocation } from './modules/location/liveLocationRepository'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
 type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; live?:boolean; photoUrl?:string|null }
@@ -72,10 +73,11 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const [marketplaceLoading,setMarketplaceLoading]=useState(false)
   const [dispatch,setDispatch]=useState<AgencyDispatchWorkspace|null>(null)
   const [reportCount,setReportCount]=useState(0)
+  const [liveLocations,setLiveLocations]=useState<GuardLiveLocation[]>([])
   const isRoleMatch=role==='agency_admin'
   const isPreview=developerMode && accessMode==='preview'
   const guardState=useAgencyGuardState(!isPreview&&mode==='supabase'&&isRoleMatch)
-  const liveGuards:Guard[]=guardState.guards.map((g,index)=>({id:index+1,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status:g.availability==='on_mission'?'on-mission':g.availability,x:50,y:50}))
+  const liveGuards:Guard[]=guardState.guards.map((g,index)=>{const location=liveLocations.find(item=>item.guard_id===g.id);const lat=location?.latitude;const lng=location?.longitude;return {id:index+1,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status:g.availability==='on_mission'?'on-mission':g.availability,x:lng==null?50:Math.max(8,Math.min(92,50+(lng+82.33)*220)),y:lat==null?50:Math.max(8,Math.min(92,50-(lat-27.86)*220))}})
   const runtimeGuards=isPreview?guards:liveGuards
   const guardSummary=isPreview?{total:guards.length,online:guards.filter(g=>g.status!=='offline').length,offline:guards.filter(g=>g.status==='offline').length,available:guards.filter(g=>g.status==='available').length,reserved:guards.filter(g=>g.status==='reserved').length,on_mission:guards.filter(g=>g.status==='on-mission').length}:guardState.summary
   const filtered=useMemo(()=>filter==='all'?jobs:jobs.filter(j=>j.kind===filter),[jobs,filter])
@@ -114,6 +116,13 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     }
   }
 
+
+  useEffect(()=>{
+    if(isPreview||mode!=='supabase'||!isRoleMatch)return
+    const loadLocations=()=>void getAgencyLiveLocations().then(setLiveLocations).catch(error=>setLastError(error instanceof Error?error.message:'Live locations unavailable.'))
+    loadLocations()
+    return subscribeToLiveLocations(loadLocations)
+  },[isPreview,mode,isRoleMatch])
 
   useEffect(()=>{
     setJobs([])
@@ -200,7 +209,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       <div className="premium-logo"><ShieldCheck/><div><strong>CO PILOT</strong><span>SECURITY MARKETPLACE</span></div></div>
       <nav>{navItems.map(([id,label,sub,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon/><span><strong>{label}</strong><small>{sub}</small></span>{id==='marketplace'&&<b>{jobs.length}</b>}{id==='operations'&&<b>{accepted.length+(isPreview?2:0)}</b>}{id==='scheduled'&&<b>{isPreview?3:0}</b>}{id==='guards'&&<b>{guardSummary.total}</b>}{id==='reports'&&<b>{isPreview?1:reportCount}</b>}{id==='messages'&&<b>{isPreview?4:0}</b>}</button>)}</nav>
       <div className="agency-mini-card"><div className="mini-agency"><span>AF</span><div><strong>{agencyName}</strong><small><BadgeCheck/>Verified Agency</small></div></div><div className="mini-stats"><span>Total Guards <b>{guardSummary.total}</b></span><span>Available <b>{guardSummary.available}</b></span><span>On Mission <b>{guardSummary.on_mission}</b></span><span>Reserved <b>{guardSummary.reserved}</b></span></div></div>
-      <div className="sidebar-version">RC2 <span className={`backend-mode ${mode}`}><i/>{mode === 'supabase' ? 'Supabase Connected' : 'Mock Mode'}</span></div>
+      <div className="sidebar-version">LIVE LOCATION <span className={`backend-mode ${mode}`}><i/>{mode === 'supabase' ? 'Supabase Connected' : 'Mock Mode'}</span></div>
     </aside>
 
     <header className="agency-topbar premium-topbar">
@@ -244,7 +253,7 @@ function Operations({accepted,preview,dispatch,onAssign,onMarketplace}:{accepted
   const missions:DispatchMission[]=dispatch?.missions??[]
   const claimed=missions.length?missions:accepted.map(j=>({assignment_id:j.id,job_id:j.id,agency_id:'preview',guard_id:null,status:'awaiting_guard',assigned_at:new Date().toISOString(),offered_at:null,accepted_at:null,declined_at:null,locked_at:null,title:j.title,instructions:null,priority:j.kind,scheduled_for:null,duration_minutes:j.duration,property:{name:j.property,address:j.address,latitude:null,longitude:null,photo_url:j.photoUrl??null},client:{display_name:j.client},guard:null}))
   const guards=dispatch?.guards??[]
-  return <section className="operations-page"><div className="operations-heading"><div><span className="eyebrow">RC2 DISPATCH ENGINE</span><h1>Assign. Respond. Lock.</h1><p>Every action is enforced by the database state machine and synchronized in real time.</p></div><button onClick={onMarketplace}><Crosshair/>Return to Marketplace</button></div><div className="operations-capacity-banner"><div><Users/><span><strong>{preview?'Preview dispatch workspace':`${guards.filter(g=>g.availability==='available').length} guards available`}</strong><small>Declined missions remain with this agency and return to awaiting guard.</small></span></div></div><div className="operations-grid">{claimed.map((m)=><article className="operation-card" key={m.job_id}><div className="operation-status"><span className={m.status==='accepted'?'active':'awaiting'}>{m.status.replace('_',' ').toUpperCase()}</span><small>{m.job_id.slice(0,8)}</small></div><h3>{m.title}</h3><p><MapPin/>{m.property.address}</p><div className="operation-footer"><div className="guard-avatar">{m.guard?.name?.split(' ').map(v=>v[0]).join('').slice(0,2)??'—'}</div><div><small>{m.guard?'ASSIGNED GUARD':'NEXT ACTION'}</small><strong>{m.guard?.name??'Select an available guard'}</strong></div>{m.status==='awaiting_guard'&&<select aria-label="Assign guard" defaultValue="" onChange={e=>{if(e.target.value)void onAssign(m.job_id,e.target.value)}}><option value="" disabled>Assign</option>{guards.filter(g=>g.availability==='available').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select>}{m.status==='offered'&&<button disabled>Awaiting response</button>}{m.status==='accepted'&&<button disabled><LockKeyhole/>Locked</button>}</div></article>)}</div>{!claimed.length&&<div className="marketplace-list-state empty"><Radio/><strong>No claimed missions</strong><small>Claim a marketplace mission to begin dispatch.</small></div>}</section>
+  return <section className="operations-page"><div className="operations-heading"><div><span className="eyebrow">LIVE LOCATION DISPATCH ENGINE</span><h1>Assign. Respond. Lock.</h1><p>Every action is enforced by the database state machine and synchronized in real time.</p></div><button onClick={onMarketplace}><Crosshair/>Return to Marketplace</button></div><div className="operations-capacity-banner"><div><Users/><span><strong>{preview?'Preview dispatch workspace':`${guards.filter(g=>g.availability==='available').length} guards available`}</strong><small>Declined missions remain with this agency and return to awaiting guard.</small></span></div></div><div className="operations-grid">{claimed.map((m)=><article className="operation-card" key={m.job_id}><div className="operation-status"><span className={m.status==='accepted'?'active':'awaiting'}>{m.status.replace('_',' ').toUpperCase()}</span><small>{m.job_id.slice(0,8)}</small></div><h3>{m.title}</h3><p><MapPin/>{m.property.address}</p><div className="operation-footer"><div className="guard-avatar">{m.guard?.name?.split(' ').map(v=>v[0]).join('').slice(0,2)??'—'}</div><div><small>{m.guard?'ASSIGNED GUARD':'NEXT ACTION'}</small><strong>{m.guard?.name??'Select an available guard'}</strong></div>{m.status==='awaiting_guard'&&<select aria-label="Assign guard" defaultValue="" onChange={e=>{if(e.target.value)void onAssign(m.job_id,e.target.value)}}><option value="" disabled>Assign</option>{guards.filter(g=>g.availability==='available').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select>}{m.status==='offered'&&<button disabled>Awaiting response</button>}{m.status==='accepted'&&<button disabled><LockKeyhole/>Locked</button>}</div></article>)}</div>{!claimed.length&&<div className="marketplace-list-state empty"><Radio/><strong>No claimed missions</strong><small>Claim a marketplace mission to begin dispatch.</small></div>}</section>
 }
 function GuardsWorkspace({preview,onToast,authoritativeGuards,onRosterChanged}:{preview:boolean;onToast:(message:string)=>void;authoritativeGuards:GuardRosterData['guards'];onRosterChanged:()=>Promise<void>}){
   const [roster,setRoster]=useState<GuardRosterData>({guards:[],invitations:[]})

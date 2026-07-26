@@ -4,6 +4,8 @@ import { useAuth } from './modules/auth/AuthProvider'
 import { archiveClientProperty, createClientJob, createClientProperty, deleteClientProperty, getClientWorkspace, subscribeToClientWorkspace, updateClientProperty, workspaceErrorMessage, type ClientJob, type ClientProperty } from './modules/client/clientRepository'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
 import ClientReports from './ClientReports'
+import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrackingExperience } from './modules/client/clientLiveTrackingRepository'
+import ClientLiveTracking from './ClientLiveTracking'
 import { resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 
 type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports'
@@ -28,6 +30,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   const [confirmAction, setConfirmAction] = useState<{type:'archive'|'delete';property:ClientProperty}|null>(null)
   const [requestOpen, setRequestOpen] = useState(false)
   const [notice, setNotice] = useState('')
+  const [liveTracking,setLiveTracking]=useState<ClientTrackingExperience>(null)
 
   const load = useCallback(async () => {
     if (isPreview) { setClientId('preview-client'); setProperties(previewProperties); setJobs(previewJobs); setError(''); setLoading(false); return }
@@ -48,6 +51,12 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
     if (isPreview || !clientId) return
     return subscribeToClientWorkspace(clientId, () => void load())
   }, [clientId, load, isPreview])
+  useEffect(()=>{
+    if(isPreview||!clientId)return
+    const loadTracking=()=>void getClientTrackingExperience().then(setLiveTracking).catch(()=>setLiveTracking(null))
+    loadTracking()
+    return subscribeToClientTracking(loadTracking)
+  },[isPreview,clientId])
   useEffect(() => { if (!notice) return; const timer = window.setTimeout(() => setNotice(''), 2800); return () => window.clearTimeout(timer) }, [notice])
 
   const activeJobs = useMemo(() => jobs.filter(job => !['completed','cancelled'].includes(job.status)), [jobs])
@@ -89,12 +98,12 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
           {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>} 
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>} 
-          {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest}/>} 
+          {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>} 
           {section === 'reports' && <ClientReports preview={isPreview}/>} 
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>} 
         </>}
       </div>
-      <div className="build-badge">REPORTING ENGINE · ACCEPTANCE BUILD</div>
+      <div className="build-badge">CLIENT LIVE TRACKING · ACCEPTANCE BUILD</div>
     </main>
 
     {propertyOpen && <PropertyModal preview={isPreview} clientId={clientId} property={editingProperty} onClose={()=>{setPropertyOpen(false);setEditingProperty(null)}} onSaved={async(mode)=>{setPropertyOpen(false);setEditingProperty(null);setNotice(mode==='created'?'Property added successfully.':'Property updated everywhere.');await load()}}/>}
@@ -121,7 +130,7 @@ function Overview({ name, properties, activeJobs, completed, onAddProperty, onRe
 
 function PropertiesView({ properties, onAdd, onRequest, onEdit, onArchive, onDelete }: { properties:ClientProperty[]; onAdd:()=>void; onRequest:()=>void; onEdit:(property:ClientProperty)=>void; onArchive:(property:ClientProperty)=>void; onDelete:(property:ClientProperty)=>void }) { return <section className="client-section"><div className="client-section-head"><div><span>PROPERTY DIRECTORY</span><h2>Your protected locations</h2><p>Add, update, archive, or safely remove every coverage location.</p></div><button className="primary" onClick={onAdd}><Plus/>Add property</button></div>{properties.length ? <div className="client-property-grid">{properties.map(property=><article className="client-property-card" key={property.id}><div className="property-visual">{property.photo_url?<img src={property.photo_url} alt={property.name}/>:<Building2/>}<span>READY</span></div><div className="property-copy"><small>PROPERTY</small><h3>{property.name}</h3><p><MapPin/>{property.address}</p><div className="property-primary-action"><button onClick={onRequest}>Request coverage<ChevronRight/></button></div><div className="property-management-actions"><button onClick={()=>onEdit(property)}><Pencil/>Edit</button><button onClick={()=>onArchive(property)}><Archive/>Archive</button><button className="danger" onClick={()=>onDelete(property)}><Trash2/>Delete</button></div></div></article>)}</div> : <EmptyState icon={<Building2/>} title="No properties saved" body="Add your first service location to begin requesting security." action={<button onClick={onAdd}>Add your first property<Plus/></button>}/>}</section> }
 
-function ActivityView({ jobs, properties, onRequest }: { jobs:ClientJob[]; properties:ClientProperty[]; onRequest:()=>void }) { return <section className="client-section"><div className="client-section-head"><div><span>MISSION ACTIVITY</span><h2>Security requests</h2><p>Follow every request from marketplace submission through completion.</p></div><button className="primary" onClick={onRequest}><Plus/>New request</button></div>{jobs.length ? <div className="client-job-list">{jobs.map(job=><JobCard key={job.id} job={job} property={properties.find(p=>p.id===job.property_id)}/>)}</div> : <EmptyState icon={<Radio/>} title="No requests yet" body="Submit your first request when you need professional coverage." action={<button onClick={onRequest}>Request security<ChevronRight/></button>}/>}</section> }
+function ActivityView({ jobs, properties, onRequest, tracking, onViewReport }: { jobs:ClientJob[]; properties:ClientProperty[]; onRequest:()=>void; tracking:ClientTrackingExperience; onViewReport:()=>void }) { return <section className="client-section"><div className="client-section-head"><div><span>MISSION ACTIVITY</span><h2>Live security coverage</h2><p>One clear view from marketplace request through verified completion.</p></div><button className="primary" onClick={onRequest}><Plus/>New request</button></div>{tracking&&<ClientLiveTracking experience={tracking} onViewReport={onViewReport}/>} {!tracking&&jobs.length ? <div className="client-job-list">{jobs.map(job=><JobCard key={job.id} job={job} property={properties.find(p=>p.id===job.property_id)}/>)}</div> : !tracking ? <EmptyState icon={<Radio/>} title="No requests yet" body="Submit your first request when you need professional coverage." action={<button onClick={onRequest}>Request security<ChevronRight/></button>}/> : null}</section> }
 
 function RequestLanding({ property, onRequest, onAddProperty }: { property?:ClientProperty; onRequest:()=>void; onAddProperty:()=>void }) { return <section className="client-section"><div className="request-landing"><div className="request-pulse"><ShieldAlert/></div><span>MARKETPLACE DISPATCH</span><h2>Professional coverage when you need it.</h2><p>Submit the location, timing and urgency. Approved agencies can respond through the marketplace.</p>{property ? <><div className="request-ready"><MapPin/><div><small>READY LOCATION</small><b>{property.name}</b><span>{property.address}</span></div><CheckCircle2/></div><button className="primary large" onClick={onRequest}>Build security request<ChevronRight/></button></> : <button className="primary large" onClick={onAddProperty}>Add a property first<Plus/></button>}</div></section> }
 
