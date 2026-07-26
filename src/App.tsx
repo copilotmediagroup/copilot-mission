@@ -71,6 +71,7 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   const auth = useAuth()
   const { mission, actions, setEvidence, setIncidents } = useMissionEngine()
   const [notice, setNotice] = useState('')
+  const [checkpointSaving,setCheckpointSaving]=useState(false)
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
   const [engineMission, setEngineMission] = useState<MissionEngineRecord | null>(null)
@@ -207,32 +208,30 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   }
 
   const nextCheckpoint = async () => {
-    if (liveDispatch && dispatchMission && engineMission) {
-      try {
-        const position = await new Promise<{latitude:number|null;longitude:number|null;accuracyMeters:number|null}>((resolve) => {
-          if (!navigator.geolocation) { resolve({latitude:null,longitude:null,accuracyMeters:null}); return }
-          navigator.geolocation.getCurrentPosition(
-            ({coords}) => resolve({latitude:coords.latitude,longitude:coords.longitude,accuracyMeters:coords.accuracy}),
-            () => resolve({latitude:null,longitude:null,accuracyMeters:null}),
-            {enableHighAccuracy:true,timeout:8000,maximumAge:15000},
-          )
-        })
-        const checkpointNames=['Exterior Perimeter','Parking Lot','Main Entrance','Back Entrance','Rear Loading Dock','Side Doors']
-        await completePatrolCheckpointRC21({
-          jobId:dispatchMission.job_id,
-          expectedVersion:engineMission.version,
-          checkpoint:mission.checkpoint,
-          checkpointName:checkpointNames[mission.checkpoint] ?? `Checkpoint ${mission.checkpoint + 1}`,
-          evidence:mission.patrolEvidence,
-          incidents:mission.incidents,
-          position,
-        })
-        await loadDispatch()
-      }
-      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
-      return
-    }
+    if (checkpointSaving) return
+    const previous={state:mission.state,checkpoint:mission.checkpoint,startedAt:mission.missionStartedAt,evidence:mission.patrolEvidence,incidents:mission.incidents,completedAt:mission.completedAt}
     actions.completeCheckpoint()
+    if (!liveDispatch || !dispatchMission || !engineMission) return
+    setCheckpointSaving(true)
+    try {
+      const checkpointNames=['Exterior Perimeter','Parking Lot','Main Entrance','Back Entrance','Rear Loading Dock','Side Doors']
+      const next=await completePatrolCheckpointRC21({
+        jobId:dispatchMission.job_id,
+        expectedVersion:engineMission.version,
+        checkpoint:previous.checkpoint,
+        checkpointName:checkpointNames[previous.checkpoint] ?? `Checkpoint ${previous.checkpoint + 1}`,
+        evidence:previous.evidence,
+        incidents:previous.incidents,
+        position:{latitude:null,longitude:null,accuracyMeters:null},
+      })
+      setEngineMission(next)
+      actions.hydrateLiveState(next.state==='review'?'proof':'patrol',next.mission_started_at?new Date(next.mission_started_at).getTime():previous.startedAt,next.checkpoint_index,next.evidence??previous.evidence,next.incidents??previous.incidents,next.completed_at?new Date(next.completed_at).getTime():previous.completedAt)
+    } catch (error) {
+      actions.hydrateLiveState(previous.state,previous.startedAt,previous.checkpoint,previous.evidence,previous.incidents,previous.completedAt)
+      setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint')
+    } finally {
+      setCheckpointSaving(false)
+    }
   }
 
   const submitProof = async () => {
@@ -258,6 +257,8 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
         onEvidenceChange={(records) => void updateEvidence(records)}
         incidents={mission.incidents}
         missionStartedAt={mission.missionStartedAt}
+        missionCompletedAt={mission.completedAt}
+        checkpointSaving={checkpointSaving}
         onIncidentsChange={(records) => void updateIncidents(records)}
         onGoOnline={() => void goOnline()}
         onGoOffline={() => void goOffline()}
