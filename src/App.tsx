@@ -13,6 +13,7 @@ import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
+import { useGuardLocationPublisher } from './modules/location/useGuardLocationPublisher'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -74,6 +75,8 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
   const [engineMission, setEngineMission] = useState<MissionEngineRecord | null>(null)
   const liveDispatch = auth.mode === 'supabase' && auth.role === 'guard'
+  const reportLocationError = useCallback((message:string) => setNotice(message), [])
+  useGuardLocationPublisher(liveDispatch && mission.state !== 'offline', reportLocationError)
 
   const loadDispatch = useCallback(async () => {
     if (!liveDispatch) return
