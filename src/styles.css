@@ -1135,3 +1135,12 @@ body{overflow-x:hidden;}
 @media(max-width:820px){.tracking-hero{align-items:flex-start;flex-direction:column}.tracking-map-panel{grid-template-columns:1fr}.tracking-map-grid{min-height:310px}.tracking-progress{overflow-x:auto;grid-template-columns:repeat(5,minmax(95px,1fr))}.tracking-status-copy h2{font-size:23px}}
 @media(max-width:560px){.tracking-hero,.tracking-timeline{padding:22px 18px}.tracking-map-grid{min-height:290px}.tracking-mission-card{padding:16px}.tracking-metrics{grid-template-columns:1fr}.tracking-map-address{max-width:82%;right:18px}.tracking-freshness{bottom:92px}.tracking-progress{padding:18px}.tracking-report-action{width:100%;justify-content:center}}
 
+
+/* RC1.3.1 — Client Live Tracking viewport safety */
+.client-main{min-width:0;overflow-x:hidden}
+.client-content{width:100%;box-sizing:border-box;padding-bottom:max(160px,calc(env(safe-area-inset-bottom) + 140px))}
+.client-section,.client-tracking-experience,.tracking-map-panel,.tracking-map-grid,.tracking-mission-card,.tracking-progress,.tracking-timeline{min-width:0;max-width:100%;box-sizing:border-box}
+.client-tracking-experience{overflow:clip}
+.tracking-timeline{padding-bottom:42px}
+@media(max-width:820px){.client-content{padding-bottom:max(140px,calc(env(safe-area-inset-bottom) + 120px))}.tracking-progress{overscroll-behavior-x:contain}}
+@media(max-width:560px){.client-content{padding-bottom:max(125px,calc(env(safe-area-inset-bottom) + 105px))}.client-tracking-experience{border-radius:18px}.tracking-map-panel{overflow:hidden}}
