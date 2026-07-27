@@ -1,0 +1,19 @@
+CO PILOT SECURITY MARKETPLACE v3.6 — CHANGES ONLY
+
+Upload every included file to the matching repository path and replace matching files.
+Do not delete the repository.
+
+Run once in Supabase SQL Editor:
+supabase/migrations/202607260011_rc36_guard_operational_state_engine.sql
+
+VISIBLE ACCEPTANCE TEST
+1. Marketplace header Online Guards and Available Guards must agree with the Guard Status authority.
+2. An available guard with fresh or recently stale GPS becomes route eligible and can generate the Uber route.
+3. A reserved guard appears as Reserved and is not presented as dispatchable.
+4. An on-mission guard appears as On Mission and is not ranked for open jobs.
+5. An online guard with missing coordinates says Online · location missing.
+6. An online guard with expired GPS says Online · GPS expired.
+7. Operations and Marketplace must show the same dispatchable count.
+8. Status changes update through realtime and a 30-second authority refresh.
+
+No screen independently decides guard eligibility after this release.

@@ -12,7 +12,6 @@ import { createGuardInvitation, getGuardRoster, guardActivationUrl, revokeGuardI
 import { useAgencyGuardState } from './modules/marketplace/useAgencyGuardState'
 import { assignGuard, getAgencyDispatchWorkspace, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission } from './modules/dispatch/dispatchRepository'
 import ReportingWorkspace from './ReportingWorkspace'
-import { useAgencyLiveLocations } from './modules/location/useAgencyLiveLocations'
 import type { LocationFreshness } from './modules/location/liveLocationRepository'
 import AgencyOperationsMap from './modules/maps/AgencyOperationsMap'
 import AgencyOperationsCenter from './AgencyOperationsCenter'
@@ -81,21 +80,19 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const isRoleMatch=role==='agency_admin'
   const isPreview=developerMode && accessMode==='preview'
   const guardState=useAgencyGuardState(!isPreview&&mode==='supabase'&&isRoleMatch)
-  const locationState=useAgencyLiveLocations(!isPreview&&mode==='supabase'&&isRoleMatch)
-  const locationsByGuard=new Map<string,import('./modules/location/liveLocationRepository').GuardLiveLocation>(locationState.locations.map((location:import('./modules/location/liveLocationRepository').GuardLiveLocation)=>[location.guard_id,location]))
   const liveGuards:Guard[]=guardState.guards.map((g,index)=>{
-    const location=locationsByGuard.get(g.id)
-    const longitude=location?.longitude??null
-    const latitude=location?.latitude??null
+    const longitude=g.longitude??null
+    const latitude=g.latitude??null
     const x=longitude==null?50:Math.max(8,Math.min(92,50+((longitude*1000)%38)))
     const y=latitude==null?50:Math.max(8,Math.min(92,50-((latitude*1000)%38)))
-    return {id:index+1,sourceId:g.id,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status:g.availability==='on_mission'?'on-mission':g.availability,x,y,latitude,longitude,freshness:location?.freshness??(g.availability==='offline'?'offline':'waiting'),lastLocationAt:location?.last_location_at??null,photoUrl:location?.avatar_url??null,currentAddress:location?.current_address??null}
+    const status:Guard['status']=g.operational_state==='available'?'available':g.operational_state==='reserved'?'reserved':g.operational_state==='on_mission'?'on-mission':'offline'
+    return {id:index+1,sourceId:g.id,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status,x,y,latitude,longitude,freshness:g.freshness,lastLocationAt:g.last_location_at,photoUrl:null,currentAddress:null}
   })
   const runtimeGuards=isPreview?guards:liveGuards
   const guardSummary=isPreview?{total:guards.length,online:guards.filter(g=>g.status!=='offline').length,offline:guards.filter(g=>g.status==='offline').length,available:guards.filter(g=>g.status==='available').length,reserved:guards.filter(g=>g.status==='reserved').length,on_mission:guards.filter(g=>g.status==='on-mission').length}:guardState.summary
   const filtered=useMemo(()=>filter==='all'?jobs:filter==='my_guards'?[]:jobs.filter(j=>j.kind===filter),[jobs,filter])
   const filterLabel=filter==='all'?'All opportunities':filter==='standard'?'Open jobs':filter==='priority'?'Priority jobs':filter==='emergency'?'Emergency jobs':'My guards'
-  const available=runtimeGuards.filter(g=>g.status==='available')
+  const available=isPreview?runtimeGuards.filter(g=>g.status==='available'):runtimeGuards.filter(g=>guardState.guards.find(source=>source.id===g.sourceId)?.route_eligible)
 
   const mapLiveJob=(row:MarketplaceJobRow,index:number):Job=>({
     id:row.id,title:row.title,client:row.client?.display_name||'Marketplace Client',
@@ -218,7 +215,6 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     {developerMode&&<div className={`developer-runtime-banner ${isPreview?'preview':'live'}`}><div><CodeStatus preview={isPreview}/><span><strong>{isPreview?'PREVIEW MODE':'LIVE TEST'}</strong><small>Authenticated: {role?.replace('_',' ')??'unknown'} · Viewing: {viewedRole.replace('_',' ')}</small></span></div><button onClick={()=>setDiagnosticsOpen(true)}><Bug/>Diagnostics</button></div>}
     {diagnosticsOpen&&<DeveloperDiagnostics onClose={()=>setDiagnosticsOpen(false)} authRole={role} viewedRole={viewedRole} accountStatus={status} authPhase={phase} agencyId={agencyId} agencyName={agencyName} preview={isPreview} realtimeState={realtimeState} lastError={lastError} jobs={jobs} accepted={accepted}/>}
     {toast&&<div className="market-toast"><Check/>{toast}</div>}
-    {locationState.error&&<div className="market-toast"><AlertTriangle/>{locationState.error}</div>}
     <aside className="agency-sidebar premium-sidebar">
       <div className="premium-logo"><ShieldCheck/><div><strong>CO PILOT</strong><span>SECURITY MARKETPLACE</span></div></div>
       <nav>{navItems.map(([id,label,sub,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon/><span><strong>{label}</strong><small>{sub}</small></span>{id==='marketplace'&&<b>{jobs.length}</b>}{id==='operations'&&<b>{accepted.length+(isPreview?2:0)}</b>}{id==='scheduled'&&<b>{isPreview?3:0}</b>}{id==='guards'&&<b>{guardSummary.total}</b>}{id==='reports'&&<b>{isPreview?1:reportCount}</b>}{id==='messages'&&<b>{isPreview?4:0}</b>}</button>)}</nav>
