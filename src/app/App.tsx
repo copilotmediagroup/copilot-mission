@@ -1,0 +1,22 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import Shell from './Shell';
+import OwnerCommand from '../pages/OwnerCommand';
+import PortfolioList from '../pages/owner/PortfolioList';
+import CreatePortfolio from '../pages/owner/CreatePortfolio';
+import PortfolioDetail from '../pages/owner/PortfolioDetail';
+import EmployeeToday from '../pages/employee/EmployeeToday';
+import EmployeePortfolio from '../pages/employee/EmployeePortfolio';
+import ProspectMode from '../pages/employee/ProspectMode';
+import FollowUps from '../pages/employee/FollowUps';
+import OutreachWorkspace from '../pages/employee/OutreachWorkspace';
+import OutreachCommand from '../pages/owner/OutreachCommand';
+import EmailTemplates from '../pages/owner/EmailTemplates';
+import AgencyDirectory from '../pages/AgencyDirectory';
+import AgencyDetail from '../pages/AgencyDetail';
+import Placeholder from '../pages/Placeholder';
+import AuditPage from '../pages/AuditPage';
+import DistributePortfolio from '../pages/employee/DistributePortfolio';
+import DistributionHistory from '../pages/employee/DistributionHistory';
+import DistributionCommand from '../pages/owner/DistributionCommand';
+import { usePortfolioStore } from '../store/PortfolioStore';
+export default function App(){const {role}=usePortfolioStore();return <Shell><Routes>{role==='owner'?<><Route path="/" element={<OwnerCommand/>}/><Route path="/portfolios" element={<PortfolioList/>}/><Route path="/portfolios/new" element={<CreatePortfolio/>}/><Route path="/portfolios/:id" element={<PortfolioDetail/>}/><Route path="/agencies" element={<AgencyDirectory/>}/><Route path="/agencies/:id" element={<AgencyDetail/>}/><Route path="/outreach" element={<OutreachCommand/>}/><Route path="/distributions" element={<DistributionCommand/>}/><Route path="/templates" element={<EmailTemplates/>}/><Route path="/audit" element={<AuditPage/>}/><Route path="/negotiations" element={<Placeholder title="Negotiations"/>}/><Route path="/employees" element={<Placeholder title="Employees"/>}/><Route path="/analytics" element={<Placeholder title="Analytics"/>}/><Route path="/settings" element={<Placeholder title="Settings"/>}/><Route path="*" element={<Navigate to="/" replace/>}/></>:<><Route path="/employee" element={<EmployeeToday/>}/><Route path="/employee/portfolio" element={<EmployeePortfolio/>}/><Route path="/employee/prospect" element={<ProspectMode/>}/><Route path="/employee/outreach" element={<OutreachWorkspace/>}/><Route path="/employee/distribute" element={<DistributePortfolio/>}/><Route path="/employee/distributions" element={<DistributionHistory/>}/><Route path="/employee/agencies" element={<AgencyDirectory/>}/><Route path="/employee/agencies/:id" element={<AgencyDetail/>}/><Route path="/employee/follow-ups" element={<FollowUps/>}/><Route path="/employee/performance" element={<Placeholder title="Performance"/>}/><Route path="*" element={<Navigate to="/employee" replace/>}/></>}</Routes></Shell>}

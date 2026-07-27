@@ -1,62 +1,59 @@
-# Co Pilot Security Marketplace RC1 — Foundation Lock
+# Data Market House Sales OS v0.4.1
 
-This package is the matched RC1 frontend and database correction. It is designed for the database where `202607250005_rc1_foundation_lock.sql` has already been applied.
+## Outreach & Follow-Up Engine
 
-## Required corrective migration
+This release extends the existing Portfolio Activation and Prospecting foundations with a complete outreach workflow.
 
-Run this file once in Supabase SQL Editor before testing the package:
+### Employee interface
+- Contact Buyer workspace
+- Call and email modes
+- Approved email template selection
+- Required activity outcomes
+- Decision-maker selection
+- Follow-up scheduling
+- Due, overdue, and upcoming queues
+- Complete and snooze controls
+- Next Best Action surfaced on Today
+- Agency timeline and ownership renewal
 
-`supabase/migrations/202607250006_rc1_matched_release.sql`
+### Owner interface
+- Outreach Command dashboard
+- Calls and emails logged today
+- Overdue follow-up visibility
+- Stale relationship detection
+- Team activity timeline
+- Approved email template management
 
-Do not rerun older migrations.
+### Included migrations
+Run in sequence when provisioning a fresh Supabase project:
+1. `001_dmh_sales_os.sql`
+2. `002_portfolio_activation_engine.sql`
+3. `003_prospecting_agency_ownership_engine.sql`
+4. `004_outreach_follow_up_engine.sql`
 
-## RC1 behavior
+The connected Supabase base URL and publishable key remain included from v0.2.1.
 
-- Preview is simulation-only and never writes to Supabase.
-- Live Test is hard-bound to the authenticated account role.
-- Changing Preview/Live remounts the portal and clears the previous environment state.
-- Agency Live Test loads marketplace missions through the authenticated Agency workspace RPC only.
-- Client Live Test creates missions through the authenticated Client workspace RPC only.
-- Platform Mission Control loads through a Platform Admin-only RPC.
-- Live Test has no mock marketplace fallback.
-
-## Test order
-
-1. Run the corrective migration.
-2. Replace the GitHub repository contents with this package.
-3. In Bolt run `npm install` and `npm run dev`.
-4. Open Developer Mode → Live Test.
-5. Confirm the portal matches the authenticated account role.
-6. As Client, create a mission for an active property.
-7. As an approved Agency Admin, confirm that exact mission appears and can be claimed.
-8. Confirm Platform Admin Mission Control loads the same mission state.
-
-## Build
-
-Run:
-
+## Run
 ```bash
 npm install
+npm run dev
+```
+
+## Build validation
+```bash
 npm run build
 ```
 
-The source passed TypeScript/TSX syntax transpilation and package integrity checks before packaging. Full dependency installation could not be completed in the packaging environment because the npm registry timed out; run the production build in Bolt after dependencies install.
+## v0.4.1 Prospect Identity Correction
+- Added agency general email to Identify and Claim steps.
+- Duplicate detection now checks agency and decision-maker email addresses.
+- Added migration 005 for normalized email identity and database duplicate search.
 
-## RC1-A — Agency Marketplace Recovery
+## v0.5.1 — Controlled Portfolio Distribution Engine
 
-This release replaces the split Agency context and marketplace calls with one database-authoritative workspace contract.
-
-1. Apply `supabase/migrations/202607250007_rc1a_agency_marketplace_recovery.sql` in Supabase.
-2. Deploy this matching frontend package.
-3. Sign in as the approved Agency Admin and use **Live Test**.
-
-The migration repairs a missing owner membership, synchronizes an approved agency owner profile, returns precise workspace errors, and claims missions using the authenticated Agency workspace rather than a frontend-supplied agency ID.
-
-## Identity Engine RC1.1
-Run `supabase/migrations/202607250019_identity_role_integrity.sql` after the Platform Command Center migration. Then execute the acceptance gate in `IDENTITY_ENGINE_RC11_ACCEPTANCE_GATE.md`.
-
-## Layout Safety Engine v1.0
-Authenticated workspaces now share a global bottom safe-area contract so fixed session/developer controls cannot cover report actions, Guard invitations, or the final content on any portal page.
-
-## Client Live Tracking Engine v1.0
-Run `supabase/migrations/202607250023_live_location_engine.sql`, then execute `LIVE_LOCATION_ENGINE_ACCEPTANCE_GATE.md`.
+- Employee must select an owned agency and verified recipient before any masked file can move.
+- Repeat-recipient and high-volume warnings are generated before delivery.
+- Every distribution captures employee, agency, contact, file version, method, reason, timestamp and follow-up.
+- Employee distribution history and Owner Distribution Command are included.
+- Portfolio files lock automatically in reserved, payment-pending and sold states.
+- Production schema and RLS are in `supabase/migrations/006_controlled_portfolio_distribution_engine.sql`.
