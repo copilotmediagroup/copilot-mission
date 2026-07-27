@@ -30,7 +30,7 @@ const GUARD_ICON=svgIcon('<svg xmlns="http://www.w3.org/2000/svg" width="52" hei
 
 export default function UnifiedMissionMap({property,guard,role,useDeviceLocation=false,completed=false,className='',onRouteMetrics}:UnifiedMissionMapProps){
  const hostRef=useRef<HTMLDivElement|null>(null),mapRef=useRef<any>(null),guardMarkerRef=useRef<any>(null),propertyMarkerRef=useRef<any>(null),rendererRef=useRef<any>(null),serviceRef=useRef<any>(null)
- const [error,setError]=useState<string|null>(null),[devicePoint,setDevicePoint]=useState<{latitude:number;longitude:number}|null>(null),[ready,setReady]=useState(0)
+ const [error,setError]=useState<string|null>(null),[devicePoint,setDevicePoint]=useState<{latitude:number;longitude:number}|null>(null),[ready,setReady]=useState(0),[routeState,setRouteState]=useState<'waiting'|'routing'|'live'|'onsite'|'unavailable'>('waiting')
  const propertyPoint=useMemo(()=>validPoint(property.latitude,property.longitude),[property.latitude,property.longitude])
  const source=useDeviceLocation?devicePoint:guard
  const guardPoint=useMemo(()=>validPoint(source?.latitude,source?.longitude),[source?.latitude,source?.longitude])
@@ -47,18 +47,22 @@ export default function UnifiedMissionMap({property,guard,role,useDeviceLocation
  }catch(e){if(!cancelled)setError(e instanceof Error?e.message:'Unable to load map.')}})();return()=>{cancelled=true;guardMarkerRef.current?.setMap(null);propertyMarkerRef.current?.setMap(null);rendererRef.current?.setMap(null);mapRef.current=null}},[property.name,property.latitude,property.longitude])
 
  useEffect(()=>{const map=mapRef.current,google=window.google;if(!map||!google?.maps||!propertyPoint)return
-  if(!guardPoint||completed){guardMarkerRef.current?.setMap(null);guardMarkerRef.current=null;rendererRef.current?.setDirections({routes:[]});map.panTo(propertyPoint);map.setZoom(16);onRouteMetrics?.(null);return}
+  if(!guardPoint||completed){guardMarkerRef.current?.setMap(null);guardMarkerRef.current=null;rendererRef.current?.setDirections({routes:[]});map.panTo(propertyPoint);map.setZoom(16);setRouteState('waiting');onRouteMetrics?.(null);return}
   if(!guardMarkerRef.current)guardMarkerRef.current=new google.maps.Marker({map,position:guardPoint,title:guard?.name||'Guard',icon:{url:GUARD_ICON,scaledSize:new google.maps.Size(52,52),anchor:new google.maps.Point(26,26)},zIndex:4})
   else animateMarker(guardMarkerRef.current,guardPoint)
-  serviceRef.current?.route({origin:guardPoint,destination:propertyPoint,travelMode:google.maps.TravelMode.DRIVING,provideRouteAlternatives:false},(result:any,status:string)=>{if(status===google.maps.DirectionsStatus.OK&&result){rendererRef.current?.setDirections(result);const leg=result.routes?.[0]?.legs?.[0];onRouteMetrics?.(leg?{distanceText:leg.distance?.text||'—',durationText:leg.duration?.text||'—'}:null)}else{const bounds=new google.maps.LatLngBounds();bounds.extend(guardPoint);bounds.extend(propertyPoint);map.fitBounds(bounds,70);onRouteMetrics?.(null)}})
+  const directMeters=google.maps.geometry?.spherical?.computeDistanceBetween(new google.maps.LatLng(guardPoint),new google.maps.LatLng(propertyPoint))??distanceMeters(guardPoint,propertyPoint)
+  if(directMeters<=40){rendererRef.current?.setDirections({routes:[]});map.panTo(propertyPoint);map.setZoom(17);setRouteState('onsite');onRouteMetrics?.({distanceText:'On site',durationText:'On site'});return}
+  setRouteState('routing')
+  serviceRef.current?.route({origin:guardPoint,destination:propertyPoint,travelMode:google.maps.TravelMode.DRIVING,drivingOptions:{departureTime:new Date(),trafficModel:google.maps.TrafficModel.BEST_GUESS},provideRouteAlternatives:false},(result:any,status:string)=>{if(status===google.maps.DirectionsStatus.OK&&result){rendererRef.current?.setDirections(result);const leg=result.routes?.[0]?.legs?.[0];setRouteState('live');onRouteMetrics?.(leg?{distanceText:leg.distance?.text||'—',durationText:leg.duration_in_traffic?.text||leg.duration?.text||'—'}:null)}else{const bounds=new google.maps.LatLngBounds();bounds.extend(guardPoint);bounds.extend(propertyPoint);map.fitBounds(bounds,70);setRouteState('unavailable');onRouteMetrics?.(null)}})
  },[guardPoint?.lat,guardPoint?.lng,propertyPoint?.lat,propertyPoint?.lng,completed,ready])
 
  return <div className={`unified-mission-map role-${role} ${className}`}>
   {propertyPoint?<div ref={hostRef} className="unified-google-map"/>:<div className="unified-map-unavailable"><Building2/><strong>Property map unavailable</strong><span>This property needs verified coordinates.</span></div>}
   {error?<div className="unified-map-error">{error}</div>:null}
   <div className="unified-map-address"><MapPin/><span><small>SECURITY LOCATION</small><b>{property.name}</b><em>{property.address}</em></span></div>
-  <span className={`unified-map-freshness ${guardPoint?'live':'waiting'}`}>{guardPoint?<Navigation/>:<LocateFixed/>}{guardPoint?'ROUTE LIVE':'WAITING FOR GPS'}</span>
+  <span className={`unified-map-freshness ${routeState==='live'||routeState==='onsite'?'live':'waiting'}`}>{routeState==='live'||routeState==='onsite'?<Navigation/>:<LocateFixed/>}{routeState==='onsite'?'GUARD ON SITE':routeState==='live'?'FASTEST ROUTE LIVE':routeState==='routing'?'CALCULATING ROUTE':routeState==='unavailable'?'ROUTE UNAVAILABLE':'WAITING FOR GPS'}</span>
  </div>
 }
 function validPoint(latitude?:number|null,longitude?:number|null){if(typeof latitude!=='number'||typeof longitude!=='number'||!Number.isFinite(latitude)||!Number.isFinite(longitude))return null;return{lat:latitude,lng:longitude}}
+function distanceMeters(a:{lat:number;lng:number},b:{lat:number;lng:number}){const r=6371000,toRad=(n:number)=>n*Math.PI/180,dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng),x=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;return 2*r*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
 function animateMarker(marker:any,destination:{lat:number;lng:number}){const start=marker.getPosition();if(!start){marker.setPosition(destination);return}const from={lat:start.lat(),lng:start.lng()},began=performance.now(),duration=700;const step=(now:number)=>{const p=Math.min(1,(now-began)/duration),e=1-Math.pow(1-p,3);marker.setPosition({lat:from.lat+(destination.lat-from.lat)*e,lng:from.lng+(destination.lng-from.lng)*e});if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)}

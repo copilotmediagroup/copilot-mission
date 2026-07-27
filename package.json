@@ -1,7 +1,7 @@
 {
   "name": "co-pilot-security-marketplace",
   "private": true,
-  "version": "3.2.1-marketplace-proximity-authority",
+  "version": "3.3.0-property-dispatch-contract",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

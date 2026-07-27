@@ -1,18 +1,39 @@
-Co Pilot Security Marketplace v3.2 — CHANGES ONLY
+CO PILOT SECURITY MARKETPLACE RC3.3 — PROPERTY & DISPATCH CONTRACT
 
-Upload these files over the current v3.1.1 working repository.
-Do NOT delete the repository contents.
+UPLOAD METHOD
+1. Keep the current GitHub repository in place.
+2. Upload this package over the repository root.
+3. Replace only matching files.
+4. Do not delete unrelated files.
+5. Run the included SQL migration once in Supabase SQL Editor:
+   supabase/migrations/202607260009_rc33_property_dispatch_contract.sql
 
-Replace:
+CHANGED FILES
 - package.json
-- src/AgencyMarketplace.tsx
-- src/styles.css
+- src/modules/client/clientRepository.ts
+- src/modules/dispatch/useMarketplaceProximity.ts
+- src/modules/maps/UnifiedMissionMap.tsx
+- supabase/migrations/202607260009_rc33_property_dispatch_contract.sql
 
-Add:
-- supabase/migrations/202607260008_rc32_proximity_dispatch_intelligence.sql
-- README_RC32.md
-- PROXIMITY_DISPATCH_INTELLIGENCE_RC32_CONTRACT.md
-- PROXIMITY_DISPATCH_INTELLIGENCE_RC32_ACCEPTANCE_GATE.md
+VISIBLE ACCEPTANCE TEST
+A. Property creation
+- Sign in as the real Client account.
+- Add a verified property with photo and coordinates.
+- Save succeeds without a 403 RLS error.
+- The property appears immediately in the Client property list.
 
-Then run the new Supabase migration once and run:
-npm run build
+B. Same-location guard
+- If guard and property are within 40 meters, Marketplace shows ON SITE.
+- The map shows GUARD ON SITE instead of pretending a road route is needed.
+
+C. Distant property
+- The nearest available guard appears on the job card without clicking.
+- Estimated proximity appears immediately while road routing loads.
+- The actual fastest-road route replaces the estimate when Google routing responds.
+- The map shows the blue road route from guard to property.
+- Dispatch Intelligence shows ETA and road distance.
+
+D. Failure states
+- Missing Client ownership gives a clear account/workspace message.
+- Missing coordinates shows verified-coordinate guidance.
+- A routing API failure keeps the nearest-guard estimate instead of blanking the entire feature.
