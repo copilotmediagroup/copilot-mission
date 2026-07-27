@@ -57,3 +57,6 @@ Run `supabase/migrations/202607250019_identity_role_integrity.sql` after the Pla
 
 ## Layout Safety Engine v1.0
 Authenticated workspaces now share a global bottom safe-area contract so fixed session/developer controls cannot cover report actions, Guard invitations, or the final content on any portal page.
+
+## Client Live Tracking Engine v1.0
+Run `supabase/migrations/202607250023_live_location_engine.sql`, then execute `LIVE_LOCATION_ENGINE_ACCEPTANCE_GATE.md`.

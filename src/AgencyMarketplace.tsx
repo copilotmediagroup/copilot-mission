@@ -2,25 +2,21 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import {
   AlertTriangle, BadgeCheck, BarChart3, Bell, BriefcaseBusiness, Building2, ClipboardList,
   CalendarClock, Check, ChevronDown, ChevronRight, CircleDollarSign, Clock3,
-  Crosshair, Filter, Flame, Gauge, Layers3, LocateFixed, MapPin, MessageSquare, Navigation,
+  Crosshair, Filter, Flame, Gauge, Layers3, MapPin, MessageSquare, Navigation,
   Radio, Search, Settings, ShieldCheck, Siren, SlidersHorizontal, Users, Wifi, Zap, Bug, Database, LockKeyhole, X, UserPlus, Copy, LoaderCircle, Mail
 } from 'lucide-react'
 import { useAuth, type AppRole } from './modules/auth/AuthProvider'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
-import { acceptMarketplaceJob, getAgencyWorkspace, subscribeToMarketplace, updateAgencyServiceRadius, type MarketplaceJobRow } from './modules/marketplace/marketplaceRepository'
+import { acceptMarketplaceJob, getAgencyWorkspace, subscribeToMarketplace, type MarketplaceJobRow } from './modules/marketplace/marketplaceRepository'
 import { createGuardInvitation, getGuardRoster, guardActivationUrl, revokeGuardInvitation, type GuardRoster as GuardRosterData } from './modules/marketplace/guardOnboardingRepository'
 import { useAgencyGuardState } from './modules/marketplace/useAgencyGuardState'
 import { assignGuard, getAgencyDispatchWorkspace, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission } from './modules/dispatch/dispatchRepository'
 import ReportingWorkspace from './ReportingWorkspace'
-import type { LocationFreshness } from './modules/location/liveLocationRepository'
-import AgencyOperationsMap from './modules/maps/AgencyOperationsMap'
-import AgencyOperationsCenter from './AgencyOperationsCenter'
-import MarketplaceDynamicMap from './modules/maps/MarketplaceDynamicMap'
-import { useMarketplaceProximity } from './modules/dispatch/useMarketplaceProximity'
+import { getAgencyLiveLocations, subscribeToLiveLocations, type GuardLiveLocation } from './modules/location/liveLocationRepository'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
-type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null }
-type Guard = { id:number; sourceId?:string; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; freshness?:LocationFreshness; lastLocationAt?:string|null; photoUrl?:string|null; currentAddress?:string|null }
+type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; live?:boolean; photoUrl?:string|null }
+type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number }
 type Activity = { id:number; time:string; type:'new'|'accepted'|'emergency'|'assigned'; title:string; location:string }
 
 const initialJobs:Job[] = [
@@ -67,7 +63,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const [agencyId,setAgencyId]=useState<string | null>(null)
   const [agencyName,setAgencyName]=useState('Alpha Force Security')
   const [claimingId,setClaimingId]=useState<string | null>(null)
-  const [filter,setFilter]=useState<'all'|JobKind|'my_guards'>('all')
+  const [filter,setFilter]=useState<'all'|JobKind>('all')
   const [toast,setToast]=useState('')
   const [activity,setActivity]=useState<Activity[]>([])
   const [incomingIndex,setIncomingIndex]=useState(0)
@@ -77,29 +73,22 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const [marketplaceLoading,setMarketplaceLoading]=useState(false)
   const [dispatch,setDispatch]=useState<AgencyDispatchWorkspace|null>(null)
   const [reportCount,setReportCount]=useState(0)
+  const [liveLocations,setLiveLocations]=useState<GuardLiveLocation[]>([])
   const isRoleMatch=role==='agency_admin'
   const isPreview=developerMode && accessMode==='preview'
   const guardState=useAgencyGuardState(!isPreview&&mode==='supabase'&&isRoleMatch)
-  const liveGuards:Guard[]=guardState.guards.map((g,index)=>{
-    const longitude=g.longitude??null
-    const latitude=g.latitude??null
-    const x=longitude==null?50:Math.max(8,Math.min(92,50+((longitude*1000)%38)))
-    const y=latitude==null?50:Math.max(8,Math.min(92,50-((latitude*1000)%38)))
-    const status:Guard['status']=g.operational_state==='available'?'available':g.operational_state==='reserved'?'reserved':g.operational_state==='on_mission'?'on-mission':'offline'
-    return {id:index+1,sourceId:g.id,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status,x,y,latitude,longitude,freshness:g.freshness,lastLocationAt:g.last_location_at,photoUrl:null,currentAddress:null}
-  })
+  const liveGuards:Guard[]=guardState.guards.map((g,index)=>{const location=liveLocations.find(item=>item.guard_id===g.id);const lat=location?.latitude;const lng=location?.longitude;return {id:index+1,name:g.name,initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),distance:0,status:g.availability==='on_mission'?'on-mission':g.availability,x:lng==null?50:Math.max(8,Math.min(92,50+(lng+82.33)*220)),y:lat==null?50:Math.max(8,Math.min(92,50-(lat-27.86)*220))}})
   const runtimeGuards=isPreview?guards:liveGuards
   const guardSummary=isPreview?{total:guards.length,online:guards.filter(g=>g.status!=='offline').length,offline:guards.filter(g=>g.status==='offline').length,available:guards.filter(g=>g.status==='available').length,reserved:guards.filter(g=>g.status==='reserved').length,on_mission:guards.filter(g=>g.status==='on-mission').length}:guardState.summary
-  const filtered=useMemo(()=>filter==='all'?jobs:filter==='my_guards'?[]:jobs.filter(j=>j.kind===filter),[jobs,filter])
-  const filterLabel=filter==='all'?'All opportunities':filter==='standard'?'Open jobs':filter==='priority'?'Priority jobs':filter==='emergency'?'Emergency jobs':'My guards'
-  const available=isPreview?runtimeGuards.filter(g=>g.status==='available'):runtimeGuards.filter(g=>guardState.guards.find(source=>source.id===g.sourceId)?.route_eligible)
+  const filtered=useMemo(()=>filter==='all'?jobs:jobs.filter(j=>j.kind===filter),[jobs,filter])
+  const available=runtimeGuards.filter(g=>g.status==='available')
 
   const mapLiveJob=(row:MarketplaceJobRow,index:number):Job=>({
     id:row.id,title:row.title,client:row.client?.display_name||'Marketplace Client',
     address:row.property?.address||'Verified property',distance:Number((1.2+(index%7)*.9).toFixed(1)),
     eta:4+(index%6)*3,duration:row.duration_minutes,kind:row.priority,
     property:row.property?.name||'Property',price:row.payout_cents?Math.round(row.payout_cents/100):0,
-    x:18+(index*17)%68,y:22+(index*13)%58,latitude:row.property?.latitude??null,longitude:row.property?.longitude??null,live:true,photoUrl:row.property?.photo_url||null,
+    x:18+(index*17)%68,y:22+(index*13)%58,live:true,photoUrl:row.property?.photo_url||null,
   })
 
   const loadDispatch=async()=>{
@@ -127,6 +116,13 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     }
   }
 
+
+  useEffect(()=>{
+    if(isPreview||mode!=='supabase'||!isRoleMatch)return
+    const loadLocations=()=>void getAgencyLiveLocations().then(setLiveLocations).catch(error=>setLastError(error instanceof Error?error.message:'Live locations unavailable.'))
+    loadLocations()
+    return subscribeToLiveLocations(loadLocations)
+  },[isPreview,mode,isRoleMatch])
 
   useEffect(()=>{
     setJobs([])
@@ -183,12 +179,6 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
 
   useEffect(()=>{if(!toast)return;const timer=window.setTimeout(()=>setToast(''),3200);return()=>window.clearTimeout(timer)},[toast])
 
-  useEffect(()=>{
-    const navigate=(event:Event)=>{const detail=(event as CustomEvent<{kind?:string;target?:string;jobId?:string}>).detail;if(detail?.kind==='open_marketplace_job'){setTab('marketplace');if(detail.jobId){window.setTimeout(()=>document.querySelector(`[data-job-id=\"${detail.jobId}\"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),120)}}}
-    window.addEventListener('copilot:notification-action',navigate)
-    return()=>window.removeEventListener('copilot:notification-action',navigate)
-  },[])
-
   const accept=async(job:Job)=>{
     if(claimingId)return
     if(isPreview){setToast(isRoleMatch?'Preview Mode: claim simulated only.':'Preview Mode: signed in as Client. Switch to an approved Agency account for Live Test.');return}
@@ -219,53 +209,51 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       <div className="premium-logo"><ShieldCheck/><div><strong>CO PILOT</strong><span>SECURITY MARKETPLACE</span></div></div>
       <nav>{navItems.map(([id,label,sub,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon/><span><strong>{label}</strong><small>{sub}</small></span>{id==='marketplace'&&<b>{jobs.length}</b>}{id==='operations'&&<b>{accepted.length+(isPreview?2:0)}</b>}{id==='scheduled'&&<b>{isPreview?3:0}</b>}{id==='guards'&&<b>{guardSummary.total}</b>}{id==='reports'&&<b>{isPreview?1:reportCount}</b>}{id==='messages'&&<b>{isPreview?4:0}</b>}</button>)}</nav>
       <div className="agency-mini-card"><div className="mini-agency"><span>AF</span><div><strong>{agencyName}</strong><small><BadgeCheck/>Verified Agency</small></div></div><div className="mini-stats"><span>Total Guards <b>{guardSummary.total}</b></span><span>Available <b>{guardSummary.available}</b></span><span>On Mission <b>{guardSummary.on_mission}</b></span><span>Reserved <b>{guardSummary.reserved}</b></span></div></div>
-      <div className="sidebar-version">RC2 <span className={`backend-mode ${mode}`}><i/>{mode === 'supabase' ? 'Supabase Connected' : 'Mock Mode'}</span></div>
+      <div className="sidebar-version">LIVE LOCATION <span className={`backend-mode ${mode}`}><i/>{mode === 'supabase' ? 'Supabase Connected' : 'Mock Mode'}</span></div>
     </aside>
 
     <header className="agency-topbar premium-topbar">
       <div className="page-title"><div className="foundation-status"><span className={mode}><Wifi/>{mode === 'supabase' ? 'SUPABASE CONNECTED' : 'BACKEND READY · MOCK DATA'}</span><small>{role ?? 'role pending'}</small></div><h1>{tab==='marketplace'?'Marketplace':tab==='reports'?'Reports':'Operations'}</h1><p>{tab==='marketplace'?'Find. Compete. Win. Protect.':tab==='reports'?'Review completed missions and publish verified reports.':'Manage active missions without leaving the market.'}</p></div>
       <div className="top-kpis"><Kpi icon={<CircleDollarSign/>} label="OPEN JOBS" value={jobs.length} tone="gold"/><Kpi icon={<Flame/>} label="PRIORITY" value={jobs.filter(j=>j.kind==='priority').length} tone="orange"/><Kpi icon={<Siren/>} label="EMERGENCY" value={jobs.filter(j=>j.kind==='emergency').length} tone="red"/><Kpi icon={<Users/>} label="ACTIVE JOBS" value={accepted.length+(isPreview?2:0)} tone="green"/><Kpi icon={<ShieldCheck/>} label="ONLINE GUARDS" value={guardSummary.online} tone="blue"/></div>
-      <div className="top-actions"><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
+      <div className="top-actions"><button className="icon-button"><Bell/>{isPreview&&<i>4</i>}</button><button className="icon-button"><MessageSquare/></button><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
     </header>
 
     <main className="agency-main premium-main">
-      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview}/>:tab==='operations'?<AgencyOperationsCenter preview={isPreview} onMarketplace={()=>setTab('marketplace')} onToast={setToast}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
+      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
     </main>
   </div>
 }
 
 function Kpi({icon,label,value,tone}:{icon:ReactNode,label:string,value:number,tone:string}){return <div className={`top-kpi ${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>}
 
-function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind|'my_guards';setFilter:(v:'all'|JobKind|'my_guards')=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean}){
- const filterLabel=filter==='all'?'All opportunities':filter==='standard'?'Open jobs':filter==='priority'?'Priority jobs':filter==='emergency'?'Emergency jobs':'My guards'
- const {byJob,loading:proximityLoading}=useMarketplaceProximity(filtered,available)
- const ranked=useMemo(()=>[...filtered].sort((a,b)=>(byJob[a.id]?.durationSeconds??Number.MAX_SAFE_INTEGER)-(byJob[b.id]?.durationSeconds??Number.MAX_SAFE_INTEGER)),[filtered,byJob])
- const [selectedId,setSelectedId]=useState<string|null>(null)
- const [rangeOpen,setRangeOpen]=useState(false)
- const [rangeMiles,setRangeMiles]=useState<number>(()=>Number(localStorage.getItem('copilot-marketplace-range')||15))
- const setRange=async(value:number)=>{setRangeMiles(value);localStorage.setItem('copilot-marketplace-range',String(value));setRangeOpen(false);if(!preview){try{await updateAgencyServiceRadius(value)}catch{/* local preference remains available */}}}
- useEffect(()=>{if(!ranked.length){setSelectedId(null);return}if(!selectedId||!ranked.some(j=>j.id===selectedId))setSelectedId(ranked[0].id)},[ranked,selectedId])
- const selectedJob=ranked.find(j=>j.id===selectedId)??ranked[0]??null
- const selectedIntel=selectedJob?byJob[selectedJob.id]??null:null
- const selectedGuard=selectedIntel?.guard as Guard|undefined
+function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean}){
  return <div className="premium-dashboard">
-  <section className="mobile-market-kpis" aria-label="Marketplace status"><div className="gold"><small>OPEN</small><strong>{jobs.length}</strong></div><div className="orange"><small>PRIORITY</small><strong>{jobs.filter(j=>j.kind==='priority').length}</strong></div><div className="red"><small>EMERGENCY</small><strong>{jobs.filter(j=>j.kind==='emergency').length}</strong></div><div className="green"><small>ACTIVE</small><strong>{preview?2:0}</strong></div><div className="blue"><small>GUARDS</small><strong>{allGuards.filter(g=>g.status!=='offline').length}</strong></div></section>
-  <section className="live-map-panel premium-panel"><div className="premium-panel-head"><div><strong>LIVE MARKET COVERAGE</strong><span><i/>AUTO CAMERA</span></div><div className="marketplace-range-control"><button onClick={()=>setRangeOpen(v=>!v)}><Layers3/>{rangeMiles} mi<ChevronDown/></button>{rangeOpen&&<div className="marketplace-range-menu"><small>MARKETPLACE RANGE</small><div className="marketplace-range-options">{[5,10,15,25,50].map(value=><button key={value} className={rangeMiles===value?'active':''} onClick={()=>void setRange(value)}>{value}</button>)}</div><p>The camera automatically fits every open job and online guard inside this agency range.</p></div>}</div></div><div className="map-filter-row">{(['all','standard','priority','emergency'] as const).map(v=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{v==='all'?'All':v==='standard'?'Open Jobs':v[0].toUpperCase()+v.slice(1)}</button>)}<button className={filter==='my_guards'?'active':''} onClick={()=>setFilter('my_guards')}>My Guards</button></div>
-   <MarketplaceDynamicMap jobs={filtered.map(job=>({id:job.id,title:job.property||job.title,kind:job.kind,latitude:job.latitude??null,longitude:job.longitude??null}))} guards={allGuards.map(guard=>({id:guard.sourceId??String(guard.id),name:guard.name,status:guard.status,latitude:guard.latitude??null,longitude:guard.longitude??null,freshness:guard.freshness??null}))} selectedJobId={selectedJob?.id??null} selectedGuardId={selectedGuard?.sourceId??(selectedGuard?String(selectedGuard.id):null)} rangeMiles={rangeMiles} showJobs={filter!=='my_guards'} showGuards={filter==='all'||filter==='my_guards'} onSelectJob={setSelectedId}/>
-   {selectedJob&&selectedIntel&&<div className="uber-route-banner"><Navigation/><div><small>FASTEST ONLINE RESPONSE</small><strong>{selectedIntel.guard.name} → {selectedJob.property}</strong></div><b>{selectedIntel.durationText}</b><span>{selectedIntel.distanceText}</span></div>}
+  <section className="mobile-market-kpis" aria-label="Marketplace status">
+    <div className="gold"><small>OPEN</small><strong>{jobs.length}</strong></div>
+    <div className="orange"><small>PRIORITY</small><strong>{jobs.filter(j=>j.kind==='priority').length}</strong></div>
+    <div className="red"><small>EMERGENCY</small><strong>{jobs.filter(j=>j.kind==='emergency').length}</strong></div>
+    <div className="green"><small>ACTIVE</small><strong>{preview?2:0}</strong></div>
+    <div className="blue"><small>GUARDS</small><strong>{allGuards.filter(g=>g.status!=='offline').length}</strong></div>
   </section>
-  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>{filterLabel.toUpperCase()} <b>{filter==='my_guards'?allGuards.filter(g=>g.status!=='offline').length:filtered.length}</b></strong></div><button>Fastest response<ChevronDown/></button></div><div className="premium-job-list">{loading?<div className="marketplace-list-state"><span className="marketplace-state-pulse"/><strong>Synchronizing opportunities</strong><small>Checking the live marketplace…</small></div>:ranked.length?ranked.map(j=>{const intel=byJob[j.id];return <article data-job-id={j.id} key={j.id} className={`premium-job-card ${j.kind} ${selectedJob?.id===j.id?'selected':''}`} onClick={()=>setSelectedId(j.id)}>{j.photoUrl?<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>:<div className="marketplace-property-photo placeholder"><Building2/></div>}<div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind}</span><span>{j.duration} min<small>Mission length</small></span></div><h3>{j.property}</h3><p><strong>{j.title}</strong><br/>{j.address}</p><div className={`nearest-guard-strip ${intel?'ready':'waiting'}`}><span className="nearest-guard-icon"><Navigation/></span><div><small>NEAREST ONLINE GUARD</small><strong>{intel?intel.guard.name:proximityLoading?'Calculating fastest route…':'No live guard route available'}</strong></div>{intel&&<div className="nearest-guard-metrics"><b>{intel.durationText}</b><span>{intel.distanceText}</span></div>}</div><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>{intel?'1 nearby':'0 routed'}</span></div><div className="job-card-action"><strong>{j.price>0?`$${j.price}`:'Mission'}</strong><button onClick={e=>{e.stopPropagation();accept(j)}}>Claim Mission</button></div></article>}):<div className="marketplace-list-state empty"><BriefcaseBusiness/><strong>{filter==='my_guards'?'Guard layer selected':`No ${filterLabel.toLowerCase()}`}</strong><small>{filter==='my_guards'?'Use the live map to view your online guards.':'New verified missions in this category will appear here in real time.'}</small></div>}</div></section>
-  <aside className="right-rail"><section className="dispatch-intelligence premium-panel"><div className="premium-panel-head"><strong>DISPATCH INTELLIGENCE</strong><span>LIVE</span></div>{selectedJob&&selectedIntel?<><div className="dispatch-property"><small>OPEN MISSION</small><strong>{selectedJob.property}</strong><p>{selectedJob.address}</p></div><div className="dispatch-guard"><span>{selectedIntel.guard.photoUrl?<img src={selectedIntel.guard.photoUrl} alt={selectedIntel.guard.name}/>:selectedIntel.guard.initials}</span><div><small>FASTEST ONLINE GUARD</small><strong>{selectedIntel.guard.name}</strong><p>{selectedIntel.guard.currentAddress||'Live GPS location'}</p></div></div><div className="dispatch-metrics"><span><small>FASTEST ETA</small><strong>{selectedIntel.durationText}</strong></span><span><small>ROAD DISTANCE</small><strong>{selectedIntel.distanceText}</strong></span></div><button className="proximity-primary" onClick={()=>accept(selectedJob)}>Claim Mission</button><small className="proximity-note">Road route uses live traffic and automatically ranks the fastest available guard.</small></>:<div className="marketplace-list-state empty"><LocateFixed/><strong>{proximityLoading?'Calculating fastest response':'No route intelligence available'}</strong><small>Valid mission coordinates and fresh online guard GPS are required.</small></div>}</section><section className="activity-panel premium-panel"><div className="premium-panel-head"><strong>MARKETPLACE ACTIVITY</strong><span>{preview?'Preview Feed':'Live Feed'}</span></div>{activity.length?activity.map(a=><div className="activity-row" key={a.id}><span className={a.type==='emergency'?'danger':''}>{a.type==='emergency'?<Siren/>:a.type==='accepted'?<Check/>:a.type==='assigned'?<Users/>:<BriefcaseBusiness/>}</span><small>{a.time}</small><div><strong>{a.title}</strong><p>{a.location}</p></div></div>):<div className="marketplace-list-state empty"><Radio/><strong>Awaiting live activity</strong><small>Mission events will appear here.</small></div>}</section></aside>
-  <section className="bottom-strip premium-panel"><div className="available-guards"><div className="strip-title"><strong>AVAILABLE GUARDS <b>{available.length}</b></strong><button>View All</button></div><div className="guard-row">{available.slice(0,7).map(g=><div className="guard-face" key={g.id}>{g.photoUrl?<img src={g.photoUrl} alt={g.name}/>:<span>{g.initials}</span>}<strong>{g.name}</strong><small>{g.currentAddress??(g.freshness==='live'?'Live GPS':g.freshness==='stale'?'Stale GPS':g.freshness==='expired'?'GPS expired':'Waiting for GPS')}</small></div>)}</div></div><div className="quick-actions"><div className="strip-title"><strong>QUICK ACTIONS</strong></div><div><button className="em"><Siren/>Emergency Center</button><button><Radio/>Broadcast</button><button><Users/>Guard Check-In</button></div></div></section>
+  <section className="live-map-panel premium-panel">
+   <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/>LIVE</span></div><button><Layers3/>Layers<ChevronDown/></button></div>
+   <div className="map-filter-row">{(['all','standard','priority','emergency'] as const).map(v=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{v==='all'?'All':v==='standard'?'Open Jobs':v}</button>)}<button onClick={()=>setFilter('all')}>My Guards</button></div>
+   <div className="premium-map"><div className="route-line r1"/><div className="route-line r2"/><div className="route-line r3"/><span className="map-city c1">RIVERVIEW</span><span className="map-city c2">PROGRESS VILLAGE</span><span className="map-city c3">SOUTHSHORE</span>{filtered.map(j=><div key={j.id} className={`premium-job-pin ${j.kind}`} style={{left:`${j.x}%`,top:`${j.y}%`}}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}<span>{j.distance} mi</span></div>)}{allGuards.filter(g=>g.status!=='offline').map(g=><div key={g.id} className={`premium-guard-pin ${g.status}`} style={{left:`${g.x}%`,top:`${g.y}%`}}><Users/><span>{g.name}<small>{g.distance} mi</small></span></div>)}<div className="map-zoom"><button>+</button><button>−</button><button><Crosshair/></button></div><div className="map-key"><span><i className="gold"/>Open Job</span><span><i className="orange"/>Priority</span><span><i className="red"/>Emergency</span><span><i className="green"/>My Guards</span></div></div>
+  </section>
+
+  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>OPEN OPPORTUNITIES <b>{jobs.length}</b></strong></div><button>Nearest<ChevronDown/></button></div><div className="premium-job-list">{loading?<div className="marketplace-list-state"><span className="marketplace-state-pulse"/><strong>Synchronizing opportunities</strong><small>Checking the live marketplace…</small></div>:filtered.length?filtered.map(j=><article key={j.id} className={`premium-job-card ${j.kind}`}><div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind}</span><span>{j.distance} mi<small>ETA {j.eta} min</small></span></div>{j.photoUrl&&<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>}<h3>{j.title}</h3><p>{j.client}<br/>{j.address}</p><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>1 Guard</span></div><div className="job-card-action"><strong>{j.price>0?`$${j.price}`:'Mission'}</strong><button onClick={()=>accept(j)}>Claim Mission</button></div></article>):<div className="marketplace-list-state empty"><BriefcaseBusiness/><strong>No open opportunities</strong><small>New verified missions will appear here in real time.</small></div>}</div></section>
+
+  <aside className="right-rail"><section className="capacity-panel premium-panel"><div className="premium-panel-head"><strong>AGENCY CAPACITY</strong></div><div className="capacity-content"><div className="capacity-ring"><span><strong>{available.length}</strong><small>Available</small></span></div><div className="capacity-breakdown"><span>Total Guards <b>{allGuards.length}</b></span><span>Available <b>{available.length}</b></span><span>On Mission <b>{allGuards.filter(g=>g.status==='on-mission').length}</b></span><span>Reserved <b>{allGuards.filter(g=>g.status==='reserved').length}</b></span><span>Offline <b>{allGuards.filter(g=>g.status==='offline').length}</b></span></div></div></section><section className="active-panel premium-panel"><div className="premium-panel-head"><strong>ACTIVE OPERATIONS <b>{preview?2:0}</b></strong><button>View All</button></div>{preview?['Retail Store Patrol','Parking Lot Patrol'].map((t,i)=><div className="mini-operation" key={t}><div><small>#A-10{25+i}</small><span>ON MISSION</span></div><strong>{t}</strong><p>{i?'Riverview Plaza':'South Fork Community'}</p><div className="mission-person"><span>{i?'JL':'MR'}</span><div><strong>{i?'Jalen':'Marcus'}</strong><small>{i?'On Site':'En Route'}</small></div><b>{i?'18':'5'} min</b></div><div className="mission-bar"><i style={{width:i?'20%':'33%'}}/></div></div>):<div className="marketplace-list-state empty"><Radio/><strong>No active operations</strong><small>Claimed missions will appear here.</small></div>}</section><section className="activity-panel premium-panel"><div className="premium-panel-head"><strong>MARKETPLACE ACTIVITY</strong><span>{preview?'Preview Feed':'Live Feed'}</span></div>{activity.length?activity.map(a=><div className="activity-row" key={a.id}><span className={a.type==='emergency'?'danger':''}>{a.type==='emergency'?<Siren/>:a.type==='accepted'?<Check/>:a.type==='assigned'?<Users/>:<BriefcaseBusiness/>}</span><small>{a.time}</small><div><strong>{a.title}</strong><p>{a.location}</p></div></div>):<div className="marketplace-list-state empty"><Radio/><strong>Awaiting live activity</strong><small>Mission events will appear here.</small></div>}</section></aside>
+
+  <section className="bottom-strip premium-panel"><div className="available-guards"><div className="strip-title"><strong>AVAILABLE GUARDS <b>{available.length}</b></strong><button>View All</button></div><div className="guard-row">{available.slice(0,7).map(g=><div className="guard-face" key={g.id}><span>{g.initials}</span><strong>{g.name}</strong><small>{g.distance} mi</small></div>)}</div></div><div className="quick-actions"><div className="strip-title"><strong>QUICK ACTIONS</strong></div><div><button className="em"><Siren/>Emergency Center</button><button><Radio/>Broadcast</button><button><Users/>Guard Check-In</button><button><MessageSquare/>New Message</button></div></div></section>
  </div>
 }
-
 
 function Operations({accepted,preview,dispatch,onAssign,onMarketplace}:{accepted:Job[];preview:boolean;dispatch:AgencyDispatchWorkspace|null;onAssign:(jobId:string,guardId:string)=>Promise<void>;onMarketplace:()=>void}){
   const missions:DispatchMission[]=dispatch?.missions??[]
   const claimed=missions.length?missions:accepted.map(j=>({assignment_id:j.id,job_id:j.id,agency_id:'preview',guard_id:null,status:'awaiting_guard',assigned_at:new Date().toISOString(),offered_at:null,accepted_at:null,declined_at:null,locked_at:null,title:j.title,instructions:null,priority:j.kind,scheduled_for:null,duration_minutes:j.duration,property:{name:j.property,address:j.address,latitude:null,longitude:null,photo_url:j.photoUrl??null},client:{display_name:j.client},guard:null}))
   const guards=dispatch?.guards??[]
-  return <section className="operations-page"><div className="operations-heading"><div><span className="eyebrow">RC2 DISPATCH ENGINE</span><h1>Assign. Respond. Lock.</h1><p>Every action is enforced by the database state machine and synchronized in real time.</p></div><button onClick={onMarketplace}><Crosshair/>Return to Marketplace</button></div><div className="operations-capacity-banner"><div><Users/><span><strong>{preview?'Preview dispatch workspace':`${guards.filter(g=>g.availability==='available').length} guards available`}</strong><small>Declined missions remain with this agency and return to awaiting guard.</small></span></div></div><div className="operations-grid">{claimed.map((m)=><article className="operation-card" key={m.job_id}><div className="operation-status"><span className={m.status==='accepted'?'active':'awaiting'}>{m.status.replace('_',' ').toUpperCase()}</span><small>{m.job_id.slice(0,8)}</small></div><h3>{m.title}</h3><p><MapPin/>{m.property.address}</p><div className="operation-footer"><div className="guard-avatar">{m.guard?.name?.split(' ').map(v=>v[0]).join('').slice(0,2)??'—'}</div><div><small>{m.guard?'ASSIGNED GUARD':'NEXT ACTION'}</small><strong>{m.guard?.name??'Select an available guard'}</strong></div>{m.status==='awaiting_guard'&&<select aria-label="Assign guard" defaultValue="" onChange={e=>{if(e.target.value)void onAssign(m.job_id,e.target.value)}}><option value="" disabled>Assign</option>{guards.filter(g=>g.availability==='available').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select>}{m.status==='offered'&&<button disabled>Awaiting response</button>}{m.status==='accepted'&&<button disabled><LockKeyhole/>Locked</button>}</div></article>)}</div>{!claimed.length&&<div className="marketplace-list-state empty"><Radio/><strong>No claimed missions</strong><small>Claim a marketplace mission to begin dispatch.</small></div>}</section>
+  return <section className="operations-page"><div className="operations-heading"><div><span className="eyebrow">LIVE LOCATION DISPATCH ENGINE</span><h1>Assign. Respond. Lock.</h1><p>Every action is enforced by the database state machine and synchronized in real time.</p></div><button onClick={onMarketplace}><Crosshair/>Return to Marketplace</button></div><div className="operations-capacity-banner"><div><Users/><span><strong>{preview?'Preview dispatch workspace':`${guards.filter(g=>g.availability==='available').length} guards available`}</strong><small>Declined missions remain with this agency and return to awaiting guard.</small></span></div></div><div className="operations-grid">{claimed.map((m)=><article className="operation-card" key={m.job_id}><div className="operation-status"><span className={m.status==='accepted'?'active':'awaiting'}>{m.status.replace('_',' ').toUpperCase()}</span><small>{m.job_id.slice(0,8)}</small></div><h3>{m.title}</h3><p><MapPin/>{m.property.address}</p><div className="operation-footer"><div className="guard-avatar">{m.guard?.name?.split(' ').map(v=>v[0]).join('').slice(0,2)??'—'}</div><div><small>{m.guard?'ASSIGNED GUARD':'NEXT ACTION'}</small><strong>{m.guard?.name??'Select an available guard'}</strong></div>{m.status==='awaiting_guard'&&<select aria-label="Assign guard" defaultValue="" onChange={e=>{if(e.target.value)void onAssign(m.job_id,e.target.value)}}><option value="" disabled>Assign</option>{guards.filter(g=>g.availability==='available').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select>}{m.status==='offered'&&<button disabled>Awaiting response</button>}{m.status==='accepted'&&<button disabled><LockKeyhole/>Locked</button>}</div></article>)}</div>{!claimed.length&&<div className="marketplace-list-state empty"><Radio/><strong>No claimed missions</strong><small>Claim a marketplace mission to begin dispatch.</small></div>}</section>
 }
 function GuardsWorkspace({preview,onToast,authoritativeGuards,onRosterChanged}:{preview:boolean;onToast:(message:string)=>void;authoritativeGuards:GuardRosterData['guards'];onRosterChanged:()=>Promise<void>}){
   const [roster,setRoster]=useState<GuardRosterData>({guards:[],invitations:[]})

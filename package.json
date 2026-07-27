@@ -1,7 +1,7 @@
 {
   "name": "co-pilot-security-marketplace",
   "private": true,
-  "version": "3.3.0-property-dispatch-contract",
+  "version": "2.4.0-client-live-tracking",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

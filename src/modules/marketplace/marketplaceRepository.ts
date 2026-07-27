@@ -75,10 +75,3 @@ export function subscribeToMarketplace(onChange: () => void) {
     .subscribe()
   return () => { void db.removeChannel(channel) }
 }
-
-export async function updateAgencyServiceRadius(radiusMiles:number){
-  const db=requireSupabase()
-  if(![5,10,15,25,50].includes(radiusMiles))throw new Error('Unsupported marketplace range.')
-  const {error}=await db.rpc('set_agency_marketplace_radius_rc34',{p_radius_miles:radiusMiles})
-  if(error)throw new Error(error.message)
-}

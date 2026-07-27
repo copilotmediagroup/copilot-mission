@@ -60,23 +60,9 @@ export async function createClientProperty(input:{clientId:string;name:string;ad
     photo_path:photoPath,
     photo_url:publicPhoto.publicUrl,
   }
-  const {data,error}=await db.rpc('create_verified_client_property_rc33',{
-    p_property_id:payload.id,
-    p_name:payload.name,
-    p_address:payload.address,
-    p_street:payload.street,
-    p_city:payload.city,
-    p_state:payload.state,
-    p_postal_code:payload.postal_code,
-    p_latitude:payload.latitude,
-    p_longitude:payload.longitude,
-    p_geocoding_provider:payload.geocoding_provider,
-    p_geocoding_place_id:payload.geocoding_place_id,
-    p_photo_path:payload.photo_path,
-    p_photo_url:payload.photo_url,
-  })
+  const {data,error}=await db.from('properties').insert(payload).select('id').single()
   if(error){ await db.storage.from('property-photos').remove([photoPath]); throw error }
-  return {id:data as string}
+  return data
 }
 
 export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number}) {
