@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  AlertTriangle, BadgeCheck, BarChart3, Bell, BriefcaseBusiness, Building2, ClipboardList,
+  AlertTriangle, BadgeCheck, BarChart3, BriefcaseBusiness, Building2, ClipboardList,
   CalendarClock, Check, ChevronDown, ChevronRight, CircleDollarSign, Clock3,
   Crosshair, Filter, Flame, Gauge, Layers3, MapPin, MessageSquare, Navigation,
   Radio, Search, Settings, ShieldCheck, Siren, SlidersHorizontal, Users, Wifi, Zap, Bug, Database, LockKeyhole, X, UserPlus, Copy, LoaderCircle, Mail
@@ -227,7 +227,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     <header className="agency-topbar premium-topbar">
       <div className="page-title"><div className="foundation-status"><span className={mode}><Wifi/>{mode === 'supabase' ? 'SUPABASE CONNECTED' : 'BACKEND READY · MOCK DATA'}</span><small>{role ?? 'role pending'}</small></div><h1>{tab==='marketplace'?'Marketplace':tab==='reports'?'Reports':'Operations'}</h1><p>{tab==='marketplace'?'Find. Compete. Win. Protect.':tab==='reports'?'Review completed missions and publish verified reports.':'Manage active missions without leaving the market.'}</p></div>
       <div className="top-kpis"><Kpi icon={<CircleDollarSign/>} label="OPEN JOBS" value={jobs.length} tone="gold"/><Kpi icon={<Flame/>} label="PRIORITY" value={jobs.filter(j=>j.kind==='priority').length} tone="orange"/><Kpi icon={<Siren/>} label="EMERGENCY" value={jobs.filter(j=>j.kind==='emergency').length} tone="red"/><Kpi icon={<Users/>} label="ACTIVE JOBS" value={accepted.length+(isPreview?2:0)} tone="green"/><Kpi icon={<ShieldCheck/>} label="ONLINE GUARDS" value={guardSummary.online} tone="blue"/></div>
-      <div className="top-actions"><button className="icon-button"><Bell/>{isPreview&&<i>4</i>}</button><button className="icon-button"><MessageSquare/></button><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
+      <div className="top-actions"><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
     </header>
 
     <main className="agency-main premium-main">
