@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase'
 
 export type LocationFreshness='live'|'stale'|'expired'|'waiting'|'offline'
-export type GuardLiveLocation={guard_id:string;name:string;availability:'offline'|'available'|'reserved'|'on_mission';latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:LocationFreshness;agency_id?:string;agency_name?:string}
+export type GuardLiveLocation={guard_id:string;name:string;availability:'offline'|'available'|'reserved'|'on_mission';latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:LocationFreshness;agency_id?:string;agency_name?:string;avatar_url?:string|null;current_address?:string|null}
 export type LocationPoint={latitude:number;longitude:number;accuracy_meters:number|null;heading_degrees:number|null;speed_mps:number|null;recorded_at:string}
 export type PublishedLocation={success:boolean;guard_id:string;agency_id:string;job_id:string|null;latitude:number;longitude:number;recorded_at:string}
 
@@ -21,10 +21,23 @@ export async function getAgencyLiveLocations():Promise<GuardLiveLocation[]>{cons
 export async function getPlatformLiveLocations():Promise<GuardLiveLocation[]>{const {data,error}=await db().rpc('get_platform_live_locations_rc12');if(error)throw new Error(error.message);return Array.isArray(data)?data as GuardLiveLocation[]:[]}
 export async function getMissionRouteHistory(jobId:string):Promise<LocationPoint[]>{const {data,error}=await db().rpc('get_mission_route_history_rc12',{p_job_id:jobId});if(error)throw new Error(error.message);return Array.isArray(data)?data as LocationPoint[]:[]}
 
-export function subscribeToGuardLocations(onChange:()=>void){
+/**
+ * Canonical realtime subscription contract for the Live Location Engine.
+ * All Agency, Guard, Client and Platform consumers subscribe through this function.
+ */
+export function subscribeToLiveLocations(onChange:()=>void){
   if(!supabase)return()=>undefined
-  const channel=supabase.channel(`live-location-rc12-${crypto.randomUUID()}`)
+  const channel=supabase.channel(`live-location-engine-${crypto.randomUUID()}`)
     .on('postgres_changes',{event:'*',schema:'public',table:'guards'},onChange)
     .subscribe()
   return()=>{void supabase?.removeChannel(channel)}
 }
+
+/**
+ * Backward-compatible engine alias. Existing certified consumers remain valid while
+ * new consumers use subscribeToLiveLocations as the canonical contract.
+ */
+export const subscribeToGuardLocations=subscribeToLiveLocations
+
+/** Compatibility name used by the application shell. */
+export const writeGuardLocation=publishGuardLocation

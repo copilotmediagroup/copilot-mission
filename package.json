@@ -1,7 +1,7 @@
 {
   "name": "co-pilot-security-marketplace",
   "private": true,
-  "version": "2.4.0-client-live-tracking",
+  "version": "3.1.0-notification-engine",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
