@@ -31,7 +31,7 @@ export function loadGoogleMaps(): Promise<any> {
     const script = document.createElement('script')
     script.async = true
     script.defer = true
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly&callback=${callback}`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places,geometry&v=weekly&callback=${callback}`
     script.onerror = () => {
       window.clearTimeout(timeout)
       delete (window as any)[callback]
