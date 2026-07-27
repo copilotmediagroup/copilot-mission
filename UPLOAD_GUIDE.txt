@@ -1,16 +1,28 @@
-CO PILOT SECURITY MARKETPLACE v3.4 — DYNAMIC MARKETPLACE MAP ENGINE
+CO PILOT SECURITY MARKETPLACE
+v3.5 — MISSION ROUTE CONTINUITY ENGINE
+CHANGES ONLY
 
-Upload these files over the current repository and replace matching files.
-Do not delete the repository first.
+UPLOAD OVER THE CURRENT REPOSITORY. REPLACE MATCHING FILES.
+DO NOT DELETE THE REPOSITORY FIRST.
 
-Run once in Supabase SQL Editor:
-supabase/migrations/202607260010_rc34_dynamic_marketplace_map_engine.sql
+FILES
+1. src/AgencyOperationsCenter.tsx
+2. src/modules/maps/AgencyOperationsMap.tsx
+3. src/styles.css
+
+NO SQL MIGRATION IS REQUIRED.
 
 VISIBLE ACCEPTANCE TEST
-1. Open Marketplace with two or more jobs in different areas.
-2. Map automatically zooms out until every in-range open job and online guard is visible.
-3. Click a job card: its fastest route appears, but every other open-job marker remains visible.
-4. Claim one job: realtime removes it from Marketplace and camera refits around the remaining open jobs.
-5. Open the range control at top-right of map and choose 5, 10, 15, 25, or 50 miles.
-6. Boundary ring and camera update immediately; jobs outside range show as a count.
-7. Reload: selected range remains saved and is also persisted to the Agency record.
+1. Claim an open mission and assign a Guard.
+2. Open Agency > Operations and select that mission.
+3. OFFERED: a blue proposed road route remains visible with “Awaiting acceptance.”
+4. ACCEPTED / EN ROUTE: the same route becomes the live route and shows ETA + road distance.
+5. Guard GPS movement refreshes Operations through the existing realtime subscription and recalculates the route.
+6. Guard within 40 meters: route ends and displays “GUARD ON SITE.”
+7. Stale GPS: last-known route remains visible with an explicit GPS stale warning.
+8. Missing coordinates/GPS: the map states the exact unavailable condition instead of silently hiding the route.
+9. Other active mission and guard markers remain visible while the selected mission route is emphasized.
+
+BUILD VALIDATION
+Schema Contract Engine passed across 38 migrations.
+The local TypeScript build could not complete because this repository snapshot does not include installed React/Lucide/Node type packages. This is the pre-existing dependency environment issue, not a schema failure.
