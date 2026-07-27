@@ -1,39 +1,16 @@
-CO PILOT SECURITY MARKETPLACE RC3.3 — PROPERTY & DISPATCH CONTRACT
+CO PILOT SECURITY MARKETPLACE v3.4 — DYNAMIC MARKETPLACE MAP ENGINE
 
-UPLOAD METHOD
-1. Keep the current GitHub repository in place.
-2. Upload this package over the repository root.
-3. Replace only matching files.
-4. Do not delete unrelated files.
-5. Run the included SQL migration once in Supabase SQL Editor:
-   supabase/migrations/202607260009_rc33_property_dispatch_contract.sql
+Upload these files over the current repository and replace matching files.
+Do not delete the repository first.
 
-CHANGED FILES
-- package.json
-- src/modules/client/clientRepository.ts
-- src/modules/dispatch/useMarketplaceProximity.ts
-- src/modules/maps/UnifiedMissionMap.tsx
-- supabase/migrations/202607260009_rc33_property_dispatch_contract.sql
+Run once in Supabase SQL Editor:
+supabase/migrations/202607260010_rc34_dynamic_marketplace_map_engine.sql
 
 VISIBLE ACCEPTANCE TEST
-A. Property creation
-- Sign in as the real Client account.
-- Add a verified property with photo and coordinates.
-- Save succeeds without a 403 RLS error.
-- The property appears immediately in the Client property list.
-
-B. Same-location guard
-- If guard and property are within 40 meters, Marketplace shows ON SITE.
-- The map shows GUARD ON SITE instead of pretending a road route is needed.
-
-C. Distant property
-- The nearest available guard appears on the job card without clicking.
-- Estimated proximity appears immediately while road routing loads.
-- The actual fastest-road route replaces the estimate when Google routing responds.
-- The map shows the blue road route from guard to property.
-- Dispatch Intelligence shows ETA and road distance.
-
-D. Failure states
-- Missing Client ownership gives a clear account/workspace message.
-- Missing coordinates shows verified-coordinate guidance.
-- A routing API failure keeps the nearest-guard estimate instead of blanking the entire feature.
+1. Open Marketplace with two or more jobs in different areas.
+2. Map automatically zooms out until every in-range open job and online guard is visible.
+3. Click a job card: its fastest route appears, but every other open-job marker remains visible.
+4. Claim one job: realtime removes it from Marketplace and camera refits around the remaining open jobs.
+5. Open the range control at top-right of map and choose 5, 10, 15, 25, or 50 miles.
+6. Boundary ring and camera update immediately; jobs outside range show as a count.
+7. Reload: selected range remains saved and is also persisted to the Agency record.
