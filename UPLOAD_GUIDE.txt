@@ -1,0 +1,18 @@
+Co Pilot Security Marketplace v3.2 — CHANGES ONLY
+
+Upload these files over the current v3.1.1 working repository.
+Do NOT delete the repository contents.
+
+Replace:
+- package.json
+- src/AgencyMarketplace.tsx
+- src/styles.css
+
+Add:
+- supabase/migrations/202607260008_rc32_proximity_dispatch_intelligence.sql
+- README_RC32.md
+- PROXIMITY_DISPATCH_INTELLIGENCE_RC32_CONTRACT.md
+- PROXIMITY_DISPATCH_INTELLIGENCE_RC32_ACCEPTANCE_GATE.md
+
+Then run the new Supabase migration once and run:
+npm run build
