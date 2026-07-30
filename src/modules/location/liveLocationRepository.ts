@@ -11,5 +11,4 @@ export function subscribeToLocationChanges(onChange:()=>void){if(!supabase)retur
 export function startGuardLocationPublisher(input:{enabled:boolean;onPublished?:()=>void;onError?:(message:string)=>void}){if(!input.enabled||!navigator.geolocation)return()=>undefined;let lastSent=0;let lastLat:number|undefined;let lastLng:number|undefined;const watch=navigator.geolocation.watchPosition(async position=>{const now=Date.now();const moved=lastLat==null||Math.abs(position.coords.latitude-lastLat)>0.00008||Math.abs(position.coords.longitude-lastLng!)>0.00008;if(!moved&&now-lastSent<15000)return;try{await publishGuardLocation(position);lastSent=now;lastLat=position.coords.latitude;lastLng=position.coords.longitude;input.onPublished?.()}catch(e){input.onError?.(e instanceof Error?e.message:'Unable to publish location')}},error=>input.onError?.(error.message),{enableHighAccuracy:true,maximumAge:5000,timeout:12000});return()=>navigator.geolocation.clearWatch(watch)}
 export const writeGuardLocation = publishGuardLocation
 export const subscribeToLiveLocations = subscribeToLocationChanges
-export const writeGuardLocation = publishGuardLocation
-export const subscribeToLiveLocations = subscribeToLocationChanges
+
