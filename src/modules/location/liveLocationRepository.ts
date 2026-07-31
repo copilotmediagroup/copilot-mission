@@ -38,6 +38,12 @@ export type PublishedLocation = {
   recorded_at: string
 }
 
+export type GuardLocationPublisherOptions = {
+  enabled: boolean
+  onPublished?: (location: PublishedLocation) => void
+  onError?: (message: string) => void
+}
+
 function db() {
   if (!supabase) {
     throw new Error('Supabase is not configured.')
@@ -73,11 +79,6 @@ export async function publishGuardLocation(
 
   return data as PublishedLocation
 }
-
-/**
- * Compatibility export used by older app components.
- */
-export const writeGuardLocation = publishGuardLocation
 
 export async function getAgencyLiveLocations(): Promise<
   GuardLiveLocation[]
@@ -137,8 +138,13 @@ export function subscribeToGuardLocations(
     return () => undefined
   }
 
+  const channelName =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? `live-location-rc12-${crypto.randomUUID()}`
+      : `live-location-rc12-${Date.now()}`
+
   const channel = supabase
-    .channel(`live-location-rc12-${crypto.randomUUID()}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
@@ -151,12 +157,114 @@ export function subscribeToGuardLocations(
     .subscribe()
 
   return () => {
-    void supabase?.removeChannel(channel)
+    void supabase.removeChannel(channel)
+  }
+}
+
+export function startGuardLocationPublisher(
+  options: GuardLocationPublisherOptions,
+) {
+  if (!options.enabled) {
+    return () => undefined
+  }
+
+  if (
+    typeof navigator === 'undefined' ||
+    !navigator.geolocation
+  ) {
+    options.onError?.(
+      'Geolocation is not supported by this browser.',
+    )
+
+    return () => undefined
+  }
+
+  let stopped = false
+  let publishing = false
+  let lastPublishedAt = 0
+  let lastLatitude: number | null = null
+  let lastLongitude: number | null = null
+
+  const minimumPublishIntervalMs = 15_000
+  const minimumMovementDegrees = 0.00008
+
+  const watchId = navigator.geolocation.watchPosition(
+    position => {
+      if (stopped || publishing) {
+        return
+      }
+
+      const now = Date.now()
+      const { latitude, longitude } = position.coords
+
+      const hasMoved =
+        lastLatitude === null ||
+        lastLongitude === null ||
+        Math.abs(latitude - lastLatitude) >
+          minimumMovementDegrees ||
+        Math.abs(longitude - lastLongitude) >
+          minimumMovementDegrees
+
+      const intervalElapsed =
+        now - lastPublishedAt >= minimumPublishIntervalMs
+
+      if (!hasMoved && !intervalElapsed) {
+        return
+      }
+
+      publishing = true
+
+      void publishGuardLocation(position)
+        .then(location => {
+          if (stopped) {
+            return
+          }
+
+          lastPublishedAt = Date.now()
+          lastLatitude = latitude
+          lastLongitude = longitude
+
+          options.onPublished?.(location)
+        })
+        .catch(error => {
+          if (stopped) {
+            return
+          }
+
+          options.onError?.(
+            error instanceof Error
+              ? error.message
+              : 'Unable to publish guard location.',
+          )
+        })
+        .finally(() => {
+          publishing = false
+        })
+    },
+    error => {
+      if (stopped) {
+        return
+      }
+
+      options.onError?.(error.message)
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5_000,
+      timeout: 12_000,
+    },
+  )
+
+  return () => {
+    stopped = true
+    navigator.geolocation.clearWatch(watchId)
   }
 }
 
 /**
- * Compatibility export used by AgencyMarketplace.
+ * Compatibility exports used by older app components.
  */
+export const writeGuardLocation = publishGuardLocation
+
 export const subscribeToLiveLocations =
   subscribeToGuardLocations
