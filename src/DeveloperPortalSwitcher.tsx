@@ -47,7 +47,7 @@ export function DeveloperPortalSwitcher({
 
   return <div className={`portal-switcher ${compactOpen ? 'mobile-open' : ''}`}>
     <div className="portal-switcher-brand"><Code2/><span>DEVELOPER MODE</span><small>Signed in as {actualRole?.replace('_', ' ') ?? 'user'}</small></div>
-    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><span className={`developer-data-authority ${accessMode}`}>{accessMode==='live'?'LIVE DATABASE':'SIMULATED DATA'}</span><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Preview</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Live Test</button></div>
+    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Preview</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Live Test</button></div>
     <button className="portal-switcher-mobile" onClick={() => setCompactOpen(open => !open)}>
       <selected.icon/><span>{selected.label}</span>
     </button>
