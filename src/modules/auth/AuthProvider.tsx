@@ -80,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setSession(null)
     setError(null)
-    setPhase('booting')
 
     if (!supabase) {
       setError('Supabase is not configured.')
@@ -129,7 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: null }
     signingOut.current = false
-    setPhase('booting')
     setError(null)
     const result = await supabase.auth.signInWithPassword({ email, password })
     if (result.error) setPhase('signed_out')

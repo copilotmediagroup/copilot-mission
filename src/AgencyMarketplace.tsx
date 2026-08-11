@@ -12,7 +12,7 @@ import { createGuardInvitation, getGuardRoster, guardActivationUrl, revokeGuardI
 import { useAgencyGuardState } from './modules/marketplace/useAgencyGuardState'
 import { assignGuard, getAgencyDispatchWorkspace, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission } from './modules/dispatch/dispatchRepository'
 import ReportingWorkspace from './ReportingWorkspace'
-import { getAgencyLiveLocations, subscribeToLiveLocations, type GuardLiveLocation } from './modules/location/liveLocationRepository'
+import { getAgencyLiveLocations, subscribeToLocationChanges, type GuardLiveLocation } from './modules/location/liveLocationRepository'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
 type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; live?:boolean; photoUrl?:string|null }
@@ -121,7 +121,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     if(isPreview||mode!=='supabase'||!isRoleMatch)return
     const loadLocations=()=>void getAgencyLiveLocations().then(setLiveLocations).catch(error=>setLastError(error instanceof Error?error.message:'Live locations unavailable.'))
     loadLocations()
-    return subscribeToLiveLocations(loadLocations)
+    return subscribeToLocationChanges(loadLocations)
   },[isPreview,mode,isRoleMatch])
 
   useEffect(()=>{

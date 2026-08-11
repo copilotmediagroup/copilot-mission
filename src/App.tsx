@@ -12,7 +12,6 @@ import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, s
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
-import { writeGuardLocation } from './modules/location/liveLocationRepository'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 
@@ -119,21 +118,6 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   useEffect(() => { if (liveDispatch) void loadDispatch() }, [liveDispatch, loadDispatch])
   useEffect(() => liveDispatch ? subscribeToDispatch(() => void loadDispatch()) : undefined, [liveDispatch, loadDispatch])
 
-  useEffect(() => {
-    if (!liveDispatch || mission.state === 'offline' || !navigator.geolocation) return
-    let lastWrite = 0
-    const watchId = navigator.geolocation.watchPosition(
-      position => {
-        const now = Date.now()
-        if (now - lastWrite < 8000) return
-        lastWrite = now
-        void writeGuardLocation(position).catch(error => setNotice(error instanceof Error ? error.message : 'Location update failed'))
-      },
-      error => setNotice(error.code === error.PERMISSION_DENIED ? 'Location permission is required while online.' : 'Waiting for GPS signal…'),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
-  }, [liveDispatch, mission.state])
 
   useEffect(() => {
     const locationEnabled = liveDispatch && mission.state !== 'offline' && mission.state !== 'completed'
