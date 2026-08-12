@@ -41,7 +41,7 @@ function mapsError() {
   return new Error('Google address search is not configured. Check the Maps API key and enable Places API and Maps JavaScript API.')
 }
 
-function loadGoogleMaps(): Promise<any> {
+export function loadGoogleMaps(): Promise<any> {
   if (window.google?.maps?.places) return Promise.resolve(window.google)
   if (!apiKey) return Promise.reject(mapsError())
   if (window.__coPilotGoogleMapsPromise) return window.__coPilotGoogleMapsPromise
