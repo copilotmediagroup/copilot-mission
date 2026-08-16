@@ -311,6 +311,29 @@ function GuardApp({
     actions.goOffline()
   }
 
+  const returnOnline = async () => {
+    if (liveDispatch) {
+      try {
+        const presence = await setGuardPresence(true)
+
+        if (presence.availability !== 'available') {
+          throw new Error('Mission must be completed before returning online')
+        }
+
+        await loadDispatch()
+      } catch (error) {
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : 'Unable to return online'
+        )
+        return
+      }
+    }
+
+    actions.returnOnline()
+  }
+
   const accept = async () => {
     if (liveDispatch && dispatchMission) {
       try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version}); await loadDispatch() }
@@ -430,7 +453,7 @@ function GuardApp({
         onMarkArrived={() => void markArrived()}
         onNextCheckpoint={() => void nextCheckpoint()}
         onSubmitProof={() => void submitProof()}
-        onReturnOnline={actions.returnOnline}
+        onReturnOnline={() => void returnOnline()}
       />
       </div>
       <MissionTimeline className={timelineOpen ? 'timeline-open' : ''} onClose={() => setTimelineOpen(false)}/>
