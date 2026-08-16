@@ -6,6 +6,7 @@ import { GuardianProvider } from './modules/guardian/GuardianProvider'
 import GuardianButton from './modules/guardian/GuardianButton'
 import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
+import { timelineEngine } from './modules/timeline/TimelineEngine'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
 import { getGuardDispatchWorkspace, getGuardPresence, setGuardPresence, transitionGuardMission, type DispatchMission } from './modules/dispatch/dispatchRepository'
@@ -153,6 +154,11 @@ function GuardApp({
           presence.availability === 'offline' ? 'offline' : 'waiting'
         )
 
+        timelineEngine.hydrateMissionEvents(
+          workspace.events ?? [],
+          presence.availability === 'offline' ? 'offline' : 'waiting'
+        )
+
         return
       }
 
@@ -230,6 +236,11 @@ function GuardApp({
           actions.hydrateLiveState('waiting')
           break
       }
+
+      timelineEngine.hydrateMissionEvents(
+        workspace.events ?? [],
+        runtime.state
+      )
     } catch (error) {
       console.error('[GuardApp] load runtime failed', error)
 

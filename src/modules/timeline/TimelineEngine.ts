@@ -19,6 +19,14 @@ export type TimelineEntry = Readonly<{
 export type TimelineFilter = 'all' | TimelineSource
 export type TimelineListener = (entries: readonly TimelineEntry[]) => void
 
+export type AuthoritativeMissionEvent = {
+  id: number
+  job_id: string
+  event_type: string
+  payload: Record<string, unknown>
+  created_at: string
+}
+
 const labels: Record<string, string> = {
   MISSION_RESET: 'Mission reset',
   GUARD_ONLINE: 'Guard online',
@@ -95,6 +103,84 @@ class CoPilotTimelineEngine {
     } satisfies TimelineEntry)
 
     this.entries = Object.freeze([entry, ...this.entries].slice(0, 250))
+    this.listeners.forEach((listener) => listener(this.entries))
+  }
+
+  hydrateMissionEvents(
+    events: AuthoritativeMissionEvent[],
+    currentState: string,
+  ) {
+    const authoritative = events
+      .slice(0, 250)
+      .map((event, index, source) => {
+        const type = event.event_type.toUpperCase()
+        const payload = event.payload ?? {}
+        const detail =
+          typeof payload.detail === 'string'
+            ? payload.detail
+            : typeof payload.status === 'string'
+              ? `Status recorded as ${payload.status}.`
+              : `Authoritative mission event: ${event.event_type.replaceAll('_', ' ')}.`
+
+        const sourceType: TimelineSource =
+          event.event_type.includes('incident')
+            ? 'incident'
+            : event.event_type.includes('evidence') ||
+                event.event_type.includes('proof') ||
+                event.event_type.includes('report')
+              ? 'evidence'
+              : 'mission'
+
+        const severity: TimelineSeverity =
+          sourceType === 'incident' ? 'warning' : 'info'
+
+        return Object.freeze({
+          id: `db-mission-${event.id}`,
+          sequence: source.length - index,
+          timestamp: new Date(event.created_at).getTime(),
+          source: sourceType,
+          severity,
+          type,
+          title:
+            labels[type] ??
+            event.event_type
+              .replaceAll('_', ' ')
+              .replace(/\b\w/g, (character) => character.toUpperCase()),
+          detail,
+          state:
+            typeof payload.state === 'string'
+              ? payload.state
+              : currentState,
+          metadata: Object.freeze({
+            channel: 'mission',
+            eventId: event.id,
+            jobId: event.job_id,
+            authoritative: true,
+          }),
+        } satisfies TimelineEntry)
+      })
+
+    /*
+     * Mission history is authoritative from Supabase.
+     * Guardian history remains locally owned because it is a separate engine.
+     * Replace only mission/evidence/incident rows so repeated hydration
+     * cannot duplicate mission events.
+     */
+    const guardianEntries = this.entries.filter(
+      (entry) => entry.source === 'guardian'
+    )
+
+    this.entries = Object.freeze(
+      [...authoritative, ...guardianEntries]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 250)
+    )
+
+    this.sequence = this.entries.reduce(
+      (max, entry) => Math.max(max, entry.sequence),
+      0
+    )
+
     this.listeners.forEach((listener) => listener(this.entries))
   }
 
