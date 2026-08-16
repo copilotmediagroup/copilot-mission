@@ -14,10 +14,12 @@ import { assignGuard, getAgencyDispatchWorkspace, subscribeToDispatch, type Agen
 import ReportingWorkspace from './ReportingWorkspace'
 import { getAgencyLiveLocations, subscribeToLocationChanges, type GuardLiveLocation } from './modules/location/liveLocationRepository'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
+import type { ActiveMissionRoute } from './modules/location/missionRouting'
+import ThemeToggle from './modules/theme/ThemeToggle'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
 type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null }
-type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null }
+type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null }
 type Activity = { id:number; time:string; type:'new'|'accepted'|'emergency'|'assigned'; title:string; location:string }
 
 const initialJobs:Job[] = [
@@ -235,18 +237,68 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     <header className="agency-topbar premium-topbar">
       <div className="page-title"><div className="foundation-status"><span className={mode}><Wifi/>{mode === 'supabase' ? 'SUPABASE CONNECTED' : 'BACKEND READY · MOCK DATA'}</span><small>{role ?? 'role pending'}</small></div><h1>{tab==='marketplace'?'Marketplace':tab==='reports'?'Reports':'Operations'}</h1><p>{tab==='marketplace'?'Find. Compete. Win. Protect.':tab==='reports'?'Review completed missions and publish verified reports.':'Manage active missions without leaving the market.'}</p></div>
       <div className="top-kpis"><Kpi icon={<CircleDollarSign/>} label="OPEN JOBS" value={jobs.length} tone="gold"/><Kpi icon={<Flame/>} label="PRIORITY" value={jobs.filter(j=>j.kind==='priority').length} tone="orange"/><Kpi icon={<Siren/>} label="EMERGENCY" value={jobs.filter(j=>j.kind==='emergency').length} tone="red"/><Kpi icon={<Users/>} label="ACTIVE JOBS" value={accepted.length+(isPreview?2:0)} tone="green"/><Kpi icon={<ShieldCheck/>} label="ONLINE GUARDS" value={guardSummary.online} tone="blue"/></div>
-      <div className="top-actions"><button className="icon-button"><Bell/>{isPreview&&<i>4</i>}</button><button className="icon-button"><MessageSquare/></button><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
+      <div className="top-actions"><ThemeToggle/><button className="icon-button"><Bell/>{isPreview&&<i>4</i>}</button><button className="icon-button"><MessageSquare/></button><button className="profile-pill"><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
     </header>
 
     <main className="agency-main premium-main">
-      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
+      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview} dispatch={dispatch} liveLocations={liveLocations}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<Placeholder tab={tab}/>} 
     </main>
   </div>
 }
 
 function Kpi({icon,label,value,tone}:{icon:ReactNode,label:string,value:number,tone:string}){return <div className={`top-kpi ${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>}
 
-function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean}){
+function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview,dispatch,liveLocations}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[]}){
+
+ const liveMissions = dispatch?.missions ?? []
+
+ const routedMission =
+   liveMissions.find(mission =>
+     liveLocations.some(location =>
+       location.job_id === mission.job_id &&
+       location.latitude != null &&
+       location.longitude != null &&
+       mission.property.latitude != null &&
+       mission.property.longitude != null
+     )
+   ) ?? null
+
+ const routedGuard =
+   routedMission
+     ? liveLocations.find(location =>
+         location.job_id === routedMission.job_id &&
+         location.latitude != null &&
+         location.longitude != null
+       ) ?? null
+     : null
+
+ const activeMissionRoute:ActiveMissionRoute|null =
+   routedMission &&
+   routedGuard &&
+   routedGuard.latitude != null &&
+   routedGuard.longitude != null &&
+   routedMission.property.latitude != null &&
+   routedMission.property.longitude != null
+     ? {
+         missionId:routedMission.job_id,
+         status:routedGuard.mission_state ?? routedMission.status,
+
+         assignedGuard:{
+           guardId:routedGuard.guard_id,
+           name:routedGuard.name,
+           latitude:routedGuard.latitude,
+           longitude:routedGuard.longitude,
+           updatedAt:routedGuard.last_location_at,
+         },
+
+         destination:{
+           name:routedMission.property.name,
+           address:routedMission.property.address,
+           latitude:routedMission.property.latitude,
+           longitude:routedMission.property.longitude,
+         },
+       }
+     : null
 
  const mapMarkers:MissionMapMarker[] = [
    ...filtered
@@ -256,19 +308,39 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
        latitude:j.latitude as number,
        longitude:j.longitude as number,
        label:`${j.title} — ${j.address}`,
+       title:j.title,
+       subtitle:j.address,
+       photoUrl:j.photoUrl ?? null,
+       propertyType:j.property,
+       distance:j.distance,
+       eta:j.eta,
+       duration:j.duration,
+       price:j.price,
        type:j.kind==='emergency'
          ? 'emergency' as const
          : j.kind==='priority'
            ? 'priority' as const
            : 'job' as const,
      })),
+
    ...allGuards
-     .filter(g=>g.status!=='offline' && g.latitude!=null && g.longitude!=null)
+     .filter(
+       g=>
+         g.status!=='offline' &&
+         g.latitude!=null &&
+         g.longitude!=null
+     )
      .map(g=>({
        id:`guard-${g.id}`,
        latitude:g.latitude as number,
        longitude:g.longitude as number,
        label:g.name,
+       title:g.name,
+       subtitle:'Agency Guard',
+       initials:g.initials,
+       photoUrl:g.photoUrl ?? null,
+       status:g.status,
+       distance:g.distance,
        type:'guard' as const,
      })),
  ]
@@ -278,14 +350,18 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
     <div className="gold"><small>OPEN</small><strong>{jobs.length}</strong></div>
     <div className="orange"><small>PRIORITY</small><strong>{jobs.filter(j=>j.kind==='priority').length}</strong></div>
     <div className="red"><small>EMERGENCY</small><strong>{jobs.filter(j=>j.kind==='emergency').length}</strong></div>
-    <div className="green"><small>ACTIVE</small><strong>{preview?2:0}</strong></div>
+    <div className="green"><small>ACTIVE</small><strong>{preview?2:liveMissions.length}</strong></div>
     <div className="blue"><small>GUARDS</small><strong>{allGuards.filter(g=>g.status!=='offline').length}</strong></div>
   </section>
   <section className="live-map-panel premium-panel">
    <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/>LIVE</span></div><button><Layers3/>Layers<ChevronDown/></button></div>
    <div className="map-filter-row">{(['all','standard','priority','emergency'] as const).map(v=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{v==='all'?'All':v==='standard'?'Open Jobs':v}</button>)}<button onClick={()=>setFilter('all')}>My Guards</button></div>
    <div className="premium-map">
-    <MissionMap markers={mapMarkers}/>
+    <MissionMap
+      markers={mapMarkers}
+      activeMissionRoute={activeMissionRoute}
+      showViewerLocation={false}
+    />
     <div className="map-key">
       <span><i className="gold"/>Open Job</span>
       <span><i className="orange"/>Priority</span>

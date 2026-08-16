@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Clock3, Code2, LogOut, ShieldCheck, X } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
 import ExperienceLab from './ExperienceLab'
@@ -8,7 +8,9 @@ import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardPresence, getGuardMissionSnapshot, setGuardPresence, subscribeToDispatch, transitionGuardMission, type DispatchMission, type MissionEngineRecord } from './modules/dispatch/dispatchRepository'
+import { getGuardDispatchWorkspace, getGuardPresence, setGuardPresence, transitionGuardMission, type DispatchMission } from './modules/dispatch/dispatchRepository'
+import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-runtime/missionRuntimeRepository'
+import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
@@ -54,7 +56,7 @@ function AppShell() {
     {developerMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} />}
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
-        activeRole === 'guard' ? <GuardApp developerMode={developerMode} onEnableDeveloperMode={enableDeveloperMode} /> :
+        activeRole === 'guard' ? <GuardApp developerMode={developerMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
         activeRole === 'agency_admin' ? <div className="portal-root"><AgencyMarketplace developerMode={developerMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div> :
         activeRole === 'platform_admin' ? <PlatformMissionControl /> :
         <ClientPortal developerMode={developerMode} accessMode={developerAccessMode} />}
@@ -67,62 +69,208 @@ function PortalPlaceholder({ title, body, onLogout }: { title: string; body: str
   return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div></div></div>
 }
 
-function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boolean; onEnableDeveloperMode: () => void }) {
+function GuardApp({
+  developerMode,
+  accessMode,
+  onEnableDeveloperMode,
+}: {
+  developerMode: boolean
+  accessMode: DeveloperAccessMode
+  onEnableDeveloperMode: () => void
+}) {
   const auth = useAuth()
   const { mission, actions, setEvidence, setIncidents } = useMissionEngine()
   const [notice, setNotice] = useState('')
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
-  const [engineMission, setEngineMission] = useState<MissionEngineRecord | null>(null)
-  const liveDispatch = auth.mode === 'supabase' && auth.role === 'guard'
+  const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
+  const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(null)
+
+  const canReadLiveDispatch =
+    auth.mode === 'supabase' &&
+    auth.role === 'guard'
+
+  const isDeveloperPreview =
+    developerMode &&
+    accessMode === 'preview'
+
+  const liveDispatch =
+    canReadLiveDispatch &&
+    !isDeveloperPreview
+
+  const displayedMissionState =
+    developerMode && developerGuardState
+      ? developerGuardState
+      : mission.state
+
+  const displayedMissionRuntime = useMemo<MissionRuntime | null>(() => {
+    if (!missionRuntime) return null
+    if (!isDeveloperPreview || !developerGuardState) return missionRuntime
+
+    if (developerGuardState === 'enroute') {
+      return {
+        ...missionRuntime,
+        state: 'en_route',
+      }
+    }
+
+    if (developerGuardState === 'assignment') {
+      return {
+        ...missionRuntime,
+        state: 'offered',
+      }
+    }
+
+    if (developerGuardState === 'arrived') {
+      return {
+        ...missionRuntime,
+        state: 'active',
+      }
+    }
+
+    return missionRuntime
+  }, [
+    missionRuntime,
+    isDeveloperPreview,
+    developerGuardState,
+  ])
 
   const loadDispatch = useCallback(async () => {
-    if (!liveDispatch) return
+    if (!canReadLiveDispatch) return
+
     try {
       const workspace = await getGuardDispatchWorkspace()
       setDispatchMission(workspace.assignment)
+
       const assignment = workspace.assignment
+
       if (!assignment) {
-        setEngineMission(null)
+        setMissionRuntime(null)
+
         const presence = await getGuardPresence()
-        actions.hydrateLiveState(presence.availability === 'offline' ? 'offline' : 'waiting')
+
+        actions.hydrateLiveState(
+          presence.availability === 'offline' ? 'offline' : 'waiting'
+        )
+
         return
       }
 
-      const snapshot = await getGuardMissionSnapshot(assignment.job_id)
-      const engine = snapshot.mission
-      setEngineMission(engine)
-      const startedAt = engine?.mission_started_at ? new Date(engine.mission_started_at).getTime() : (assignment.accepted_at ? new Date(assignment.accepted_at).getTime() : null)
-      if (!engine || engine.state === 'offered') {
-        if (mission.state !== 'assignment') setNotice('New assignment received')
-        actions.hydrateLiveState('assignment')
-      } else if (engine.state === 'accepted') {
-        actions.hydrateLiveState('enroute', startedAt)
-      } else if (engine.state === 'en_route') {
-        actions.hydrateLiveState('arrived', startedAt)
-      } else if (engine.state === 'active' || engine.state === 'checkpoint') {
-        actions.hydrateLiveState('patrol', startedAt, engine.checkpoint_index, engine.evidence ?? [], engine.incidents ?? [])
-      } else if (engine.state === 'review') {
-        actions.hydrateLiveState('proof', startedAt, 6, engine.evidence ?? [], engine.incidents ?? [])
-      } else if (engine.state === 'completed') {
-        actions.hydrateLiveState('completed', startedAt, 6, engine.evidence ?? [], engine.incidents ?? [], engine.completed_at ? new Date(engine.completed_at).getTime() : null)
-      } else {
-        const presence = await getGuardPresence()
-        actions.hydrateLiveState(presence.availability === 'offline' ? 'offline' : 'waiting')
+      const runtime = await getMissionRuntime(assignment.job_id)
+
+      setMissionRuntime(runtime)
+
+      const startedAt = runtime.missionStartedAt
+        ? new Date(runtime.missionStartedAt).getTime()
+        : runtime.timestamps.acceptedAt
+          ? new Date(runtime.timestamps.acceptedAt).getTime()
+          : null
+
+      switch (runtime.state) {
+        case 'awaiting_guard':
+          actions.hydrateLiveState('assignment')
+          break
+
+        case 'offered':
+          actions.hydrateLiveState('assignment')
+          break
+
+        case 'accepted':
+          actions.hydrateLiveState('enroute', startedAt)
+          break
+
+        case 'en_route':
+          actions.hydrateLiveState('arrived', startedAt)
+          break
+
+        case 'active':
+          actions.hydrateLiveState(
+            'patrol',
+            startedAt,
+            runtime.checkpointIndex,
+            runtime.evidence,
+            runtime.incidents
+          )
+          break
+
+        case 'checkpoint':
+          actions.hydrateLiveState(
+            'patrol',
+            startedAt,
+            runtime.checkpointIndex,
+            runtime.evidence,
+            runtime.incidents
+          )
+          break
+
+        case 'review':
+          actions.hydrateLiveState(
+            'proof',
+            startedAt,
+            6,
+            runtime.evidence,
+            runtime.incidents
+          )
+          break
+
+        case 'completed':
+          actions.hydrateLiveState(
+            'completed',
+            startedAt,
+            6,
+            runtime.evidence,
+            runtime.incidents,
+            runtime.timestamps.completedAt
+              ? new Date(runtime.timestamps.completedAt).getTime()
+              : null
+          )
+          break
+
+        case 'cancelled':
+          actions.hydrateLiveState('waiting')
+          break
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Mission Engine unavailable')
-    }
-  }, [liveDispatch, mission.state, actions])
+      console.error('[GuardApp] load runtime failed', error)
 
-  useEffect(() => { if (liveDispatch) void loadDispatch() }, [liveDispatch, loadDispatch])
-  useEffect(() => liveDispatch ? subscribeToDispatch(() => void loadDispatch()) : undefined, [liveDispatch, loadDispatch])
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load mission.'
+      )
+    }
+  }, [canReadLiveDispatch, actions])
+
+  useEffect(() => {
+    if (canReadLiveDispatch) void loadDispatch()
+  }, [canReadLiveDispatch, loadDispatch])
+  useEffect(() => {
+    if (!canReadLiveDispatch || !dispatchMission?.job_id) return
+
+    return subscribeToMissionRuntime(
+      dispatchMission.job_id,
+      () => void loadDispatch()
+    )
+  }, [canReadLiveDispatch, dispatchMission?.job_id, loadDispatch])
 
 
   useEffect(() => {
-    const locationEnabled = liveDispatch && mission.state !== 'offline' && mission.state !== 'completed'
-    return startGuardLocationPublisher({enabled:locationEnabled,onError:(message)=>setNotice(message.includes('denied')?'Location permission is required for live operations.':message)})
-  }, [liveDispatch, mission.state])
+    const locationEnabled =
+      liveDispatch &&
+      mission.state !== 'offline' &&
+      mission.state !== 'completed'
+
+    return startGuardLocationPublisher({
+      enabled: locationEnabled,
+      jobId: dispatchMission?.job_id ?? null,
+      onError: message =>
+        setNotice(
+          message.includes('denied')
+            ? 'Location permission is required for live operations.'
+            : message
+        ),
+    })
+  }, [liveDispatch, mission.state, dispatchMission?.job_id])
 
   useEffect(() => {
     if (!liveDispatch) return
@@ -165,14 +313,14 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
 
   const accept = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'accept',expectedVersion:engineMission?.version}); await loadDispatch() }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to accept assignment'); return }
     }
     actions.acceptAssignment()
   }
   const decline = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'decline',expectedVersion:engineMission?.version}); setDispatchMission(null); setEngineMission(null) }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'decline',expectedVersion:missionRuntime?.version}); setDispatchMission(null); setMissionRuntime(null) }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to decline assignment'); return }
     }
     actions.declineAssignment()
@@ -180,7 +328,7 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
 
   const startRoute = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'start_route',expectedVersion:engineMission?.version}); await loadDispatch() }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to start route'); return }
       return
     }
@@ -189,7 +337,7 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
 
   const markArrived = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:engineMission?.version}); await loadDispatch() }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to mark arrival'); return }
       return
     }
@@ -199,20 +347,20 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
     setEvidence(records)
     if (!liveDispatch || !dispatchMission) return
-    try { const next=await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:engineMission?.version,evidence:records,incidents:mission.incidents}); setEngineMission(next) }
+    try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch() }
   }
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
     setIncidents(records)
     if (!liveDispatch || !dispatchMission) return
-    try { const next=await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:engineMission?.version,evidence:mission.patrolEvidence,incidents:records}); setEngineMission(next) }
+    try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch() }
   }
 
   const nextCheckpoint = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:engineMission?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
       return
     }
@@ -221,22 +369,53 @@ function GuardApp({ developerMode, onEnableDeveloperMode }: { developerMode: boo
 
   const submitProof = async () => {
     if (liveDispatch && dispatchMission) {
-      try { const completed=await transitionGuardMission({jobId:dispatchMission.job_id,action:'submit',expectedVersion:engineMission?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); setEngineMission(completed); actions.hydrateLiveState('completed', completed.mission_started_at ? new Date(completed.mission_started_at).getTime() : mission.missionStartedAt, 6, completed.evidence ?? [], completed.incidents ?? [], completed.completed_at ? new Date(completed.completed_at).getTime() : Date.now()) }
+      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission') }
       return
     }
     actions.submitProof()
   }
 
-  return <GuardianProvider missionState={mission.state}><div className={`guard-app state-${mission.state}`}>
+  return <GuardianProvider missionState={displayedMissionState}><div className={`guard-app state-${displayedMissionState}`}>
     <div className="ambient ambient-one" />
     <div className="ambient ambient-two" />
     {notice && <div className="mission-toast">{notice}</div>}
+
+    {developerMode && <div className="guard-developer-state-preview">
+      <strong>GUARD STATE</strong>
+
+      {([
+        ['offline', 'Offline'],
+        ['waiting', 'Waiting'],
+        ['assignment', 'Assignment'],
+        ['enroute', 'En Route'],
+        ['arrived', 'Arrived'],
+        ['patrol', 'Patrol'],
+        ['proof', 'Review'],
+        ['completed', 'Complete'],
+      ] as const).map(([state, label]) =>
+        <button
+          key={state}
+          className={displayedMissionState === state ? 'active' : ''}
+          onClick={() => setDeveloperGuardState(state)}
+        >
+          {label}
+        </button>
+      )}
+
+      <button
+        className={developerGuardState === null ? 'active' : ''}
+        onClick={() => setDeveloperGuardState(null)}
+      >
+        LIVE STATE
+      </button>
+    </div>}
+
     <div className="production-workspace">
-      <div className="production-stage" key={mission.state}>
+      <div className="production-stage" key={displayedMissionState}>
       <GuardDashboard
-        state={mission.state}
-        assignment={dispatchMission}
+        state={displayedMissionState}
+        runtime={displayedMissionRuntime}
         checkpoint={mission.checkpoint}
         patrolEvidence={mission.patrolEvidence}
         onEvidenceChange={(records) => void updateEvidence(records)}

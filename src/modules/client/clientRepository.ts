@@ -156,3 +156,43 @@ export async function deleteClientProperty(propertyId:string) {
   const result=Array.isArray(data)?data[0]:data
   if(!result?.deleted) throw new Error(result?.reason==='mission_history_exists'?'This property has mission history and cannot be permanently deleted. Archive it instead.':'Unable to delete this property.')
 }
+
+export async function withdrawClientJob(jobId:string) {
+  const db=requireSupabase()
+
+  const {data:{user}}=await db.auth.getUser()
+  if(!user) throw new Error('Your session expired. Please sign in again.')
+
+  const {data:clientId,error:workspaceError}=await db.rpc('ensure_client_workspace')
+  if(workspaceError) throw workspaceError
+  if(!clientId) throw new Error('Client workspace unavailable.')
+
+  const {data:job,error:readError}=await db
+    .from('marketplace_jobs')
+    .select('id,client_id,status')
+    .eq('id',jobId)
+    .eq('client_id',clientId as string)
+    .single()
+
+  if(readError) throw readError
+
+  if(job.status==='cancelled') return
+
+  if(job.status!=='open'){
+    throw new Error(
+      'This request has already been accepted and can no longer be withdrawn from the marketplace.'
+    )
+  }
+
+  const {error:updateError}=await db
+    .from('marketplace_jobs')
+    .update({
+      status:'cancelled',
+      updated_at:new Date().toISOString(),
+    })
+    .eq('id',jobId)
+    .eq('client_id',clientId as string)
+    .eq('status','open')
+
+  if(updateError) throw updateError
+}

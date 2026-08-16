@@ -32,15 +32,6 @@ export async function getGuardPresence():Promise<GuardPresence>{
   const {data,error}=await db().rpc('get_guard_presence_rc13'); if(error) throw new Error(error.message); return data as GuardPresence
 }
 
-export async function respondToAssignment(jobId:string,response:'accept'|'decline'){
-  const {data,error}=await db().rpc('respond_to_assignment_rc2',{p_job_id:jobId,p_response:response}); if(error) throw new Error(error.message); return data as {success:boolean;status:DispatchStatus;job_id:string}
-}
-
-export async function advanceGuardMission(jobId:string,action:'start_route'|'mark_arrived'){
-  const {data,error}=await db().rpc('advance_guard_mission_rc22',{p_job_id:jobId,p_action:action});
-  if(error) throw new Error(error.message)
-  return data as {success:boolean;status:DispatchStatus;job_id:string}
-}
 export function subscribeToDispatch(onChange:()=>void){
   if(!supabase)return()=>undefined
   const channel=supabase.channel(`dispatch-rc2-${crypto.randomUUID()}`)
@@ -76,18 +67,6 @@ export async function getGuardExecutionState(jobId:string):Promise<GuardExecutio
 
 export async function saveGuardExecutionPayload(jobId:string,evidence:import('../../types').PatrolEvidence[],incidents:import('../../types').IncidentRecord[]):Promise<GuardExecutionState>{
   const {data,error}=await db().rpc('save_guard_execution_payload_rc23',{p_job_id:jobId,p_evidence:evidence,p_incidents:incidents})
-  if(error) throw new Error(error.message)
-  return data as GuardExecutionState
-}
-
-export async function completeGuardCheckpoint(jobId:string,expectedCheckpoint:number):Promise<GuardExecutionState>{
-  const {data,error}=await db().rpc('complete_guard_checkpoint_rc23',{p_job_id:jobId,p_expected_checkpoint:expectedCheckpoint})
-  if(error) throw new Error(error.message)
-  return data as GuardExecutionState
-}
-
-export async function submitGuardMission(jobId:string):Promise<GuardExecutionState>{
-  const {data,error}=await db().rpc('submit_guard_mission_rc23',{p_job_id:jobId})
   if(error) throw new Error(error.message)
   return data as GuardExecutionState
 }

@@ -1,27 +1,114 @@
 import { Building2, Check, CheckCircle2, Clock3, FileText, LocateFixed, MapPin, Navigation, Radio, Shield, UserRound } from 'lucide-react'
 import type { ClientTrackingExperience, TrackingTimelineEvent } from './modules/client/clientLiveTrackingRepository'
+import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
+import { withdrawClientJob } from './modules/client/clientRepository'
+import { useState } from 'react'
 
 type Props={experience:ClientTrackingExperience;onViewReport:()=>void}
 const stages=['marketplace','offered','accepted','en_route','active','checkpoint','review','completed']
 const labels:Record<string,string>={marketplace:'Finding coverage',awaiting_guard:'Agency preparing',offered:'Guard assigned',accepted:'Guard confirmed',en_route:'Guard en route',active:'Patrol active',checkpoint:'Patrol active',review:'Mission review',completed:'Mission complete'}
 
 export default function ClientLiveTracking({experience,onViewReport}:Props){
+ const [withdrawing,setWithdrawing]=useState(false)
+ const [withdrawError,setWithdrawError]=useState('')
  if(!experience)return null
  const state=experience.mission.state||'marketplace';const completed=state==='completed';const published=experience.report?.status==='published'
  const stageIndex=Math.max(0,stages.indexOf(state));const guard=experience.guard
+
+ const clientMapMarkers:MissionMapMarker[]=[]
+
+ if(
+   experience.property.latitude!=null &&
+   experience.property.longitude!=null
+ ){
+   clientMapMarkers.push({
+     id:`property-${experience.property.id}`,
+     latitude:experience.property.latitude,
+     longitude:experience.property.longitude,
+     label:experience.property.name,
+     title:experience.property.name,
+     subtitle:experience.property.address,
+     photoUrl:experience.property.photo_url,
+     type:'property',
+     active:!completed,
+   })
+ }
+
+ if(
+   guard &&
+   guard.latitude!=null &&
+   guard.longitude!=null &&
+   !completed
+ ){
+   clientMapMarkers.push({
+     id:`guard-${guard.id}`,
+     latitude:guard.latitude,
+     longitude:guard.longitude,
+     label:guard.name,
+     title:guard.name,
+     subtitle:experience.agency?.name||'Assigned security guard',
+     initials:guard.name.split(' ').map(v=>v[0]).join('').slice(0,2),
+     type:'guard',
+     status:guard.freshness,
+     distance:experience.distance_miles??undefined,
+   })
+ }
+
+ const canWithdraw=
+   experience.job_status==='open' &&
+   ['marketplace','awaiting_guard'].includes(state)
+
+ async function withdrawRequest(){
+   if(!canWithdraw||withdrawing)return
+
+   if(!window.confirm('Withdraw this security request?'))return
+
+   setWithdrawError('')
+   setWithdrawing(true)
+
+   try{
+     if(!experience) return
+     await withdrawClientJob(experience.job_id)
+   }catch(error){
+     setWithdrawError(
+       error instanceof Error
+         ? error.message
+         : 'Unable to withdraw request.'
+     )
+   }finally{
+     setWithdrawing(false)
+   }
+ }
+
  return <section className={`client-tracking-experience ${completed?'complete':''}`}>
   <div className="tracking-hero">
    <div className="tracking-status-copy"><span className="tracking-live-label"><Radio/>{completed?'MISSION RECORD':'LIVE MISSION'}</span><h2>{published?'Your verified report is ready.':labels[state]||'Security request active'}</h2><p>{statusMessage(state,guard?.name)}</p></div>
    {published?<button className="tracking-report-action" onClick={onViewReport}><FileText/>View verified report</button>:experience.eta_minutes?<div className="tracking-eta"><small>ESTIMATED ARRIVAL</small><strong>{experience.eta_minutes} min</strong><span>{experience.distance_miles} miles away</span></div>:null}
+   {canWithdraw&&(
+    <div className="tracking-withdraw-wrap">
+     <button
+      type="button"
+      className="tracking-withdraw-action"
+      onClick={()=>void withdrawRequest()}
+      disabled={withdrawing}
+     >
+      {withdrawing?'Withdrawing…':'Withdraw Request'}
+     </button>
+
+     {withdrawError
+      ? <div className="tracking-withdraw-error">{withdrawError}</div>
+      : null}
+    </div>
+   )}
   </div>
 
   <div className="tracking-map-panel">
-   <div className="tracking-map-grid" aria-label="Live mission map presentation">
-    <div className="tracking-route-line"/>
-    <span className="tracking-property-marker"><Building2/></span>
-    {guard?.latitude!=null&&guard?.longitude!=null&&!completed?<span className="tracking-guard-marker"><Shield/></span>:null}
-    <div className="tracking-map-address"><MapPin/><span><small>SECURITY LOCATION</small><b>{experience.property.name}</b><em>{experience.property.address}</em></span></div>
-    <span className={`tracking-freshness ${guard?.freshness||'none'}`}><LocateFixed/>{freshnessLabel(guard?.freshness)}</span>
+   <div className="client-live-map" aria-label="Live mission map">
+    <MissionMap
+     markers={clientMapMarkers}
+     showViewerLocation={false}
+     zoom={18}
+    />
    </div>
    <div className="tracking-mission-card">
     {guard?<div className="tracking-guard"><span><UserRound/></span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong><em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE DISPATCH</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
