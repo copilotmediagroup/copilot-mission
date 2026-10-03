@@ -876,6 +876,8 @@ export default function MissionMap({
 
       markerObjectsRef.current.forEach(
         marker => {
+          marker.__copilotClickListener?.remove?.()
+          marker.setMap?.(null)
           marker.map = null
         }
       )
@@ -972,11 +974,6 @@ export default function MissionMap({
       if (!google || !map) return
 
       try {
-        const { AdvancedMarkerElement } =
-          await google.maps.importLibrary(
-            'marker'
-          )
-
         if (!active) return
 
         markerObjectsRef.current.forEach(
@@ -1099,42 +1096,6 @@ export default function MissionMap({
           shell.appendChild(core)
 
           /*
-           * ADVANCED MARKER ENGINE V2
-           *
-           * AdvancedMarkerElement is itself an HTMLElement.
-           * Do not pass our visual DOM through deprecated
-           * AdvancedMarkerElementOptions.content.
-           */
-          const advancedMarker =
-            new AdvancedMarkerElement({
-              map,
-
-              position: {
-                lat: marker.latitude,
-                lng: marker.longitude,
-              },
-
-              title: marker.label,
-
-              gmpClickable: true,
-
-              zIndex:
-                marker.type === 'viewer'
-                  ? 120
-                  : marker.type === 'guard'
-                    ? 110
-                    : marker.active
-                      ? 100
-                      : 20,
-            })
-
-          /*
-           * Current Advanced Marker DOM model:
-           * marker owns its visual children.
-           */
-          advancedMarker.append(shell)
-
-          /*
            * Single card-opening function.
            * Both Google interaction paths call this same function.
            */
@@ -1200,39 +1161,73 @@ export default function MissionMap({
           )
 
           /*
-           * Modern Advanced Marker interaction.
-           * Retained as a supported secondary path.
-           */
-          advancedMarker.addEventListener(
-            'gmp-click',
-            (event: Event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              openMarkerCard()
-            }
-          )
-
-          /*
-           * Maps MVC click compatibility.
+           * HTML OVERLAY MARKER ENGINE
            *
-           * Google still documents AdvancedMarkerElement "click"
-           * for addListener(). This gives us a second supported
-           * interaction path without duplicating card logic.
+           * Advanced Markers require a valid Google Map ID.
+           * Production must not break when the Map ID is missing
+           * or not configured in Netlify, so Co Pilot markers are
+           * rendered through OverlayView. The geography remains
+           * Google Maps; our UI remains custom HTML.
            */
-          const mvcClickListener =
-            advancedMarker.addListener(
-              'click',
-              () => {
-                openMarkerCard()
-              }
-            )
+          const overlayShell =
+            document.createElement('div')
 
-          ;(advancedMarker as any).__copilotClickListener =
-            mvcClickListener
+          overlayShell.className =
+            'copilot-map-marker-overlay'
 
-          markerObjectsRef.current.push(
-            advancedMarker
+          overlayShell.style.position = 'absolute'
+          overlayShell.style.pointerEvents = 'none'
+          overlayShell.style.zIndex = String(
+            marker.type === 'viewer'
+              ? 120
+              : marker.type === 'guard'
+                ? 110
+                : marker.active
+                  ? 100
+                  : 20
           )
+
+          overlayShell.appendChild(shell)
+
+          const overlay =
+            new google.maps.OverlayView()
+
+          overlay.onAdd = () => {
+            const panes = overlay.getPanes()
+            panes?.overlayMouseTarget?.appendChild(
+              overlayShell
+            )
+          }
+
+          overlay.draw = () => {
+            const projection =
+              overlay.getProjection()
+
+            if (!projection) return
+
+            const point =
+              projection.fromLatLngToDivPixel(
+                new google.maps.LatLng(
+                  marker.latitude,
+                  marker.longitude,
+                )
+              )
+
+            if (!point) return
+
+            overlayShell.style.left = `${point.x}px`
+            overlayShell.style.top = `${point.y}px`
+            overlayShell.style.transform =
+              'translate(-50%, -50%)'
+          }
+
+          overlay.onRemove = () => {
+            overlayShell.remove()
+          }
+
+          overlay.setMap(map)
+
+          markerObjectsRef.current.push(overlay)
         })
       } catch (err) {
         if (!active) return

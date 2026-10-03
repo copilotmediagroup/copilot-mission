@@ -5,7 +5,7 @@
  * keys are public in browser apps. Protect it in Google Cloud using Website
  * restrictions and API restrictions.
  */
-export const GOOGLE_MAPS_API_KEY = 'AIzaSyDCDmX55mme_EMd6rXnjcwZeSyGwsn8Hzc'
+export const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyDCDmX55mme_EMd6rXnjcwZeSyGwsn8Hzc')
 
 export const DEFAULT_ADDRESS_BIAS = {
   latitude: 27.8661,
