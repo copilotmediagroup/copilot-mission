@@ -4682,3 +4682,8 @@ html[data-theme="light"]
 .property-info>button:hover{background:rgba(8,117,255,.06)!important}.property-info>button svg{width:15px;color:#1885ff}.state-arrived .property-info>button{min-height:72px;padding:14px}.state-arrived .property-info>button strong{font-size:12px}.state-arrived .property-info>button span{font-size:11px}
 /* QA FIX: Guard mini label should not look like a second cloned guard marker. */
 .copilot-map-marker.guard::after{content:"GUARD"!important}
+
+/* Guard sidebar actions: visible response without broken overlays */
+.guard-nav-notice{position:absolute;left:12px;right:12px;bottom:56px;z-index:40;padding:9px 10px;border:1px solid rgba(22,117,255,.28);border-radius:10px;background:rgba(5,14,24,.94);color:#cfe5ff;font-size:10px;font-weight:800;line-height:1.35;box-shadow:0 14px 34px rgba(0,0,0,.34);pointer-events:none}
+.guard-app .bottom-nav .guard-nav-notice{left:12px;right:12px;bottom:16px}
+.guard-app .bottom-nav button:active{transform:scale(.98)}

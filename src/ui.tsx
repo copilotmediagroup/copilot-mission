@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Bell, BriefcaseBusiness, Home, LoaderCircle, Menu, MessageSquare, ShieldCheck, UserRound } from 'lucide-react'
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
@@ -61,15 +61,51 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
 
 type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile'
 
+const guardNavCopy: Record<GuardNavTarget | 'menu' | 'alerts', string> = {
+  home: 'Home selected. Showing the current guard mission screen.',
+  jobs: 'Jobs selected. Current assignment and mission workflow stay in view.',
+  messages: 'Messages selected. No unread agency messages right now.',
+  profile: 'Profile selected. Guard profile is managed by the agency roster.',
+  menu: 'Guard menu selected. Mission tools stay available on the current screen.',
+  alerts: 'Notifications selected. No new guard alerts right now.',
+}
+
+function announceGuardAction(target: GuardNavTarget | 'menu' | 'alerts') {
+  window.dispatchEvent(new CustomEvent('copilot-guard-nav', { detail: guardNavCopy[target] }))
+}
+
+function GuardNavNotice() {
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail
+      setMessage(typeof detail === 'string' ? detail : '')
+    }
+
+    window.addEventListener('copilot-guard-nav', handler)
+    return () => window.removeEventListener('copilot-guard-nav', handler)
+  }, [])
+
+  useEffect(() => {
+    if (!message) return
+    const timer = window.setTimeout(() => setMessage(''), 1800)
+    return () => window.clearTimeout(timer)
+  }, [message])
+
+  return message ? <div className="guard-nav-notice" role="status">{message}</div> : null
+}
+
 export function AppHeader({ light = false, title }: { light?: boolean; title?: string }) {
   return <div className={`app-header ${light ? 'light' : ''}`}>
-    <button type="button" className="app-header-action" aria-label="Guard menu"><Menu size={18} /></button>
+    <button type="button" className="app-header-action" onClick={()=>announceGuardAction('menu')} aria-label="Guard menu"><Menu size={18} /></button>
     {title ? <strong className="app-title">{title}</strong> : <span />}
-    <button type="button" className="app-header-action bell" aria-label="Guard notifications"><Bell size={17} /></button>
+    <button type="button" className="app-header-action bell" onClick={()=>announceGuardAction('alerts')} aria-label="Guard notifications"><Bell size={17} /></button>
   </div>
 }
 
 export function BottomNav({ light = false, active = 'home' }: { light?: boolean; active?: GuardNavTarget }) {
+  const [selected, setSelected] = useState<GuardNavTarget>(active)
   const items = [
     ['home', Home, 'Home'],
     ['jobs', BriefcaseBusiness, 'Jobs'],
@@ -78,7 +114,8 @@ export function BottomNav({ light = false, active = 'home' }: { light?: boolean;
   ] as const
 
   return <nav className={`bottom-nav ${light ? 'light' : ''}`} aria-label="Primary navigation">
-    {items.map(([id, Icon, label]) => <button key={id} type="button" className={active === id ? 'active' : ''} aria-label={label}><Icon /><span>{label}</span></button>)}
+    {items.map(([id, Icon, label]) => <button key={id} type="button" className={selected === id ? 'active' : ''} aria-label={label} onClick={()=>{setSelected(id); announceGuardAction(id)}}><Icon /><span>{label}</span></button>)}
+    <GuardNavNotice />
   </nav>
 }
 
