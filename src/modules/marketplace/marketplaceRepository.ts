@@ -46,7 +46,7 @@ export async function getAgencyWorkspace(): Promise<AgencyWorkspace> {
     name: payload.agency?.name ?? 'Your Agency',
     status: payload.agency?.status ?? 'pending',
     open: rows.filter(job => job.status === 'open'),
-    claimed: rows.filter(job => job.accepted_agency_id === agencyId && job.status !== 'open'),
+    claimed: rows.filter(job => job.accepted_agency_id === agencyId && !['open','completed','cancelled'].includes(job.status)),
   }
 }
 
