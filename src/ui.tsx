@@ -1,5 +1,5 @@
-import { useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { Bell, BriefcaseBusiness, Home, LoaderCircle, Menu, MessageSquare, ShieldCheck, UserRound, X } from 'lucide-react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { Bell, BriefcaseBusiness, Home, LoaderCircle, Menu, MessageSquare, ShieldCheck, UserRound } from 'lucide-react'
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return <div className={`brand ${compact ? 'compact' : ''}`}>
@@ -59,43 +59,17 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
   </div>
 }
 
-type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile' | 'menu' | 'alerts'
-
-const guardNavCopy: Record<GuardNavTarget, { title: string; body: string }> = {
-  home: { title: 'Guard Home', body: 'This returns the guard to the current mission dashboard and availability state.' },
-  jobs: { title: 'Active Jobs', body: 'Current assignment, route, checklist, evidence, and mission status stay here until the job is complete.' },
-  messages: { title: 'Messages', body: 'Agency broadcasts, mission alerts, and client-facing updates will surface here in real time.' },
-  profile: { title: 'Guard Profile', body: 'Guard identity, duty status, GPS permission, and roster details are controlled by the assigned agency.' },
-  menu: { title: 'Guard Menu', body: 'Quick access to mission tools, evidence, route, alerts, and profile controls.' },
-  alerts: { title: 'Notifications', body: 'New assignments, route changes, agency messages, and report updates will appear here.' },
-}
-
-function GuardNavSheet({ target, onClose }: { target: GuardNavTarget; onClose: () => void }) {
-  const copy = guardNavCopy[target]
-
-  return <div className="guard-nav-sheet-layer" role="dialog" aria-modal="true">
-    <button type="button" className="guard-nav-sheet-scrim" onClick={onClose} aria-label="Close guard navigation" />
-    <section className="guard-nav-sheet">
-      <header><strong>{copy.title}</strong><button type="button" onClick={onClose} aria-label="Close"><X /></button></header>
-      <p>{copy.body}</p>
-      <button type="button" className="guard-nav-primary" onClick={onClose}>Back to mission</button>
-    </section>
-  </div>
-}
+type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile'
 
 export function AppHeader({ light = false, title }: { light?: boolean; title?: string }) {
-  const [target, setTarget] = useState<GuardNavTarget | null>(null)
-
   return <div className={`app-header ${light ? 'light' : ''}`}>
-    <button type="button" className="app-header-action" onClick={()=>setTarget('menu')} aria-label="Open guard menu"><Menu size={18} /></button>
+    <button type="button" className="app-header-action" aria-label="Guard menu"><Menu size={18} /></button>
     {title ? <strong className="app-title">{title}</strong> : <span />}
-    <button type="button" className="app-header-action bell" onClick={()=>setTarget('alerts')} aria-label="Open guard notifications"><Bell size={17} /></button>
-    {target && <GuardNavSheet target={target} onClose={()=>setTarget(null)} />}
+    <button type="button" className="app-header-action bell" aria-label="Guard notifications"><Bell size={17} /></button>
   </div>
 }
 
 export function BottomNav({ light = false, active = 'home' }: { light?: boolean; active?: GuardNavTarget }) {
-  const [target, setTarget] = useState<GuardNavTarget | null>(null)
   const items = [
     ['home', Home, 'Home'],
     ['jobs', BriefcaseBusiness, 'Jobs'],
@@ -104,8 +78,7 @@ export function BottomNav({ light = false, active = 'home' }: { light?: boolean;
   ] as const
 
   return <nav className={`bottom-nav ${light ? 'light' : ''}`} aria-label="Primary navigation">
-    {items.map(([id, Icon, label]) => <button key={id} type="button" className={active === id ? 'active' : ''} onClick={()=>setTarget(id)}><Icon /><span>{label}</span></button>)}
-    {target && <GuardNavSheet target={target} onClose={()=>setTarget(null)} />}
+    {items.map(([id, Icon, label]) => <button key={id} type="button" className={active === id ? 'active' : ''} aria-label={label}><Icon /><span>{label}</span></button>)}
   </nav>
 }
 

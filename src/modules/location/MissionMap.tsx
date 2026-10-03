@@ -1060,6 +1060,8 @@ export default function MissionMap({
 
         markerObjectsRef.current.forEach(
           marker => {
+            marker.__copilotClickListener?.remove?.()
+            marker.setMap?.(null)
             marker.map = null
           }
         )
