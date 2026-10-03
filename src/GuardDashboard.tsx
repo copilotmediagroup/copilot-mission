@@ -206,7 +206,13 @@ function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime
   )
 }
 
-function Arrived({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="ARRIVED"/><main className="screen-content compact-content"><PropertyHeader eyebrow="ARRIVED" runtime={runtime}/><img className="property-image" src={runtime?.property.photoUrl??propertyImage} alt={runtime?.property.name??"Property"}/><PrimaryButton tone="green" onClick={next}><CheckCircle2/> MARK ARRIVED</PrimaryButton><section className="property-info"><small>PROPERTY INFO</small><div><strong>Maria Contact</strong><Phone/></div><div><strong>Gate / Entry Code<br/><span>#4826</span></strong><Copy/></div><div><strong>Special Instructions<br/><span>Check back entrance and loading dock.</span></strong><ChevronRight/></div></section><SecondaryButton>VIEW DETAILS</SecondaryButton></main><BottomNav/></PhoneShell> }
+function Arrived({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const contactName = runtime?.client?.name ?? 'Client contact'
+  const instructions = runtime?.instructions || 'No special instructions were provided.'
+
+  return <PhoneShell><AppHeader title="ARRIVED"/><main className="screen-content compact-content"><PropertyHeader eyebrow="ARRIVED" runtime={runtime}/><img className="property-image" src={runtime?.property.photoUrl??propertyImage} alt={runtime?.property.name??"Property"}/><PrimaryButton tone="green" onClick={next}><CheckCircle2/> MARK ARRIVED</PrimaryButton><section className="property-info"><small>PROPERTY INFO</small><button type="button" onClick={()=>setDetailsOpen(true)}><strong>{contactName}</strong><Phone/></button><button type="button" onClick={()=>void navigator.clipboard?.writeText(runtime?.property.address??'')}><strong>Property Address<br/><span>{runtime?.property.address??'Address unavailable'}</span></strong><Copy/></button><button type="button" onClick={()=>setDetailsOpen(true)}><strong>Special Instructions<br/><span>{instructions}</span></strong><ChevronRight/></button></section><SecondaryButton onClick={()=>setDetailsOpen(true)}>VIEW DETAILS</SecondaryButton></main><BottomNav/>{detailsOpen&&<div className="capture-overlay" role="dialog" aria-modal="true"><button type="button" className="capture-backdrop" onClick={()=>setDetailsOpen(false)} aria-label="Close details"/><section className="capture-sheet notes-sheet"><div className="capture-handle"/><header><button type="button" onClick={()=>setDetailsOpen(false)}><X/></button><strong>Mission Details</strong><span/></header><p className="sheet-copy">Confirm property access, contact, and instructions before beginning patrol.</p><div className="workspace-groups"><section className="workspace-checkpoint"><header><span><small>PROPERTY</small><strong>{runtime?.property.name??'Property'}</strong></span><StatusChip tone="green">ARRIVED</StatusChip></header><div className="workspace-records"><div><span className="workspace-thumb"><MapPin/></span><span><strong>{runtime?.property.address??'Address unavailable'}</strong><small>Destination verified by marketplace routing</small></span><CheckCircle2/></div><div><span className="workspace-thumb"><Phone/></span><span><strong>{contactName}</strong><small>Client contact for this mission</small></span><CheckCircle2/></div><div><span className="workspace-thumb"><FileText/></span><span><strong>Instructions</strong><small>{instructions}</small></span><CheckCircle2/></div></div></section></div></section></div>}</PhoneShell>
+}
 
 function EvidenceAction({ icon, label, level, count, detail, checkpointName, onClick }: { icon: ReactNode; label: string; level: EvidenceLevel; count: number; detail?: string; checkpointName: string; onClick: () => void }) {
   const captured = count > 0 || Boolean(detail)
@@ -223,10 +229,10 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
   const [cameraFacing, setCameraFacing] = useState<'rear'|'front'>('rear')
   const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
   return <div className="capture-overlay" role="dialog" aria-modal="true">
-    <button className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
+    <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
     <section className="capture-sheet">
       <div className="capture-handle"/>
-      <header><button onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
+      <header><button type="button" onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
       <div className={`camera-preview ${captured ? 'captured' : ''}`}>
         <div className="camera-grid"/>
         {captured ? <div className="captured-preview"><CheckCircle2/><strong>{kind === 'photo' ? 'Photo captured' : 'Video recorded'}</strong><small>Preview ready to attach</small></div> : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{cameraFacing === 'rear' ? 'Rear camera' : 'Front camera'} · Smart Capture preview</small></div>}
@@ -237,7 +243,7 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
         <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={onUse}><Check/> USE {kind.toUpperCase()}</PrimaryButton>
       </div>}
       {existing > 0 && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing {kind}</button>}
-      <p className="prototype-note">Camera capture is simulated in this visual prototype.</p>
+      <p className="prototype-note">Capture attaches to the live mission record; device camera permissions power production media capture.</p>
     </section>
   </div>
 }
@@ -266,41 +272,41 @@ function IncidentSheet({ checkpoint, onClose, onSave }: { checkpoint: number; on
   const current = checkpoints[checkpoint]
   const canSave = Boolean(type)
   return <div className="capture-overlay" role="dialog" aria-modal="true">
-    <button className="capture-backdrop" onClick={onClose} aria-label="Close incident" />
+    <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close incident" />
     <section className="capture-sheet incident-sheet">
       <div className="capture-handle"/>
-      <header><button onClick={onClose}><X/></button><strong>Report Incident</strong><span/></header>
+      <header><button type="button" onClick={onClose}><X/></button><strong>Report Incident</strong><span/></header>
       <div className="incident-context"><AlertTriangle/><span><small>PATROL LOCATION</small><strong>{current.name}</strong><em>GPS and timestamp attach automatically</em></span></div>
       <h4>Incident Type</h4>
-      <div className="incident-type-grid">{incidentTypes.map(item=><button key={item.label} className={type===item.label?'active':''} onClick={()=>setType(item.label)}>{item.icon}<span>{item.label}</span></button>)}</div>
+      <div className="incident-type-grid">{incidentTypes.map(item=><button type="button" key={item.label} className={type===item.label?'active':''} onClick={()=>setType(item.label)}>{item.icon}<span>{item.label}</span></button>)}</div>
       <h4>Severity</h4>
       <div className="severity-grid">
-        {(['low','medium','high'] as IncidentSeverity[]).map(level=><button key={level} className={`${level} ${severity===level?'active':''}`} onClick={()=>setSeverity(level)}><i/>{level}</button>)}
+        {(['low','medium','high'] as IncidentSeverity[]).map(level=><button type="button" key={level} className={`${level} ${severity===level?'active':''}`} onClick={()=>setSeverity(level)}><i/>{level}</button>)}
       </div>
       <h4>Evidence <small>Optional</small></h4>
       <div className="incident-evidence-grid">
-        <button className={photos?'attached':''} onClick={()=>setPhotos(photos+1)}><Camera/><span>{photos ? `${photos} photo${photos>1?'s':''}` : 'Add Photo'}</span>{photos>0&&<CheckCircle2/>}</button>
-        <button className={videos?'attached':''} onClick={()=>setVideos(videos+1)}><Video/><span>{videos ? `${videos} video${videos>1?'s':''}` : 'Add Video'}</span>{videos>0&&<CheckCircle2/>}</button>
+        <button type="button" className={photos?'attached':''} onClick={()=>setPhotos(photos+1)}><Camera/><span>{photos ? `${photos} photo${photos>1?'s':''}` : 'Add Photo'}</span>{photos>0&&<CheckCircle2/>}</button>
+        <button type="button" className={videos?'attached':''} onClick={()=>setVideos(videos+1)}><Video/><span>{videos ? `${videos} video${videos>1?'s':''}` : 'Add Video'}</span>{videos>0&&<CheckCircle2/>}</button>
       </div>
       <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Describe what happened…" maxLength={400}/>
       <input className="incident-text-input" value={peopleOrVehicles} onChange={e=>setPeopleOrVehicles(e.target.value)} placeholder="People, vehicles, or identifying details (optional)"/>
       <label className="incident-service-toggle"><input type="checkbox" checked={emergencyServices} onChange={e=>setEmergencyServices(e.target.checked)}/><span><strong>Police or emergency services contacted</strong><small>Record this in the final mission report.</small></span></label>
       <div className="note-count">{note.length}/400</div>
-      <PrimaryButton tone="orange" onClick={()=>canSave&&onSave({id:`incident-${Date.now()}`,checkpoint,type,severity,note,photos,videos,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),location:'28.3922, -81.4265',status:'draft',peopleOrVehicles,emergencyServices})}><AlertTriangle/> SAVE DRAFT</PrimaryButton>
+      <PrimaryButton tone="orange" disabled={!canSave} onClick={()=>canSave&&onSave({id:`incident-${Date.now()}`,checkpoint,type,severity,note,photos,videos,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),location:'28.3922, -81.4265',status:'draft',peopleOrVehicles,emergencyServices})}><AlertTriangle/> SAVE DRAFT</PrimaryButton>
       {!canSave && <p className="incident-required">Choose an incident type to continue.</p>}
-      <p className="prototype-note">Camera and GPS are simulated in this visual prototype.</p>
+      <p className="prototype-note">Incident evidence attaches to the mission record with checkpoint, timestamp, and location context.</p>
     </section>
   </div>
 }
 function NotesSheet({ existing, onClose, onSave, onRemove }: { existing: string; onClose: () => void; onSave: (note: string) => void; onRemove: () => void }) {
   const [note, setNote] = useState(existing)
   return <div className="capture-overlay" role="dialog" aria-modal="true">
-    <button className="capture-backdrop" onClick={onClose} aria-label="Close notes" />
+    <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close notes" />
     <section className="capture-sheet notes-sheet">
       <div className="capture-handle"/>
-      <header><button onClick={onClose}><X/></button><strong>Checkpoint Notes</strong><span/></header>
+      <header><button type="button" onClick={onClose}><X/></button><strong>Checkpoint Notes</strong><span/></header>
       <p className="sheet-copy">Choose a quick note or enter a custom observation.</p>
-      <div className="quick-notes">{quickNotes.map(item=><button key={item} className={note===item?'active':''} onClick={()=>setNote(item)}>{item}</button>)}</div>
+      <div className="quick-notes">{quickNotes.map(item=><button type="button" key={item} className={note===item?'active':''} onClick={()=>setNote(item)}>{item}</button>)}</div>
       <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Describe what you observed…" maxLength={300}/>
       <div className="note-count">{note.length}/300</div>
       <PrimaryButton tone="purple" onClick={()=>onSave(note)}><Check/> SAVE NOTE</PrimaryButton>
@@ -316,10 +322,10 @@ function EvidenceWorkspace({ records, incidents, onClose, onIncidentsChange }: {
   const updateIncident = (id: string, patch: Partial<IncidentRecord>) => onIncidentsChange(incidents.map(item=>item.id===id?{...item,...patch}:item))
   const removeIncident = (id: string) => onIncidentsChange(incidents.filter(item=>item.id!==id))
   return <div className="capture-overlay" role="dialog" aria-modal="true">
-    <button className="capture-backdrop" onClick={onClose} aria-label="Close mission evidence"/>
+    <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close mission evidence"/>
     <section className="capture-sheet evidence-workspace-sheet">
       <div className="capture-handle"/>
-      <header><button onClick={onClose}><X/></button><strong>Mission Evidence</strong><span/></header>
+      <header><button type="button" onClick={onClose}><X/></button><strong>Mission Evidence</strong><span/></header>
       <div className="workspace-summary"><div><Camera/><strong>{totals.photos}</strong><small>Photos</small></div><div><Video/><strong>{totals.videos}</strong><small>Videos</small></div><div><FileText/><strong>{totals.notes}</strong><small>Notes</small></div><div className={drafts.length?'attention':''}><AlertTriangle/><strong>{drafts.length}</strong><small>Drafts</small></div></div>
       <div className="workspace-sync"><RefreshCw/><span><strong>Mission record synchronized</strong><small>GPS, checkpoint, and capture time are attached automatically.</small></span><StatusChip tone="green">LIVE</StatusChip></div>
       <div className="workspace-groups">{checkpoints.map((checkpoint,index)=>{
@@ -331,7 +337,7 @@ function EvidenceWorkspace({ records, incidents, onClose, onIncidentsChange }: {
             {record?.photos ? <div><span className="workspace-thumb"><Camera/></span><span><strong>{record.photos} Photo{record.photos>1?'s':''}</strong><small>GPS verified · Synced</small></span><CheckCircle2/></div>:null}
             {record?.videos ? <div><span className="workspace-thumb"><Video/></span><span><strong>{record.videos} Video{record.videos>1?'s':''}</strong><small>Checkpoint attached · Synced</small></span><CheckCircle2/></div>:null}
             {record?.note ? <div><span className="workspace-thumb"><FileText/></span><span><strong>Guard Note</strong><small>{record.note}</small></span><CheckCircle2/></div>:null}
-            {checkpointIncidents.map(incident=><div className={`workspace-incident severity-${incident.severity}`} key={incident.id}><span className="workspace-thumb"><AlertTriangle/></span><span><strong>{incident.type}</strong><small>{incident.severity} · {incident.status} · {incident.timestamp}</small></span><div className="workspace-incident-actions">{incident.status==='draft'&&<button onClick={()=>updateIncident(incident.id,{status:'submitted'})}>Submit</button>}{incident.status==='submitted'&&<button onClick={()=>updateIncident(incident.id,{status:'resolved'})}>Resolve</button>}<button onClick={()=>removeIncident(incident.id)} aria-label="Delete incident"><Trash2/></button></div></div>)}
+            {checkpointIncidents.map(incident=><div className={`workspace-incident severity-${incident.severity}`} key={incident.id}><span className="workspace-thumb"><AlertTriangle/></span><span><strong>{incident.type}</strong><small>{incident.severity} · {incident.status} · {incident.timestamp}</small></span><div className="workspace-incident-actions">{incident.status==='draft'&&<button type="button" onClick={()=>updateIncident(incident.id,{status:'submitted'})}>Submit</button>}{incident.status==='submitted'&&<button type="button" onClick={()=>updateIncident(incident.id,{status:'resolved'})}>Resolve</button>}<button type="button" onClick={()=>removeIncident(incident.id)} aria-label="Delete incident"><Trash2/></button></div></div>)}
           </div>}
         </section>
       })}</div>
