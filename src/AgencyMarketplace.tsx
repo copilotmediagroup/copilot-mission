@@ -19,7 +19,7 @@ import ThemeToggle from './modules/theme/ThemeToggle'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
 type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null; currentAddress?:string|null }
-type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null; currentAddress?:string|null }
+type Guard = { id:string|number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null; currentAddress?:string|null; gpsFreshness?:string|null; source?:'roster'|'live-location'|'fallback' }
 type Activity = { id:number; time:string; type:'new'|'accepted'|'emergency'|'assigned'; title:string; location:string }
 
 const initialJobs:Job[] = [
@@ -83,6 +83,21 @@ function enhanceJobWithNearestGuard(job:Job,allGuards:Guard[]):Job{
   return {...job,distance,eta:agencyEtaMinutes(best.distance)}
 }
 
+function normalizeGuardAvailability(value:string|undefined|null):Guard['status']{
+  if(value==='on_mission')return 'on-mission'
+  if(value==='reserved')return 'reserved'
+  if(value==='available')return 'available'
+  return 'offline'
+}
+
+function guardInitials(name:string){
+  return name.split(' ').map(v=>v[0]).join('').slice(0,2).toUpperCase() || 'G'
+}
+
+function hasLiveCoordinates(value:{latitude?:number|null;longitude?:number|null}){
+  return value.latitude!=null && value.longitude!=null && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)
+}
+
 const navItems = [
   ['marketplace','Marketplace','Find Opportunities',Crosshair],['operations','Operations','Active Missions',Radio],['scheduled','Scheduled','Upcoming Jobs',CalendarClock],['guards','Guards','Manage Your Team',Users],['assignments','Assignments','Won Marketplace Jobs',ClipboardList],['reports','Reports','Mission Reports',BriefcaseBusiness],['analytics','Analytics','Performance Center',BarChart3],['messages','Messages','Inbox & Alerts',MessageSquare],['settings','Settings','Agency Settings',Settings],
 ] as const
@@ -110,23 +125,60 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const isRoleMatch=role==='agency_admin'
   const isPreview=developerMode && accessMode==='preview'
   const guardState=useAgencyGuardState(!isPreview&&mode==='supabase'&&isRoleMatch)
-  const liveGuards:Guard[]=guardState.guards.map((g,index)=>{
-    const location=liveLocations.find(item=>item.guard_id===g.id)
-    const lat=location?.latitude ?? null
-    const lng=location?.longitude ?? null
-    return {
-      id:index+1,
-      name:g.name,
-      initials:g.name.split(' ').map(v=>v[0]).join('').slice(0,2),
-      distance:0,
-      status:g.availability==='on_mission'?'on-mission':g.availability,
-      x:50,
-      y:50,
-      latitude:lat,
-      longitude:lng,
-      currentAddress:(location as any)?.current_address ?? null,
-    }
-  })
+
+  /*
+   * Agency guard map source of truth.
+   *
+   * A guard who is online under this agency must appear on the Agency map
+   * whether or not they have an active assignment. The live location RPC is
+   * authoritative for GPS, while the roster is authoritative for membership.
+   * Merge both instead of only trusting assignments or stale roster status.
+   */
+  const liveGuards:Guard[]=useMemo(()=>{
+    const byId=new Map<string,Guard>()
+
+    guardState.guards.forEach(g=>{
+      const location=liveLocations.find(item=>String(item.guard_id)===String(g.id))
+      const status=normalizeGuardAvailability(location?.availability ?? g.availability)
+      byId.set(String(g.id),{
+        id:g.id,
+        name:g.name,
+        initials:guardInitials(g.name),
+        distance:0,
+        status,
+        x:50,
+        y:50,
+        latitude:location?.latitude ?? null,
+        longitude:location?.longitude ?? null,
+        currentAddress:(location as any)?.current_address ?? null,
+        gpsFreshness:location?.freshness ?? null,
+        source:'roster',
+      })
+    })
+
+    liveLocations.forEach(location=>{
+      const key=String(location.guard_id)
+      const existing=byId.get(key)
+      const status=normalizeGuardAvailability(location.availability)
+      byId.set(key,{
+        id:location.guard_id,
+        name:existing?.name || location.name || 'Security Guard',
+        initials:existing?.initials || guardInitials(location.name || 'Security Guard'),
+        distance:existing?.distance ?? 0,
+        status,
+        x:existing?.x ?? 50,
+        y:existing?.y ?? 50,
+        latitude:location.latitude ?? existing?.latitude ?? null,
+        longitude:location.longitude ?? existing?.longitude ?? null,
+        currentAddress:(location as any)?.current_address ?? existing?.currentAddress ?? null,
+        gpsFreshness:location.freshness ?? existing?.gpsFreshness ?? null,
+        source:existing ? 'roster' : 'live-location',
+      })
+    })
+
+    return Array.from(byId.values())
+  },[guardState.guards,liveLocations])
+
   const runtimeGuards=isPreview?guards:liveGuards
   const guardSummary=isPreview?{total:guards.length,online:guards.filter(g=>g.status!=='offline').length,offline:guards.filter(g=>g.status==='offline').length,available:guards.filter(g=>g.status==='available').length,reserved:guards.filter(g=>g.status==='reserved').length,on_mission:guards.filter(g=>g.status==='on-mission').length}:guardState.summary
   const filtered=useMemo(()=>filter==='all'?jobs:jobs.filter(j=>j.kind===filter),[jobs,filter])
@@ -172,9 +224,13 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
 
   useEffect(()=>{
     if(isPreview||mode!=='supabase'||!isRoleMatch)return
-    const loadLocations=()=>void getAgencyLiveLocations().then(setLiveLocations).catch(error=>setLastError(error instanceof Error?error.message:'Live locations unavailable.'))
+    const loadLocations=()=>void getAgencyLiveLocations()
+      .then(setLiveLocations)
+      .catch(error=>setLastError(error instanceof Error?error.message:'Live locations unavailable.'))
     loadLocations()
-    return subscribeToLocationChanges(loadLocations)
+    const heartbeat=window.setInterval(loadLocations,5000)
+    const unsubscribe=subscribeToLocationChanges(loadLocations)
+    return()=>{window.clearInterval(heartbeat);unsubscribe()}
   },[isPreview,mode,isRoleMatch])
 
   useEffect(()=>{
@@ -333,6 +389,26 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
        }
      : null
 
+ const visibleGuards=allGuards.filter(g=>g.status!=='offline')
+ const onlineGuardsMissingGps=visibleGuards.filter(g=>!hasLiveCoordinates(g)).length
+ const guardMarkers=visibleGuards
+   .filter(hasLiveCoordinates)
+   .map(g=>({
+       id:`guard-${g.id}`,
+       latitude:g.latitude as number,
+       longitude:g.longitude as number,
+       label:g.name,
+       title:g.name,
+       subtitle:g.currentAddress || `${(g.latitude as number).toFixed(5)}, ${(g.longitude as number).toFixed(5)}`,
+       address:g.currentAddress ?? null,
+       currentAddress:g.currentAddress ?? null,
+       initials:g.initials,
+       photoUrl:g.photoUrl ?? null,
+       status:g.gpsFreshness && g.gpsFreshness!=='live' ? `${g.status} · ${g.gpsFreshness} gps` : g.status,
+       distance:g.distance,
+       type:'guard' as const,
+     }))
+
  const mapMarkers:MissionMapMarker[] = [
    ...jobsWithProximity
      .filter(j=>j.latitude!=null && j.longitude!=null)
@@ -357,28 +433,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
            : 'job' as const,
      })),
 
-   ...allGuards
-     .filter(
-       g=>
-         g.status!=='offline' &&
-         g.latitude!=null &&
-         g.longitude!=null
-     )
-     .map(g=>({
-       id:`guard-${g.id}`,
-       latitude:g.latitude as number,
-       longitude:g.longitude as number,
-       label:g.name,
-       title:g.name,
-       subtitle:g.currentAddress || `${(g.latitude as number).toFixed(5)}, ${(g.longitude as number).toFixed(5)}`,
-       address:g.currentAddress ?? null,
-       currentAddress:g.currentAddress ?? null,
-       initials:g.initials,
-       photoUrl:g.photoUrl ?? null,
-       status:g.status,
-       distance:g.distance,
-       type:'guard' as const,
-     })),
+   ...guardMarkers,
  ]
 
  return <div className="premium-dashboard">
@@ -390,9 +445,10 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
     <div className="blue"><small>GUARDS</small><strong>{allGuards.filter(g=>g.status!=='offline').length}</strong></div>
   </section>
   <section className="live-map-panel premium-panel">
-   <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/>LIVE</span></div><button><Layers3/>Layers<ChevronDown/></button></div>
+   <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/> {visibleGuards.length} ONLINE GUARD{visibleGuards.length===1?'':'S'}</span></div><button><Layers3/>Layers<ChevronDown/></button></div>
    <div className="map-filter-row">{(['all','standard','priority','emergency'] as const).map(v=><button key={v} className={filter===v?'active':''} onClick={()=>setFilter(v)}>{v==='all'?'All':v==='standard'?'Open Jobs':v==='emergency'?'Priority Response':v==='priority'?'Priority':v}</button>)}<button onClick={()=>setFilter('all')}>My Guards</button></div>
    <div className="premium-map">
+    {!preview&&onlineGuardsMissingGps>0&&<div className="agency-map-gps-warning"><Wifi/> {onlineGuardsMissingGps} online guard{onlineGuardsMissingGps===1?'':'s'} awaiting GPS fix</div>}
     <MissionMap
       markers={mapMarkers}
       activeMissionRoute={activeMissionRoute}
