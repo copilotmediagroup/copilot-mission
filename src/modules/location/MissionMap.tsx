@@ -30,6 +30,7 @@ export type MissionMapMarker = {
   currentAddress?: string | null
 
   propertyType?: string
+  ownerName?: string | null
   distance?: number
   eta?: number
   duration?: number
@@ -297,6 +298,18 @@ function buildCard(marker: MissionMapMarker) {
         'DURATION',
         `${marker.duration} min`
       )
+    )
+  }
+
+  if(marker.ownerName){
+    metrics.push(
+      metric('OWNER', marker.ownerName)
+    )
+  }
+
+  if(marker.propertyType){
+    metrics.push(
+      metric('PROPERTY', marker.propertyType)
     )
   }
 

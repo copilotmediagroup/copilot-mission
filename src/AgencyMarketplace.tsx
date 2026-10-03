@@ -436,6 +436,27 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
    ? `${activeMissionRoute.assignedGuard.name || 'Assigned guard'} → ${activeMissionRoute.destination.name || 'Destination'}`
    : null
 
+ const activeDestinationMarker:MissionMapMarker | null =
+   routedMission &&
+   routedMission.property.latitude != null &&
+   routedMission.property.longitude != null
+     ? {
+         id:`assigned-destination-${routedMission.job_id}`,
+         latitude:routedMission.property.latitude,
+         longitude:routedMission.property.longitude,
+         label:`${routedMission.property.name} — ${routedMission.property.address}`,
+         title:routedMission.property.name,
+         subtitle:routedMission.property.address,
+         address:routedMission.property.address,
+         photoUrl:routedMission.property.photo_url ?? null,
+         propertyType:routedMission.priority==='emergency'?'Priority Response Destination':'Assigned Destination',
+         ownerName:routedMission.client.display_name,
+         status:'destination',
+         type:'property' as const,
+         active:true,
+       }
+     : null
+
  const visibleGuards=allGuards.filter(g=>g.status!=='offline')
  const onlineGuardsMissingGps=visibleGuards.filter(g=>!hasLiveCoordinates(g)).length
  const guardMarkers=visibleGuards
@@ -457,6 +478,8 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
      }))
 
  const mapMarkers:MissionMapMarker[] = [
+   ...(activeDestinationMarker ? [activeDestinationMarker] : []),
+
    ...jobsWithProximity
      .filter(j=>j.latitude!=null && j.longitude!=null)
      .map(j=>({
