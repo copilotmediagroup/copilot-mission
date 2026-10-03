@@ -358,43 +358,69 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
 
  const liveMissions = dispatch?.missions ?? []
 
+ const activeAssignedMissions = liveMissions.filter(mission =>
+   Boolean(mission.guard_id) &&
+   !['completed','cancelled'].includes(mission.status) &&
+   mission.property.latitude != null &&
+   mission.property.longitude != null
+ )
+
  const routedMission =
-   liveMissions.find(mission =>
+   activeAssignedMissions.find(mission =>
      liveLocations.some(location =>
-       location.job_id === mission.job_id &&
+       String(location.guard_id) === String(mission.guard_id) &&
        location.latitude != null &&
-       location.longitude != null &&
-       mission.property.latitude != null &&
-       mission.property.longitude != null
+       location.longitude != null
+     ) ||
+     allGuards.some(guard =>
+       String(guard.id) === String(mission.guard_id) &&
+       hasLiveCoordinates(guard)
      )
    ) ?? null
 
- const routedGuard =
+ const routedGuardLocation =
    routedMission
      ? liveLocations.find(location =>
-         location.job_id === routedMission.job_id &&
+         String(location.guard_id) === String(routedMission.guard_id) &&
          location.latitude != null &&
          location.longitude != null
        ) ?? null
      : null
 
+ const routedRosterGuard =
+   routedMission
+     ? allGuards.find(guard =>
+         String(guard.id) === String(routedMission.guard_id) &&
+         hasLiveCoordinates(guard)
+       ) ?? null
+     : null
+
+ const routeGuardLatitude =
+   routedGuardLocation?.latitude ??
+   routedRosterGuard?.latitude ??
+   null
+
+ const routeGuardLongitude =
+   routedGuardLocation?.longitude ??
+   routedRosterGuard?.longitude ??
+   null
+
  const activeMissionRoute:ActiveMissionRoute|null =
    routedMission &&
-   routedGuard &&
-   routedGuard.latitude != null &&
-   routedGuard.longitude != null &&
+   routeGuardLatitude != null &&
+   routeGuardLongitude != null &&
    routedMission.property.latitude != null &&
    routedMission.property.longitude != null
      ? {
          missionId:routedMission.job_id,
-         status:routedGuard.mission_state ?? routedMission.status,
+         status:routedGuardLocation?.mission_state ?? routedMission.status,
 
          assignedGuard:{
-           guardId:routedGuard.guard_id,
-           name:routedGuard.name,
-           latitude:routedGuard.latitude,
-           longitude:routedGuard.longitude,
-           updatedAt:routedGuard.last_location_at,
+           guardId:String(routedMission.guard_id),
+           name:routedGuardLocation?.name ?? routedRosterGuard?.name ?? routedMission.guard?.name ?? 'Assigned Guard',
+           latitude:routeGuardLatitude,
+           longitude:routeGuardLongitude,
+           updatedAt:routedGuardLocation?.last_location_at ?? null,
          },
 
          destination:{
@@ -405,6 +431,10 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
          },
        }
      : null
+
+ const routeStatusLabel = activeMissionRoute
+   ? `${activeMissionRoute.assignedGuard.name || 'Assigned guard'} → ${activeMissionRoute.destination.name || 'Destination'}`
+   : null
 
  const visibleGuards=allGuards.filter(g=>g.status!=='offline')
  const onlineGuardsMissingGps=visibleGuards.filter(g=>!hasLiveCoordinates(g)).length
@@ -471,6 +501,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
       activeMissionRoute={activeMissionRoute}
       showViewerLocation={false}
     />
+    {routeStatusLabel&&<div className="agency-live-route-badge"><Navigation/> LIVE ROUTE · {routeStatusLabel}</div>}
     <div className="map-key">
       <span><i className="gold"/>Open Job</span>
       <span><i className="orange"/>Priority</span>

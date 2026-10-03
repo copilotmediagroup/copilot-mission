@@ -4660,3 +4660,6 @@ html[data-theme="light"]
 /* Agency map guard GPS visibility notice */
 .agency-map-gps-warning{position:absolute;z-index:34;left:14px;top:58px;display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid rgba(255,192,72,.35);border-radius:10px;background:rgba(37,25,7,.9);color:#ffd47b;font-size:9px;font-weight:850;letter-spacing:.04em;backdrop-filter:blur(12px)}
 .agency-map-gps-warning svg{width:13px;height:13px;flex:none}
+
+.agency-live-route-badge{position:absolute;z-index:35;left:14px;top:96px;display:flex;align-items:center;gap:7px;max-width:calc(100% - 28px);padding:8px 10px;border:1px solid rgba(65,143,255,.38);border-radius:10px;background:rgba(5,17,36,.92);color:#b8d8ff;font-size:9px;font-weight:850;letter-spacing:.04em;backdrop-filter:blur(12px);box-shadow:0 10px 24px rgba(0,0,0,.24)}
+.agency-live-route-badge svg{width:13px;height:13px;flex:none;color:#56a7ff}
