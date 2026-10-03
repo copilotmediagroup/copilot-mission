@@ -220,6 +220,7 @@ function EvidenceAction({ icon, label, level, count, detail, checkpointName, onC
 type CaptureKind = 'photo' | 'video'
 function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: CaptureKind; existing: number; onClose: () => void; onUse: () => void; onRemove: () => void }) {
   const [captured, setCaptured] = useState(false)
+  const [cameraFacing, setCameraFacing] = useState<'rear'|'front'>('rear')
   const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
   return <div className="capture-overlay" role="dialog" aria-modal="true">
     <button className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
@@ -228,10 +229,10 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
       <header><button onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
       <div className={`camera-preview ${captured ? 'captured' : ''}`}>
         <div className="camera-grid"/>
-        {captured ? <div className="captured-preview"><CheckCircle2/><strong>{kind === 'photo' ? 'Photo captured' : 'Video recorded'}</strong><small>Preview ready to attach</small></div> : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>Smart Capture preview</small></div>}
+        {captured ? <div className="captured-preview"><CheckCircle2/><strong>{kind === 'photo' ? 'Photo captured' : 'Video recorded'}</strong><small>Preview ready to attach</small></div> : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{cameraFacing === 'rear' ? 'Rear camera' : 'Front camera'} · Smart Capture preview</small></div>}
         {kind === 'video' && !captured && <div className="recording-time">00:00</div>}
       </div>
-      {!captured ? <div className="capture-controls"><button className="gallery-button"><Image/><span>Gallery</span></button><button className={`shutter ${kind}`} onClick={()=>setCaptured(true)}><i/></button><button className="flip-button"><RotateCcw/><span>Flip</span></button></div> : <div className="capture-confirm">
+      {!captured ? <div className="capture-controls"><button type="button" className="gallery-button" onClick={()=>setCaptured(true)}><Image/><span>Gallery</span></button><button type="button" className={`shutter ${kind}`} onClick={()=>setCaptured(true)}><i/></button><button type="button" className="flip-button" onClick={()=>setCameraFacing(value=>value==='rear'?'front':'rear')}><RotateCcw/><span>{cameraFacing === 'rear' ? 'Flip' : 'Rear'}</span></button></div> : <div className="capture-confirm">
         <SecondaryButton onClick={()=>setCaptured(false)}><RotateCcw/> RETAKE</SecondaryButton>
         <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={onUse}><Check/> USE {kind.toUpperCase()}</PrimaryButton>
       </div>}
