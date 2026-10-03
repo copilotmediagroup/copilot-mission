@@ -275,19 +275,6 @@ function buildCard(marker: MissionMapMarker) {
     )
   }
 
-  if(
-    typeof marker.price==='number' &&
-    marker.price>0
-  ){
-    metrics.push(
-      metric(
-        'EST. PAY',
-        `$${marker.price}`,
-        'money'
-      )
-    )
-  }
-
   if(marker.type==='guard' && rawAddress){
     metrics.push(
       metric('CURRENT ADDRESS', rawAddress)
