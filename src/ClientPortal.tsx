@@ -91,23 +91,23 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
       <header className="client-topbar">
         <button className="client-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
         <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : 'Request security'}</h1></div>
-        <div className="client-top-actions"><button className="client-icon-button"><Bell/></button><div className="client-user"><span>{initials(auth.profile?.full_name)}</span><div><b>{auth.profile?.full_name || 'Client'}</b><small>Approved account</small></div></div></div>
+        <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>{setSection('activity');setNotice('Active requests and alerts opened.')}} aria-label="Open client alerts"><Bell/></button><div className="client-user"><span>{initials(auth.profile?.full_name)}</span><div><b>{auth.profile?.full_name || 'Client'}</b><small>Approved account</small></div></div></div>
       </header>
 
       <div className="client-content">
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
-          {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>} 
-          {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>} 
-          {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>} 
-          {section === 'reports' && <ClientReports preview={isPreview}/>} 
-          {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>} 
+          {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
+          {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
+          {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
+          {section === 'reports' && <ClientReports preview={isPreview}/>}
+          {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
         </>}
       </div>
       <div className="build-badge">CLIENT LIVE TRACKING · ACCEPTANCE BUILD</div>
     </main>
 
     {propertyOpen && <PropertyModal preview={isPreview} clientId={clientId} property={editingProperty} onClose={()=>{setPropertyOpen(false);setEditingProperty(null)}} onSaved={async(mode)=>{setPropertyOpen(false);setEditingProperty(null);setNotice(mode==='created'?'Property added successfully.':'Property updated everywhere.');await load()}}/>}
-    {confirmAction && <ConfirmPropertyAction action={confirmAction} onClose={()=>setConfirmAction(null)} onConfirmed={async()=>{const action=confirmAction;setConfirmAction(null);try{if(!isPreview){if(action.type==='archive')await archiveClientProperty(action.property.id);else await deleteClientProperty(action.property.id)}setNotice(isPreview?'Preview simulation complete.':action.type==='archive'?'Property archived.':'Property permanently deleted.');await load()}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update property.')}}}/>} 
+    {confirmAction && <ConfirmPropertyAction action={confirmAction} onClose={()=>setConfirmAction(null)} onConfirmed={async()=>{const action=confirmAction;setConfirmAction(null);try{if(!isPreview){if(action.type==='archive')await archiveClientProperty(action.property.id);else await deleteClientProperty(action.property.id)}setNotice(isPreview?'Preview simulation complete.':action.type==='archive'?'Property archived.':'Property permanently deleted.');await load()}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update property.')}}}/>}
     {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
   </div>
 }
