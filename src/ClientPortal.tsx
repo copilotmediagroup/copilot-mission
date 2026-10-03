@@ -96,7 +96,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
 
       <div className="client-content">
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
-          {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest} onOpenActivity={()=>setSection('activity')} onOpenReports={()=>setSection('reports')}/>}
+          {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
           {section === 'reports' && <ClientReports preview={isPreview}/>}
@@ -112,36 +112,17 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   </div>
 }
 
-function Overview({ name, properties, activeJobs, completed, onAddProperty, onRequest, onOpenActivity, onOpenReports }: { name:string; properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void; onOpenActivity:()=>void; onOpenReports:()=>void }) {
+function Overview({ name, properties, activeJobs, completed, onAddProperty, onRequest }: { name:string; properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void }) {
   const latest = activeJobs[0]
-  const hasProperty = properties.length > 0
-  const nextTitle = !hasProperty ? 'Add your first property' : latest ? 'Track your active mission' : 'Request security coverage'
-  const nextCopy = !hasProperty ? 'Save the location and a clear photo first, then requesting security takes less than a minute.' : latest ? 'Your live request, assigned agency, guard route, proof, and report all stay in one place.' : 'Choose a property, timing, urgency, and instructions. Approved agencies see it immediately.'
-  const nextButton = !hasProperty ? <button className="primary" onClick={onAddProperty}><Plus/>Add property</button> : latest ? <button className="primary" onClick={onOpenActivity}><Radio/>Track request</button> : <button className="primary" onClick={onRequest}><ShieldAlert/>Request security</button>
-
   return <>
-    <section className="client-hero client-ux-hero"><div><span className="client-eyebrow"><Sparkles/>SECURITY, ON DEMAND</span><h2>Good day, {name.split(' ')[0]}.</h2><p>Your next step should always be obvious: add a property, request coverage, track the guard, then review the verified report.</p><div className="client-hero-actions"><button className="primary" onClick={onRequest} disabled={!hasProperty}><ShieldAlert/>Request security</button><button onClick={onAddProperty}><Plus/>Add property</button></div></div><div className="client-network-orb"><span/><Shield/><small>{latest?'LIVE REQUEST':'NETWORK READY'}</small></div></section>
-
-    <section className="client-next-action-panel">
-      <div><small>NEXT BEST ACTION</small><h3>{nextTitle}</h3><p>{nextCopy}</p></div>
-      <div className="client-next-actions">{nextButton}<button type="button" onClick={onOpenReports}><FileText/>Reports</button></div>
-    </section>
-
-    <section className="client-flow-guide" aria-label="How Co Pilot works">
-      <article className={hasProperty?'complete':'active'}><span>{hasProperty?<Check/>:1}</span><div><strong>Add property</strong><small>Address + picture</small></div></article>
-      <article className={activeJobs.length?'complete':hasProperty?'active':''}><span>{activeJobs.length?<Check/>:2}</span><div><strong>Request coverage</strong><small>Immediate or scheduled</small></div></article>
-      <article className={latest?'active':''}><span>3</span><div><strong>Track guard</strong><small>Route + status</small></div></article>
-      <article className={completed?'complete':''}><span>{completed?<Check/>:4}</span><div><strong>Review report</strong><small>Proof and timeline</small></div></article>
-    </section>
-
+    <section className="client-hero"><div><span className="client-eyebrow"><Sparkles/>SECURITY, ON DEMAND</span><h2>Good day, {name.split(' ')[0]}.</h2><p>Your properties, requests and live security activity are controlled from one protected workspace.</p><div className="client-hero-actions"><button className="primary" onClick={onRequest}><ShieldAlert/>Request security</button><button onClick={onAddProperty}><Plus/>Add property</button></div></div><div className="client-network-orb"><span/><Shield/><small>NETWORK READY</small></div></section>
     <section className="client-metrics">
       <Metric icon={<Building2/>} value={properties.length} label="Protected properties" detail={properties.length ? 'Ready for requests' : 'Add your first property'}/>
       <Metric icon={<Radio/>} value={activeJobs.length} label="Active requests" detail={activeJobs.length ? 'Coverage in progress' : 'No active missions'}/>
       <Metric icon={<CheckCircle2/>} value={completed} label="Completed missions" detail="Verified history"/>
     </section>
-
     <section className="client-grid-two">
-      <div className="client-panel"><div className="client-panel-head"><div><span>LIVE ACTIVITY</span><h3>Current coverage</h3></div><Radio/></div>{latest ? <JobCard job={latest} property={properties.find(p=>p.id===latest.property_id)}/> : <EmptyState icon={<Shield/>} title="No active coverage" body="Your next security request will appear here with live status updates." action={<button onClick={onRequest} disabled={!hasProperty}>Create request<ChevronRight/></button>}/>}</div>
+      <div className="client-panel"><div className="client-panel-head"><div><span>LIVE ACTIVITY</span><h3>Current coverage</h3></div><Radio/></div>{latest ? <JobCard job={latest} property={properties.find(p=>p.id===latest.property_id)}/> : <EmptyState icon={<Shield/>} title="No active coverage" body="Your next security request will appear here with live status updates." action={<button onClick={onRequest}>Create request<ChevronRight/></button>}/>}</div>
       <div className="client-panel"><div className="client-panel-head"><div><span>PROPERTIES</span><h3>Coverage locations</h3></div><Building2/></div>{properties.length ? <div className="client-property-list">{properties.slice(0,3).map(property=><PropertyRow key={property.id} property={property}/>)}</div> : <EmptyState icon={<MapPin/>} title="Add your first property" body="Save a home, business or site before requesting coverage." action={<button onClick={onAddProperty}>Add property<Plus/></button>}/>}</div>
     </section>
   </>
