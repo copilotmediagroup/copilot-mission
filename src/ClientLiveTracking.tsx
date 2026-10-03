@@ -111,7 +111,7 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
     />
    </div>
    <div className="tracking-mission-card">
-    {guard?<div className="tracking-guard"><span><UserRound/></span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong><em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE DISPATCH</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
+    {guard?<div className="tracking-guard"><span><UserRound/></span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong><em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE ROUTING</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
     <div className="tracking-metrics"><div><Navigation/><span><small>STATUS</small><b>{labels[state]||state.replaceAll('_',' ')}</b></span></div><div><Clock3/><span><small>UPDATED</small><b>{relativeTime(experience.mission.updated_at||experience.created_at)}</b></span></div></div>
    </div>
   </div>

@@ -126,7 +126,7 @@ function markerGlyph(marker: MissionMapMarker) {
 function markerTypeLabel(type: MissionMapMarker['type']) {
   if (type === 'viewer') return 'YOUR LOCATION'
   if (type === 'guard') return 'LIVE GUARD'
-  if (type === 'emergency') return 'EMERGENCY MISSION'
+  if (type === 'emergency') return 'PRIORITY RESPONSE MISSION'
   if (type === 'priority') return 'PRIORITY MISSION'
   if (type === 'property') return 'PROPERTY'
 
@@ -316,7 +316,7 @@ function buildCard(marker: MissionMapMarker) {
       : marker.type==='guard'
         ? 'AVAILABLE GUARD'
         : marker.type==='emergency'
-          ? 'EMERGENCY MISSION'
+          ? 'PRIORITY RESPONSE MISSION'
           : marker.type==='priority'
             ? 'PRIORITY MISSION'
             : marker.type==='property'
