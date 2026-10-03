@@ -262,9 +262,26 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     if(isPreview){setRealtimeState('preview');return}
     if(mode!=='supabase'||!agencyId)return
     setRealtimeState('connected')
-    const stopMarket=subscribeToMarketplace(()=>{void loadMarketplace()})
-    const stopDispatch=subscribeToDispatch(()=>{void loadDispatch();void loadMarketplace()})
-    return()=>{stopMarket();stopDispatch()}
+
+    const syncMarketplace=()=>{
+      void loadMarketplace()
+    }
+
+    /*
+     * Agencies may keep this screen open for hours waiting for work.
+     * Realtime should update instantly, but the heartbeat below is the
+     * production safety net for browser sleep, realtime reconnects,
+     * Supabase publication delays, or hidden-tab throttling.
+     */
+    const heartbeat=window.setInterval(syncMarketplace,5000)
+    const stopMarket=subscribeToMarketplace(syncMarketplace)
+    const stopDispatch=subscribeToDispatch(()=>{void loadDispatch();syncMarketplace()})
+
+    return()=>{
+      window.clearInterval(heartbeat)
+      stopMarket()
+      stopDispatch()
+    }
   },[mode,agencyId,isPreview])
 
   useEffect(()=>{
