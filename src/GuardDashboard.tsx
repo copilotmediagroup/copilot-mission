@@ -159,6 +159,7 @@ function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime
             <MissionMap
               markers={markers}
               activeMissionRoute={activeMissionRoute}
+              routeCameraMode="guard"
               showViewerLocation={false}
               zoom={18}
               onRouteUpdate={setRoute}

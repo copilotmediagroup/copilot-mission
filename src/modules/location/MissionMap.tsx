@@ -61,6 +61,8 @@ type MissionMapProps = {
    */
   activeMissionRoute?: ActiveMissionRoute | null
 
+  routeCameraMode?: 'agency' | 'guard' | 'client' | 'platform'
+
   onRouteUpdate?: (
     result: MissionRouteResult | null
   ) => void
@@ -104,6 +106,29 @@ function distanceMiles(a: LatLngPoint, b: LatLngPoint) {
     earthMiles *
     Math.asin(Math.min(1, Math.sqrt(h)))
   )
+}
+
+function routeCameraMaxZoom(
+  distance: number,
+  mode: 'agency' | 'guard' | 'client' | 'platform'
+) {
+  if (mode === 'agency' || mode === 'platform') return 14
+  if (distance > 5) return 13
+  if (distance > 2) return 14
+  if (distance > 1) return 15
+  if (distance > 0.5) return 16
+  if (distance > 0.2) return 17
+  return 18
+}
+
+function routeCameraPadding(
+  distance: number,
+  mode: 'agency' | 'guard' | 'client' | 'platform'
+) {
+  if (mode === 'agency' || mode === 'platform') return 130
+  if (distance > 2) return 110
+  if (distance > 0.5) return 90
+  return 72
 }
 
 function markerGlyph(marker: MissionMapMarker) {
@@ -395,6 +420,7 @@ export default function MissionMap({
   zoom = FOLLOW_ZOOM,
   showViewerLocation = true,
   activeMissionRoute = null,
+  routeCameraMode = 'agency',
   onRouteUpdate,
 }: MissionMapProps) {
   const containerRef =
@@ -423,6 +449,7 @@ export default function MissionMap({
    * MissionMap owns route lifecycle.
    */
   const routeRendererRef = useRef<any>(null)
+  const routeGlowPolylineRef = useRef<any>(null)
   const routeRequestIdRef = useRef(0)
   const manualCameraRef = useRef(false)
   const programmaticCameraRef = useRef(false)
@@ -1319,6 +1346,8 @@ export default function MissionMap({
     const clearRoute = () => {
       routeRendererRef.current?.setMap(null)
       routeRendererRef.current = null
+      routeGlowPolylineRef.current?.setMap(null)
+      routeGlowPolylineRef.current = null
       onRouteUpdate?.(null)
     }
 
@@ -1429,6 +1458,26 @@ export default function MissionMap({
         )
 
         routeRendererRef.current?.setMap(null)
+        routeGlowPolylineRef.current?.setMap(null)
+        routeGlowPolylineRef.current = null
+
+        const route =
+          routes[bestIndex]
+
+        const routePath =
+          route?.overview_path ?? []
+
+        if (routePath.length) {
+          routeGlowPolylineRef.current =
+            new google.maps.Polyline({
+              map,
+              path: routePath,
+              strokeColor: '#18a7ff',
+              strokeOpacity: 0.28,
+              strokeWeight: 17,
+              zIndex: 17,
+            })
+        }
 
         const renderer =
           new google.maps.DirectionsRenderer({
@@ -1443,16 +1492,14 @@ export default function MissionMap({
             preserveViewport: true,
 
             polylineOptions: {
-              strokeOpacity: 0.92,
+              strokeColor: '#20d4ff',
+              strokeOpacity: 0.96,
               strokeWeight: 6,
-              zIndex: 18,
+              zIndex: 19,
             },
           })
 
         routeRendererRef.current = renderer
-
-        const route =
-          routes[bestIndex]
 
         const legs =
           route?.legs ?? []
@@ -1522,7 +1569,46 @@ export default function MissionMap({
                 .longitude,
           })
 
-          map.fitBounds(bounds, 90)
+          const remainingDistance = distanceMiles(
+            {
+              latitude:
+                activeMissionRoute!.assignedGuard
+                  .latitude,
+              longitude:
+                activeMissionRoute!.assignedGuard
+                  .longitude,
+            },
+            {
+              latitude:
+                activeMissionRoute!.destination
+                  .latitude,
+              longitude:
+                activeMissionRoute!.destination
+                  .longitude,
+            }
+          )
+
+          const padding = routeCameraPadding(
+            remainingDistance,
+            routeCameraMode,
+          )
+
+          const maxZoom = routeCameraMaxZoom(
+            remainingDistance,
+            routeCameraMode,
+          )
+
+          map.fitBounds(bounds, padding)
+
+          window.setTimeout(() => {
+            const currentZoom = map.getZoom()
+            if (
+              typeof currentZoom === 'number' &&
+              currentZoom > maxZoom
+            ) {
+              map.setZoom(maxZoom)
+            }
+          }, 160)
         }
       } catch (error) {
         if (cancelled) return
@@ -1556,6 +1642,7 @@ export default function MissionMap({
       .longitude,
 
     mapReadyGeneration,
+    routeCameraMode,
     onRouteUpdate,
   ])
 
