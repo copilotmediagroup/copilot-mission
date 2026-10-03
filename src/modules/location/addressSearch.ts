@@ -26,7 +26,9 @@ export type AddressBias = { latitude: number; longitude: number }
 declare global {
   interface Window {
     google?: any
+    gm_authFailure?: () => void
     __coPilotGoogleMapsPromise?: Promise<any>
+    __coPilotGoogleMapsAuthFailed?: boolean
   }
 }
 
@@ -48,6 +50,15 @@ export function loadGoogleMaps(): Promise<any> {
 
   window.__coPilotGoogleMapsPromise = new Promise((resolve, reject) => {
     const callback = `__coPilotMapsReady_${Date.now()}`
+    const previousAuthFailure = window.gm_authFailure
+
+    window.__coPilotGoogleMapsAuthFailed = false
+    window.gm_authFailure = () => {
+      window.__coPilotGoogleMapsAuthFailed = true
+      window.dispatchEvent(new CustomEvent('copilot-google-maps-auth-failure'))
+      previousAuthFailure?.()
+      reject(new Error('Google Maps API key is not authorized for this domain.'))
+    }
     const timeout = window.setTimeout(() => {
       delete (window as any)[callback]
       reject(new Error('Google Maps took too long to load.'))
@@ -56,7 +67,9 @@ export function loadGoogleMaps(): Promise<any> {
     ;(window as any)[callback] = () => {
       window.clearTimeout(timeout)
       delete (window as any)[callback]
-      if (window.google?.maps?.places) resolve(window.google)
+      if (window.__coPilotGoogleMapsAuthFailed) {
+        reject(new Error('Google Maps API key is not authorized for this domain.'))
+      } else if (window.google?.maps?.places) resolve(window.google)
       else reject(mapsError())
     }
 

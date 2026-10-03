@@ -469,6 +469,9 @@ export default function MissionMap({
   const [error, setError] =
     useState<string | null>(null)
 
+  const [mapBlocked, setMapBlocked] =
+    useState(false)
+
   const activeDestination =
     markers.find(
       marker =>
@@ -698,6 +701,37 @@ export default function MissionMap({
   }, [])
 
   /*
+   * Google Maps auth/domain listener.
+   * If Google Cloud blocks the live domain, show a professional
+   * operations fallback instead of leaving users with only the
+   * default Google error card.
+   */
+  useEffect(() => {
+    const markBlocked = () => {
+      setMapBlocked(true)
+      setError(
+        'Google Maps is connected, but this live domain is not authorized on the Google Cloud API key.'
+      )
+    }
+
+    if (window.__coPilotGoogleMapsAuthFailed) {
+      markBlocked()
+    }
+
+    window.addEventListener(
+      'copilot-google-maps-auth-failure',
+      markBlocked
+    )
+
+    return () => {
+      window.removeEventListener(
+        'copilot-google-maps-auth-failure',
+        markBlocked
+      )
+    }
+  }, [])
+
+  /*
    * Browser GPS = current user/viewer.
    */
   useEffect(() => {
@@ -765,6 +799,8 @@ export default function MissionMap({
         }
 
         googleRef.current = google
+        setMapBlocked(false)
+        setError(null)
 
         /*
          * Clear old map DOM when switching theme.
@@ -1587,6 +1623,17 @@ export default function MissionMap({
       }
     : null
 
+  const visibleFallbackMarkers = markers
+    .filter(marker =>
+      Number.isFinite(marker.latitude) &&
+      Number.isFinite(marker.longitude)
+    )
+    .slice(0, 6)
+
+  const mapErrorTitle = mapBlocked
+    ? 'MAP DOMAIN NEEDS AUTHORIZATION'
+    : 'MAP ENGINE OFFLINE'
+
   return (
     <div className="mission-map-shell">
 
@@ -1595,13 +1642,43 @@ export default function MissionMap({
         className="mission-google-map"
       />
 
-      {error && (
-        <div className="mission-map-error">
+      {(error || mapBlocked) && (
+        <div className={
+          mapBlocked
+            ? 'mission-map-error mission-map-error-professional'
+            : 'mission-map-error'
+        }>
           <strong>
-            MAP ENGINE OFFLINE
+            {mapErrorTitle}
           </strong>
 
           <span>{error}</span>
+
+          {mapBlocked && (
+            <>
+              <em>
+                Authorize this Netlify domain in Google Cloud, then redeploy or hard refresh.
+              </em>
+
+              <div className="mission-map-fallback-list">
+                {visibleFallbackMarkers.length ? visibleFallbackMarkers.map(marker => (
+                  <button
+                    type="button"
+                    key={marker.id}
+                    onClick={() => setSelectedMarker(marker)}
+                  >
+                    <b>{markerGlyph(marker)}</b>
+                    <span>
+                      <strong>{marker.title || marker.label}</strong>
+                      <small>{marker.address || marker.subtitle || `${marker.latitude.toFixed(5)}, ${marker.longitude.toFixed(5)}`}</small>
+                    </span>
+                  </button>
+                )) : (
+                  <small>No live markers are available yet.</small>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 

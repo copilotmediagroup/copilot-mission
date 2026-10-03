@@ -4588,3 +4588,71 @@ html[data-theme="light"]
     max-width: none;
   }
 }
+
+
+/* Production map readiness fallback */
+.mission-map-error-professional{
+  z-index:40;
+  width:min(430px,calc(100% - 28px));
+  border-color:rgba(63,150,255,.36);
+  background:linear-gradient(180deg,rgba(8,18,32,.98),rgba(4,10,18,.98));
+}
+
+.mission-map-error-professional strong{
+  color:#7fbdff;
+}
+
+.mission-map-error-professional em{
+  color:#dbe8ff;
+  font-size:9px;
+  line-height:1.45;
+  font-style:normal;
+}
+
+.mission-map-fallback-list{
+  display:grid;
+  gap:8px;
+  margin-top:6px;
+  max-height:190px;
+  overflow:auto;
+}
+
+.mission-map-fallback-list button{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;
+  padding:9px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  background:rgba(255,255,255,.045);
+  color:#eef5ff;
+  text-align:left;
+  cursor:pointer;
+}
+
+.mission-map-fallback-list button:hover{
+  border-color:rgba(72,151,255,.5);
+  background:rgba(46,127,255,.13);
+}
+
+.mission-map-fallback-list b{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#237cff;
+  color:white;
+  font-size:10px;
+}
+
+.mission-map-fallback-list span{
+  display:grid;
+  gap:2px;
+}
+
+.mission-map-fallback-list small{
+  color:#9fb2cb;
+  font-size:8px;
+}
