@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { loadGoogleMaps } from './addressSearch'
+import { loadGoogleMaps, reverseGeocodeCoordinates } from './addressSearch'
 import {
   type ActiveMissionRoute,
   type MissionRouteResult,
@@ -26,6 +26,8 @@ export type MissionMapMarker = {
   photoUrl?: string | null
   initials?: string
   status?: string
+  address?: string | null
+  currentAddress?: string | null
 
   propertyType?: string
   distance?: number
@@ -171,6 +173,15 @@ function buildCard(marker: MissionMapMarker) {
     marker.subtitle || ''
   )
 
+  const rawAddress =
+    marker.currentAddress ||
+    marker.address ||
+    (marker.subtitle && !/agency guard/i.test(marker.subtitle)
+      ? marker.subtitle
+      : '')
+
+  const displayAddress = escapeHtml(rawAddress)
+
   const initials = escapeHtml(
     marker.initials ||
       marker.title
@@ -277,6 +288,12 @@ function buildCard(marker: MissionMapMarker) {
     )
   }
 
+  if(marker.type==='guard' && rawAddress){
+    metrics.push(
+      metric('CURRENT ADDRESS', rawAddress)
+    )
+  }
+
   /*
    * Guard cards should never feel empty just because
    * marketplace profile metrics have not been added yet.
@@ -345,6 +362,11 @@ function buildCard(marker: MissionMapMarker) {
 
           ${subtitle
             ? `<p>${subtitle}</p>`
+            : ''
+          }
+
+          ${displayAddress && displayAddress !== subtitle
+            ? `<p class="cp-map-profile-address">${displayAddress}</p>`
             : ''
           }
 
@@ -441,6 +463,9 @@ export default function MissionMap({
   const [selectedMarker, setSelectedMarker] =
     useState<MissionMapMarker | null>(null)
 
+  const [resolvedAddresses, setResolvedAddresses] =
+    useState<Record<string, string>>({})
+
   const [error, setError] =
     useState<string | null>(null)
 
@@ -451,6 +476,10 @@ export default function MissionMap({
         marker.type !== 'guard' &&
         marker.type !== 'viewer'
     ) ?? null
+
+  const coordinateKey = useCallback((marker: MissionMapMarker) =>
+    `${marker.latitude.toFixed(5)},${marker.longitude.toFixed(5)}`
+  , [])
 
   const closeCard = useCallback(() => {
     setSelectedMarker(null)
@@ -486,7 +515,11 @@ export default function MissionMap({
        */
       if (
         !showViewerLocation &&
-        activeDestination
+        activeDestination &&
+        markers.filter(marker =>
+          Number.isFinite(marker.latitude) &&
+          Number.isFinite(marker.longitude)
+        ).length <= 1
       ) {
         startProgrammaticCamera()
 
@@ -755,9 +788,10 @@ export default function MissionMap({
                   : 'LIGHT',
 
               mapId:
-                import.meta.env
-                  .VITE_GOOGLE_MAP_ID ||
-                'DEMO_MAP_ID',
+                (import.meta.env.VITE_GOOGLE_MAP_ID || '').trim() || undefined,
+
+              mapTypeId:
+                google.maps.MapTypeId.ROADMAP,
 
               mapTypeControl: false,
               streetViewControl: false,
@@ -880,6 +914,47 @@ export default function MissionMap({
       )
     }
   }, [closeCard])
+
+
+  /*
+   * Reverse geocode selected live guard markers.
+   * Property addresses come from the client request/property record.
+   * Guard addresses come from their current GPS position.
+   */
+  useEffect(() => {
+    if (!selectedMarker) return
+    if (
+      selectedMarker.type !== 'guard' &&
+      selectedMarker.type !== 'viewer'
+    ) return
+    if (selectedMarker.address || selectedMarker.currentAddress) return
+
+    const key = coordinateKey(selectedMarker)
+    if (resolvedAddresses[key]) return
+
+    let cancelled = false
+
+    reverseGeocodeCoordinates(
+      selectedMarker.latitude,
+      selectedMarker.longitude,
+    )
+      .then(address => {
+        if (cancelled) return
+        setResolvedAddresses(current => ({
+          ...current,
+          [key]: address,
+        }))
+      })
+      .catch(() => undefined)
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    selectedMarker,
+    coordinateKey,
+    resolvedAddresses,
+  ])
 
   /*
    * Markers.
@@ -1506,6 +1581,17 @@ export default function MissionMap({
     applySmartCamera(true)
   }
 
+  const selectedMarkerForCard = selectedMarker
+    ? {
+        ...selectedMarker,
+        currentAddress:
+          selectedMarker.currentAddress ||
+          selectedMarker.address ||
+          resolvedAddresses[coordinateKey(selectedMarker)] ||
+          null,
+      }
+    : null
+
   return (
     <div className="mission-map-shell">
 
@@ -1529,7 +1615,7 @@ export default function MissionMap({
         CO PILOT MAP ENGINE
       </div>
 
-      {selectedMarker && (
+      {selectedMarkerForCard && (
         <div
           className="copilot-map-react-card-layer"
           aria-live="polite"
@@ -1539,8 +1625,8 @@ export default function MissionMap({
             role="dialog"
             aria-modal="false"
             aria-label={
-              selectedMarker.title ||
-              selectedMarker.label
+              selectedMarkerForCard.title ||
+              selectedMarkerForCard.label
             }
             onClick={event => {
               const target = event.target
@@ -1557,7 +1643,7 @@ export default function MissionMap({
               }
             }}
             dangerouslySetInnerHTML={{
-              __html: buildCard(selectedMarker),
+              __html: buildCard(selectedMarkerForCard),
             }}
           />
         </div>
@@ -1617,7 +1703,7 @@ export default function MissionMap({
         />
 
         <span>
-          {!showViewerLocation && activeDestination
+          {!showViewerLocation && activeDestination && markers.length <= 1
             ? 'PROPERTY FOCUS'
             : activeDestination
               ? 'MISSION FOLLOW'

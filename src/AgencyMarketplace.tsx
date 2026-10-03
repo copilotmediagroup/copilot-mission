@@ -18,8 +18,8 @@ import type { ActiveMissionRoute } from './modules/location/missionRouting'
 import ThemeToggle from './modules/theme/ThemeToggle'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
-type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null }
-type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null }
+type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null; currentAddress?:string|null }
+type Guard = { id:number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null; currentAddress?:string|null }
 type Activity = { id:number; time:string; type:'new'|'accepted'|'emergency'|'assigned'; title:string; location:string }
 
 const initialJobs:Job[] = [
@@ -52,6 +52,36 @@ const guards:Guard[] = [
   {id:9,name:'Caleb',initials:'CS',distance:6.1,status:'on-mission',x:15,y:76},
   {id:10,name:'Andre',initials:'AK',distance:8.4,status:'offline',x:88,y:82},
 ]
+
+function agencyMapRadians(value:number){return value*Math.PI/180}
+function agencyMapDistanceMiles(a:{latitude:number;longitude:number},b:{latitude:number;longitude:number}){
+  const earthMiles=3958.8
+  const dLat=agencyMapRadians(b.latitude-a.latitude)
+  const dLng=agencyMapRadians(b.longitude-a.longitude)
+  const lat1=agencyMapRadians(a.latitude)
+  const lat2=agencyMapRadians(b.latitude)
+  const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2
+  return 2*earthMiles*Math.asin(Math.min(1,Math.sqrt(h)))
+}
+function agencyEtaMinutes(distanceMiles:number){
+  if(!Number.isFinite(distanceMiles))return 0
+  return Math.max(3,Math.round((distanceMiles/28)*60)+2)
+}
+function enhanceJobWithNearestGuard(job:Job,allGuards:Guard[]):Job{
+  if(job.latitude==null||job.longitude==null)return job
+  const candidates=allGuards.filter(g=>g.status!=='offline'&&g.latitude!=null&&g.longitude!=null)
+  if(!candidates.length)return job
+  const best=candidates.reduce((winner,g)=>{
+    const distance=agencyMapDistanceMiles(
+      {latitude:job.latitude as number,longitude:job.longitude as number},
+      {latitude:g.latitude as number,longitude:g.longitude as number},
+    )
+    return !winner||distance<winner.distance?{guard:g,distance}:winner
+  },null as null|{guard:Guard;distance:number})
+  if(!best)return job
+  const distance=Number(best.distance.toFixed(1))
+  return {...job,distance,eta:agencyEtaMinutes(best.distance)}
+}
 
 const navItems = [
   ['marketplace','Marketplace','Find Opportunities',Crosshair],['operations','Operations','Active Missions',Radio],['scheduled','Scheduled','Upcoming Jobs',CalendarClock],['guards','Guards','Manage Your Team',Users],['assignments','Assignments','Won Marketplace Jobs',ClipboardList],['reports','Reports','Mission Reports',BriefcaseBusiness],['analytics','Analytics','Performance Center',BarChart3],['messages','Messages','Inbox & Alerts',MessageSquare],['settings','Settings','Agency Settings',Settings],
@@ -94,6 +124,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       y:50,
       latitude:lat,
       longitude:lng,
+      currentAddress:(location as any)?.current_address ?? null,
     }
   })
   const runtimeGuards=isPreview?guards:liveGuards
@@ -250,6 +281,8 @@ function Kpi({icon,label,value,tone}:{icon:ReactNode,label:string,value:number,t
 
 function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview,dispatch,liveLocations}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[]}){
 
+ const jobsWithProximity=useMemo(()=>filtered.map(job=>enhanceJobWithNearestGuard(job,allGuards)),[filtered,allGuards])
+
  const liveMissions = dispatch?.missions ?? []
 
  const routedMission =
@@ -301,7 +334,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
      : null
 
  const mapMarkers:MissionMapMarker[] = [
-   ...filtered
+   ...jobsWithProximity
      .filter(j=>j.latitude!=null && j.longitude!=null)
      .map(j=>({
        id:`job-${j.id}`,
@@ -310,6 +343,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
        label:`${j.title} — ${j.address}`,
        title:j.title,
        subtitle:j.address,
+       address:j.address,
        photoUrl:j.photoUrl ?? null,
        propertyType:j.property,
        distance:j.distance,
@@ -336,7 +370,9 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
        longitude:g.longitude as number,
        label:g.name,
        title:g.name,
-       subtitle:'Agency Guard',
+       subtitle:g.currentAddress || `${(g.latitude as number).toFixed(5)}, ${(g.longitude as number).toFixed(5)}`,
+       address:g.currentAddress ?? null,
+       currentAddress:g.currentAddress ?? null,
        initials:g.initials,
        photoUrl:g.photoUrl ?? null,
        status:g.status,
@@ -371,7 +407,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
   </div>
   </section>
 
-  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>OPEN OPPORTUNITIES <b>{jobs.length}</b></strong></div><button>Nearest<ChevronDown/></button></div><div className="premium-job-list">{loading?<div className="marketplace-list-state"><span className="marketplace-state-pulse"/><strong>Synchronizing opportunities</strong><small>Checking the live marketplace…</small></div>:filtered.length?filtered.map(j=><article key={j.id} className={`premium-job-card ${j.kind}`}><div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind}</span><span>{j.distance} mi<small>ETA {j.eta} min</small></span></div>{j.photoUrl&&<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>}<h3>{j.title}</h3><p>{j.client}<br/>{j.address}</p><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>1 Guard</span></div><div className="job-card-action"><strong>{j.price>0?`$${j.price}`:'Mission'}</strong><button onClick={()=>accept(j)}>Claim Mission</button></div></article>):<div className="marketplace-list-state empty"><BriefcaseBusiness/><strong>No open opportunities</strong><small>New verified missions will appear here in real time.</small></div>}</div></section>
+  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>OPEN OPPORTUNITIES <b>{jobs.length}</b></strong></div><button>Nearest<ChevronDown/></button></div><div className="premium-job-list">{loading?<div className="marketplace-list-state"><span className="marketplace-state-pulse"/><strong>Synchronizing opportunities</strong><small>Checking the live marketplace…</small></div>:jobsWithProximity.length?jobsWithProximity.map(j=><article key={j.id} className={`premium-job-card ${j.kind}`}><div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind}</span><span>{j.distance} mi<small>ETA {j.eta} min</small></span></div>{j.photoUrl&&<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>}<h3>{j.title}</h3><p>{j.client}<br/>{j.address}</p><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>1 Guard</span></div><div className="job-card-action"><strong>{j.price>0?`$${j.price}`:'Mission'}</strong><button onClick={()=>accept(j)}>Claim Mission</button></div></article>):<div className="marketplace-list-state empty"><BriefcaseBusiness/><strong>No open opportunities</strong><small>New verified missions will appear here in real time.</small></div>}</div></section>
 
   <aside className="right-rail"><section className="capacity-panel premium-panel"><div className="premium-panel-head"><strong>AGENCY CAPACITY</strong></div><div className="capacity-content"><div className="capacity-ring"><span><strong>{available.length}</strong><small>Available</small></span></div><div className="capacity-breakdown"><span>Total Guards <b>{allGuards.length}</b></span><span>Available <b>{available.length}</b></span><span>On Mission <b>{allGuards.filter(g=>g.status==='on-mission').length}</b></span><span>Reserved <b>{allGuards.filter(g=>g.status==='reserved').length}</b></span><span>Offline <b>{allGuards.filter(g=>g.status==='offline').length}</b></span></div></div></section><section className="active-panel premium-panel"><div className="premium-panel-head"><strong>ACTIVE OPERATIONS <b>{preview?2:0}</b></strong><button>View All</button></div>{preview?['Retail Store Patrol','Parking Lot Patrol'].map((t,i)=><div className="mini-operation" key={t}><div><small>#A-10{25+i}</small><span>ON MISSION</span></div><strong>{t}</strong><p>{i?'Riverview Plaza':'South Fork Community'}</p><div className="mission-person"><span>{i?'JL':'MR'}</span><div><strong>{i?'Jalen':'Marcus'}</strong><small>{i?'On Site':'En Route'}</small></div><b>{i?'18':'5'} min</b></div><div className="mission-bar"><i style={{width:i?'20%':'33%'}}/></div></div>):<div className="marketplace-list-state empty"><Radio/><strong>No active operations</strong><small>Claimed missions will appear here.</small></div>}</section><section className="activity-panel premium-panel"><div className="premium-panel-head"><strong>MARKETPLACE ACTIVITY</strong><span>{preview?'Preview Feed':'Live Feed'}</span></div>{activity.length?activity.map(a=><div className="activity-row" key={a.id}><span className={a.type==='emergency'?'danger':''}>{a.type==='emergency'?<Siren/>:a.type==='accepted'?<Check/>:a.type==='assigned'?<Users/>:<BriefcaseBusiness/>}</span><small>{a.time}</small><div><strong>{a.title}</strong><p>{a.location}</p></div></div>):<div className="marketplace-list-state empty"><Radio/><strong>Awaiting live activity</strong><small>Mission events will appear here.</small></div>}</section></aside>
 

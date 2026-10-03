@@ -11,6 +11,13 @@ export type DispatchMission = {
 }
 export type DispatchEvent = { id:number; job_id:string; event_type:string; payload:Record<string,unknown>; created_at:string }
 export type AgencyDispatchWorkspace = { agency:{id:string;name:string}; guards:DispatchGuard[]; missions:DispatchMission[]; events:DispatchEvent[] }
+export type GuardOperationalMetrics = {
+  guard_id: string
+  jobs_today: number
+  on_duty_seconds: number
+  generated_at: string
+}
+
 export type GuardDispatchWorkspace = { guard:DispatchGuard; assignment:DispatchMission|null; events:DispatchEvent[] }
 
 function db(){ if(!supabase) throw new Error('Supabase is not configured.'); return supabase }
@@ -116,4 +123,14 @@ export async function transitionGuardMission(args:{
   })
   if(error) throw new Error(error.message)
   return data as MissionEngineRecord
+}
+
+
+export async function getGuardOperationalMetrics(): Promise<GuardOperationalMetrics> {
+  const { data, error } = await db().rpc('get_guard_operational_metrics_rc1')
+
+  if (error) throw error
+  if (!data) throw new Error('GUARD_OPERATIONAL_METRICS_NOT_FOUND')
+
+  return data as GuardOperationalMetrics
 }

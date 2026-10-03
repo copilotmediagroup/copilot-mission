@@ -30,6 +30,18 @@ const checkpoints: Checkpoint[] = [
   { name:'Side Doors', instructions:['Verify all side exits are secure','Check for tampering or blocked exits'], photo:'optional', video:'optional', notes:'optional', smartReminder:'Confirm exits are unobstructed from both directions.', previousVisit:{when:'2 days ago',result:'No issues reported',evidence:'1 photo',duration:'1m 37s'} },
 ]
 
+type GuardDashboardMetrics = {
+  jobsToday: number
+  onDutySeconds: number
+}
+
+function formatDutyTime(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  return `${hours}h ${String(minutes).padStart(2, '0')}m`
+}
+
 export interface GuardDashboardProps {
   state: MissionState
   runtime?: MissionRuntime | null
@@ -49,6 +61,7 @@ export interface GuardDashboardProps {
   incidents?: IncidentRecord[]
   onIncidentsChange?: (records: IncidentRecord[]) => void
   missionStartedAt?: number | null
+  metrics?: GuardDashboardMetrics
 }
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
@@ -58,8 +71,8 @@ function ProfileBlock({ online = false }: { online?: boolean }) {
 }
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
-function Offline({ next }: { next: () => void }) { return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen"><ProfileBlock/><section className="offline-hero"><h3>You are currently offline</h3><p>Go online to receive<br/>assignments.</p><div className="shield-orbit"><ShieldCheck/></div><PrimaryButton onClick={next}><Power/> GO ONLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value="0" label="Jobs Today"/><Metric value="0h 00m" label="On Duty"/><Metric value="0" label="Check-ins"/></div><div className="message-card"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav light/></PhoneShell> }
-function Waiting({ offline }: { offline: () => void }) { return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content"><ProfileBlock online/><section className="waiting-hero"><div className="radar"><div className="radar-sweep"/></div><h3>You're online and available</h3><p>We'll notify you when a new<br/>assignment is available.</p><PrimaryButton onClick={offline}><Power/> GO OFFLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value="0" label="Jobs Today"/><Metric value="1h 15m" label="On Duty"/><Metric value="100%" label="Patrol Readiness" accent/></div><div className="message-card dark"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav/></PhoneShell> }
+function Offline({ next, metrics }: { next: () => void; metrics: GuardDashboardMetrics }) { return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen"><ProfileBlock/><section className="offline-hero"><h3>You are currently offline</h3><p>Go online to receive<br/>assignments.</p><div className="shield-orbit"><ShieldCheck/></div><PrimaryButton onClick={next}><Power/> GO ONLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value="0" label="Check-ins"/></div><div className="message-card"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav light/></PhoneShell> }
+function Waiting({ offline, metrics }: { offline: () => void; metrics: GuardDashboardMetrics }) { return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content"><ProfileBlock online/><section className="waiting-hero"><div className="radar"><div className="radar-sweep"/></div><h3>You're online and available</h3><p>We'll notify you when a new<br/>assignment is available.</p><PrimaryButton onClick={offline}><Power/> GO OFFLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value="—" label="Patrol Readiness"/></div><div className="message-card dark"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav/></PhoneShell> }
 function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/><img className="property-image" src={runtime?.property.photoUrl??propertyImage} alt={runtime?.property.name??"Property"}/><div className="two-stats"><div><small>DISTANCE</small><strong>4.2 mi</strong></div><div><small>ETA</small><strong>9 min</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
 function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
   const [route, setRoute] = useState<MissionRouteResult | null>(null)
@@ -452,9 +465,14 @@ function Completed({ next, incidents, records, missionStartedAt, runtime }: { ne
 }
 
 export default function GuardDashboard(props: GuardDashboardProps) {
+  const dashboardMetrics = props.metrics ?? {
+    jobsToday: 0,
+    onDutySeconds: 0,
+  }
+
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
-  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)}/>
-  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)}/>
+  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics}/>
+  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics}/>
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>

@@ -13,6 +13,7 @@ export type GuardLiveLocation = {
   latitude: number | null
   longitude: number | null
   last_location_at: string | null
+  current_address?: string | null
   freshness: LocationFreshness
   job_id: string | null
   mission_state: string | null
@@ -31,6 +32,7 @@ export type ClientLiveLocation = {
   latitude: number | null
   longitude: number | null
   last_location_at: string | null
+  current_address?: string | null
   freshness: LocationFreshness
   mission_state: string | null
 } | null

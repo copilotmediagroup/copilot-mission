@@ -162,3 +162,37 @@ export async function resolveAddressSuggestion(suggestion: AddressSuggestion): P
     })
   })
 }
+
+
+export async function reverseGeocodeCoordinates(
+  latitude: number,
+  longitude: number,
+): Promise<string> {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    throw new Error('Invalid coordinates for reverse geocoding.')
+  }
+
+  const { google } = await services()
+  const geocoder = new google.maps.Geocoder()
+
+  return new Promise((resolve, reject) => {
+    geocoder.geocode({
+      location: {
+        lat: latitude,
+        lng: longitude,
+      },
+    }, (results: any[] | null, status: string) => {
+      if (
+        status !== google.maps.GeocoderStatus.OK ||
+        !results?.length
+      ) {
+        return reject(new Error('Unable to resolve current location address.'))
+      }
+
+      resolve(results[0].formatted_address || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
+    })
+  })
+}

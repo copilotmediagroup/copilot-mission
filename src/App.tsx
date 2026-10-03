@@ -9,7 +9,7 @@ import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardPresence, setGuardPresence, transitionGuardMission, type DispatchMission } from './modules/dispatch/dispatchRepository'
+import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
 import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-runtime/missionRuntimeRepository'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
@@ -84,6 +84,7 @@ function GuardApp({
   const [notice, setNotice] = useState('')
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
+  const [guardMetrics, setGuardMetrics] = useState<GuardOperationalMetrics | null>(null)
   const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
   const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(null)
 
@@ -140,8 +141,13 @@ function GuardApp({
     if (!canReadLiveDispatch) return
 
     try {
-      const workspace = await getGuardDispatchWorkspace()
+      const [workspace, operationalMetrics] = await Promise.all([
+        getGuardDispatchWorkspace(),
+        getGuardOperationalMetrics(),
+      ])
+
       setDispatchMission(workspace.assignment)
+      setGuardMetrics(operationalMetrics)
 
       const assignment = workspace.assignment
 
@@ -450,6 +456,10 @@ function GuardApp({
       <GuardDashboard
         state={displayedMissionState}
         runtime={displayedMissionRuntime}
+        metrics={guardMetrics ? {
+          jobsToday: guardMetrics.jobs_today,
+          onDutySeconds: guardMetrics.on_duty_seconds,
+        } : undefined}
         checkpoint={mission.checkpoint}
         patrolEvidence={mission.patrolEvidence}
         onEvidenceChange={(records) => void updateEvidence(records)}
