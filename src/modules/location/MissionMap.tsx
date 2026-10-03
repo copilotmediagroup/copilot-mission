@@ -525,6 +525,20 @@ export default function MissionMap({
       }
 
       /*
+       * ROUTE CAMERA PRIORITY
+       * When a job is accepted/assigned and an active route exists,
+       * no default GPS/viewer camera may steal focus. The route effect
+       * owns the camera so the default stays guard-to-destination.
+       */
+      if (
+        activeMissionRoute &&
+        isValidRoutePoint(activeMissionRoute.assignedGuard) &&
+        isValidRoutePoint(activeMissionRoute.destination)
+      ) {
+        return
+      }
+
+      /*
        * CLIENT PROPERTY FOCUS
        * Client has no viewer marker.
        * Before a guard is assigned, center tightly on
@@ -674,6 +688,11 @@ export default function MissionMap({
     [
       viewerLocation,
       activeDestination,
+      activeMissionRoute?.missionId,
+      activeMissionRoute?.assignedGuard.latitude,
+      activeMissionRoute?.assignedGuard.longitude,
+      activeMissionRoute?.destination.latitude,
+      activeMissionRoute?.destination.longitude,
       markers,
       center.latitude,
       center.longitude,
