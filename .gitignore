@@ -29,3 +29,6 @@ yarn-error.log*
 *.before-*
 *before-*
 *marker-v*
+
+# Local one-off Supabase scratch/manual SQL files
+supabase/manual/
