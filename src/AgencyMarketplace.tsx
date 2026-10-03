@@ -507,6 +507,30 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
    .filter(j=>mapMode==='all'||j.kind===mapMode)
  const visibleMapGuards=(mapMode==='all'||mapMode==='guards'||Boolean(activeMissionRoute))?guardMarkers:[]
 
+ const agencyNextActionTitle = activeMissionRoute
+   ? 'Track the live route'
+   : jobs.length
+     ? 'Review and claim the best job'
+     : visibleGuards.length
+       ? 'Stand by for incoming jobs'
+       : 'Get guards online'
+
+ const agencyNextActionCopy = activeMissionRoute
+   ? 'An assigned guard is moving toward the destination. Keep the route visible and manage changes from Operations.'
+   : jobs.length
+     ? 'Open jobs are live now. Sort by nearest guard, check Priority Response first, then claim and assign quickly.'
+     : visibleGuards.length
+       ? 'Your map is ready. New client requests will appear without reload.'
+       : 'No online guards are visible. Bring guards online so the agency can respond to client requests.'
+
+ const agencyPrimaryAction = activeMissionRoute
+   ? onOpenOperations
+   : jobs.length
+     ? () => setMapMode('all')
+     : visibleGuards.length
+       ? onOpenMessages
+       : onOpenGuards
+
  const mapMarkers:MissionMapMarker[] = [
    ...(activeDestinationMarker ? [activeDestinationMarker] : []),
 
@@ -537,6 +561,19 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
  ]
 
  return <div className="premium-dashboard">
+  <section className="agency-ux-command premium-panel">
+    <div className="agency-ux-copy"><small>AGENCY COMMAND CENTER</small><h2>{agencyNextActionTitle}</h2><p>{agencyNextActionCopy}</p></div>
+    <div className="agency-ux-flow" aria-label="Agency workflow">
+      <span className={jobs.length?'active':''}><b>1</b>Watch jobs</span>
+      <span className={jobs.length?'active':''}><b>2</b>Claim mission</span>
+      <span className={liveActiveMissions.length?'active':''}><b>3</b>Assign guard</span>
+      <span className={activeMissionRoute?'active':''}><b>4</b>Track route</span>
+    </div>
+    <div className="agency-ux-actions">
+      <button type="button" className="primary" onClick={agencyPrimaryAction}>{activeMissionRoute?<Navigation/>:jobs.length?<BriefcaseBusiness/>:visibleGuards.length?<MessageSquare/>:<Users/>}{activeMissionRoute?'Open Operations':jobs.length?'Review Open Jobs':visibleGuards.length?'Open Alerts':'Open Guards'}</button>
+      <button type="button" onClick={onOpenGuards}><Users/>Guard roster</button>
+    </div>
+  </section>
   <section className="mobile-market-kpis" aria-label="Marketplace status">
     <div className="gold"><small>OPEN</small><strong>{jobs.length}</strong></div>
     <div className="orange"><small>PRIORITY</small><strong>{jobs.filter(j=>j.kind==='priority').length}</strong></div>
