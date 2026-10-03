@@ -1,6 +1,7 @@
 import { Building2, Check, CheckCircle2, Clock3, FileText, LocateFixed, MapPin, Navigation, Radio, Shield, UserRound } from 'lucide-react'
 import type { ClientTrackingExperience, TrackingTimelineEvent } from './modules/client/clientLiveTrackingRepository'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
+import type { ActiveMissionRoute } from './modules/location/missionRouting'
 import { withdrawClientJob } from './modules/client/clientRepository'
 import { useState } from 'react'
 
@@ -54,6 +55,20 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
    })
  }
 
+ const activeMissionRoute:ActiveMissionRoute|null=guard &&
+   guard.latitude!=null &&
+   guard.longitude!=null &&
+   experience.property.latitude!=null &&
+   experience.property.longitude!=null &&
+   !completed
+   ? {
+     missionId:experience.job_id,
+     status:state,
+     assignedGuard:{guardId:guard.id,name:guard.name,latitude:guard.latitude,longitude:guard.longitude,heading:null,accuracy:null,updatedAt:experience.mission.updated_at||experience.created_at},
+     destination:{propertyId:experience.property.id,name:experience.property.name,address:experience.property.address,latitude:experience.property.latitude,longitude:experience.property.longitude},
+   }
+   : null
+
  const canWithdraw=
    experience.job_status==='open' &&
    ['marketplace','awaiting_guard'].includes(state)
@@ -106,6 +121,8 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
    <div className="client-live-map" aria-label="Live mission map">
     <MissionMap
      markers={clientMapMarkers}
+     activeMissionRoute={activeMissionRoute}
+     routeCameraMode="agency"
      showViewerLocation={false}
      zoom={18}
     />
