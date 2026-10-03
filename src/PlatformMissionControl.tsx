@@ -13,8 +13,8 @@ export default function PlatformMissionControl(){
  if(loading)return <div className="auth-state"><div className="auth-state-card"><RefreshCw/><h1>Opening Live Operations</h1><p>Synchronizing platform engines…</p></div></div>
  return <div className="platform-command-center live-operations-center">
   <header className="pcc-header"><div><span><ShieldCheck/>CO PILOT SECURITY OS</span><h1>Live Operations</h1><p>One realtime view of marketplace, missions, guards, reports, and engine health.</p></div><div className="mc-connection supabase"><Wifi/>LIVE</div></header>
-  <nav className="pcc-nav">{(['operations','missions','guards','health'] as View[]).map(x=><button key={x} className={view===x?'active':''} onClick={()=>setView(x)}>{x[0].toUpperCase()+x.slice(1)}</button>)}</nav>
-  {error&&<div className="mc-error"><AlertTriangle/>{error}<button onClick={()=>void load()}>Retry</button></div>}
+  <nav className="pcc-nav">{(['operations','missions','guards','health'] as View[]).map(x=><button type="button" key={x} className={view===x?'active':''} onClick={()=>setView(x)}>{x[0].toUpperCase()+x.slice(1)}</button>)}</nav>
+  {error&&<div className="mc-error"><AlertTriangle/>{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
   {view==='operations'&&<>
    <section className="pcc-metrics live-kpis"><Metric icon={<Radio/>} value={s.missions_live} label="Live missions"/><Metric icon={<Users/>} value={s.guards_online} label="Online guards"/><Metric icon={<Navigation/>} value={s.guards_driving} label="Driving"/><Metric icon={<Siren/>} value={s.emergencies_live} label="Emergencies"/></section>
    <section className="pcc-system-strip live-strip"><span><b>{s.marketplace_open}</b>Marketplace</span><span><b>{s.guards_available}</b>Available</span><span><b>{s.completed_today}</b>Completed today</span><span><b>{s.reports_pending}</b>Reports pending</span><span><b>{s.reports_published}</b>Published</span></section>
