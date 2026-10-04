@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Activity, AlertTriangle, BatteryMedium, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
+import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
 import MissionReport from './MissionReport'
 import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
@@ -7,6 +7,7 @@ import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap
 import type { ActiveMissionRoute, MissionRouteResult } from './modules/location/missionRouting'
 import { toMissionRuntimeRouteInput } from './modules/mission-runtime/missionRuntimeState'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
+import type { GuardNavTarget } from './ui'
 
 const propertyImage = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=85'
 
@@ -71,8 +72,51 @@ function ProfileBlock({ online = false }: { online?: boolean }) {
 }
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
-function Offline({ next, metrics }: { next: () => void; metrics: GuardDashboardMetrics }) { return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen"><ProfileBlock/><section className="offline-hero"><h3>You are currently offline</h3><p>Go online to receive<br/>assignments.</p><div className="shield-orbit"><ShieldCheck/></div><PrimaryButton onClick={next}><Power/> GO ONLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value="0" label="Check-ins"/></div><div className="message-card"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav light/></PhoneShell> }
-function Waiting({ offline, metrics }: { offline: () => void; metrics: GuardDashboardMetrics }) { return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content"><ProfileBlock online/><section className="waiting-hero"><div className="radar"><div className="radar-sweep"/></div><h3>You're online and available</h3><p>We'll notify you when a new<br/>assignment is available.</p><PrimaryButton onClick={offline}><Power/> GO OFFLINE</PrimaryButton></section><h4 className="section-label">Today at a glance</h4><div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value="—" label="Patrol Readiness"/></div><div className="message-card dark"><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div></main><BottomNav/></PhoneShell> }
+function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: boolean; metrics: GuardDashboardMetrics; onGoOnline?: () => void; onGoOffline?: () => void }) {
+  return <>
+    <ProfileBlock online={online}/>
+    <section className={online ? 'waiting-hero' : 'offline-hero'}>
+      {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className="shield-orbit"><ShieldCheck/></div>}
+      <h3>{online ? "You're online and available" : 'You are currently offline'}</h3>
+      <p>{online ? <>We'll notify you when a new<br/>assignment is available.</> : <>Go online to receive<br/>assignments.</>}</p>
+      {online ? <PrimaryButton onClick={onGoOffline}><Power/> GO OFFLINE</PrimaryButton> : <PrimaryButton onClick={onGoOnline}><Power/> GO ONLINE</PrimaryButton>}
+    </section>
+    <h4 className="section-label">Today at a glance</h4>
+    <div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value={online ? '—' : '0'} label={online ? 'Patrol Readiness' : 'Check-ins'}/></div>
+    <div className={online ? 'message-card dark' : 'message-card'}><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div>
+  </>
+}
+
+function GuardSectionView({ section, online, metrics }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics }) {
+  const copy: Record<GuardNavTarget, { kicker: string; title: string; body: string; detail: string; icon: ReactNode }> = {
+    home: { kicker:'HOME', title:'Guard Home', body:'Current duty status and availability.', detail:online?'Online and ready for assignment.':'Offline until you go online.', icon:<ShieldCheck/> },
+    jobs: { kicker:'JOBS', title:'Assignments', body:online?'No active assignment is waiting right now. New jobs will appear here when the agency sends one.':'Go online to receive assignments from the agency.', detail:String(metrics.jobsToday)+' jobs today', icon:<BriefcaseBusiness/> },
+    messages: { kicker:'MESSAGES', title:'Messages', body:'No unread agency messages right now.', detail:'Agency broadcasts and mission updates appear here.', icon:<MessageCircle/> },
+    profile: { kicker:'PROFILE', title:'David Martinez', body:'Guard profile, duty status, GPS permission, and roster identity are managed by the assigned agency.', detail:online?'Status: Online':'Status: Offline', icon:<UserRound/> },
+  }
+  const selected = copy[section]
+
+  return <>
+    <ProfileBlock online={online}/>
+    <section className="guard-main-section">
+      <div className="guard-main-section-icon">{selected.icon}</div>
+      <small>{selected.kicker}</small>
+      <h3>{selected.title}</h3>
+      <p>{selected.body}</p>
+      <div className="guard-main-section-card"><strong>{selected.detail}</strong><span>{section === 'jobs' ? 'Current mission workflow will open here when assigned.' : 'This section is connected to the guard portal navigation.'}</span></div>
+    </section>
+  </>
+}
+
+function Offline({ next, metrics }: { next: () => void; metrics: GuardDashboardMetrics }) {
+  const [section, setSection] = useState<GuardNavTarget>('home')
+  return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next}/>:<GuardSectionView section={section} online={false} metrics={metrics}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+}
+
+function Waiting({ offline, metrics }: { offline: () => void; metrics: GuardDashboardMetrics }) {
+  const [section, setSection] = useState<GuardNavTarget>('home')
+  return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline}/>:<GuardSectionView section={section} online metrics={metrics}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
+}
 function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/><img className="property-image" src={runtime?.property.photoUrl??propertyImage} alt={runtime?.property.name??"Property"}/><div className="two-stats"><div><small>DISTANCE</small><strong>4.2 mi</strong></div><div><small>ETA</small><strong>9 min</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
 function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
   const [route, setRoute] = useState<MissionRouteResult | null>(null)
