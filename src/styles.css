@@ -4696,3 +4696,26 @@ html[data-theme="light"]
 .premium-job-card .kind-chip{color:#ffc84a!important;background:rgba(255,200,74,.12)!important;border:1px solid rgba(255,200,74,.26)!important}
 .premium-job-card .job-card-action button{color:#fff!important;font-size:9px!important;min-width:108px!important}
 .premium-job-card{min-height:252px!important;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease!important}
+
+/* Production cursor contract: every clickable surface shows hand pointer */
+a[href], button, [role="button"], summary, select,
+input[type="button"], input[type="submit"], input[type="reset"],
+.primary-button, .secondary-button, .icon-button, .profile-pill,
+.premium-panel-head button, .map-filter-row button, .premium-job-card,
+.job-card-action button, .quick-actions button, .strip-title button,
+.guard-face, .mini-operation, .activity-row, .marketplace-property-photo,
+.copilot-map-marker, .cp-map-profile-close, .map-zoom button,
+.agency-sidebar nav button, .premium-sidebar nav button,
+.bottom-nav button, .app-header-action, .message-card,
+.live-stat.evidence-stat, .live-stat.incident-stat,
+.incident-action, .property-info button, .capture-sheet button,
+.workspace-records button, .report-modal button,
+.client-portal button, .client-portal [role="button"]{
+  cursor:pointer!important;
+}
+
+button:disabled, [aria-disabled="true"], .disabled,
+.primary-button:disabled, .secondary-button:disabled,
+input:disabled, select:disabled{
+  cursor:not-allowed!important;
+}
