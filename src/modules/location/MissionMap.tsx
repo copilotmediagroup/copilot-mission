@@ -53,6 +53,7 @@ type MissionMapProps = {
 
   zoom?: number
   showViewerLocation?: boolean
+  showCameraStatus?: boolean
 
   /*
    * Universal assigned-mission routing.
@@ -432,6 +433,7 @@ export default function MissionMap({
   center = DEFAULT_CENTER,
   zoom = FOLLOW_ZOOM,
   showViewerLocation = true,
+  showCameraStatus = true,
   activeMissionRoute = null,
   routeCameraMode = 'agency',
   onRouteUpdate,
@@ -1865,7 +1867,7 @@ export default function MissionMap({
 
       </div>
 
-      <div
+      {showCameraStatus && <div
         className="copilot-map-camera-status"
         style={
           manualCamera
@@ -1894,7 +1896,7 @@ export default function MissionMap({
                   : 'LOCATING…'}
         </span>
 
-      </div>
+      </div>}
 
     </div>
   )

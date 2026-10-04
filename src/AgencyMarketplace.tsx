@@ -554,6 +554,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
       activeMissionRoute={activeMissionRoute}
       routeCameraMode="agency"
       showViewerLocation={false}
+      showCameraStatus={false}
     />
     {routeStatusLabel&&<div className="agency-live-route-badge"><Navigation/> LIVE ROUTE · {routeStatusLabel}</div>}
     <div className="map-key">
