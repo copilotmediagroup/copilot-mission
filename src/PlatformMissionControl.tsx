@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState,type ReactNode } from 'react'
-import { Activity,AlertTriangle,BadgeCheck,Building2,Check,CheckCircle2,Clock3,CreditCard,FileCheck2,FileText,Gavel,Layers3,MapPin,Navigation,Radio,RefreshCw,ShieldAlert,ShieldCheck,Siren,Users,Wifi,X,Zap } from 'lucide-react'
+import { Activity,AlertTriangle,BadgeCheck,Building2,Check,CheckCircle2,Clock3,CreditCard,FileCheck2,FileText,Gavel,Layers3,LogOut,MapPin,Navigation,Radio,RefreshCw,ShieldAlert,ShieldCheck,Siren,Users,Wifi,X,Zap } from 'lucide-react'
 import { useAuth } from './modules/auth/AuthProvider'
 import { getLiveOperationsCenter,subscribeToLiveOperations,type LiveOperationsSnapshot,type LiveMission,type LiveGuard } from './modules/platform/liveOperationsRepository'
 import MissionMap,{type MissionMapMarker} from './modules/location/MissionMap'
@@ -38,7 +38,7 @@ const seedDocuments:PlatformDocument[]=[
 ]
 
 export default function PlatformMissionControl(){
- const {mode}=useAuth();const[view,setView]=useState<View>('overview');const[data,setData]=useState<LiveOperationsSnapshot|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('')
+ const {mode,signOut}=useAuth();const[view,setView]=useState<View>('overview');const[data,setData]=useState<LiveOperationsSnapshot|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('')
  const[agencies,setAgencies]=useState(seedAgencies);const[clients,setClients]=useState(seedClients);const[docs,setDocs]=useState(seedDocuments);const[rules]=useState(seedRules);const[activity,setActivity]=useState<string[]>(['Owner portal opened','Compliance rules loaded'])
  const load=async()=>{if(mode!=='supabase'){setLoading(false);return}try{setData(await getLiveOperationsCenter());setError('')}catch(e){setError(e instanceof Error?e.message:'Live Operations unavailable')}finally{setLoading(false)}}
  useEffect(()=>{void load();if(mode!=='supabase')return;return subscribeToLiveOperations(()=>void load())},[mode])
@@ -49,7 +49,7 @@ export default function PlatformMissionControl(){
  const decideDoc=(id:string,status:ReviewStatus)=>{setDocs(v=>v.map(d=>d.id===id?{...d,status}:d));setActivity(v=>[`Document ${status.replace('_',' ')} · ${id}`,...v].slice(0,8))}
  if(loading)return <div className="auth-state"><div className="auth-state-card"><RefreshCw/><h1>Opening Owner Control</h1><p>Synchronizing platform governance engines…</p></div></div>
  return <div className="platform-command-center live-operations-center owner-control-center">
-  <header className="pcc-header owner-header"><div><span><ShieldCheck/>CO PILOT SECURITY OS</span><h1>Owner Control Center</h1><p>Approve agencies, govern clients, review documents, enforce state compliance, and monitor live operations.</p></div><div className="mc-connection supabase"><Wifi/>LIVE</div></header>
+  <header className="pcc-header owner-header"><div><span><ShieldCheck/>CO PILOT SECURITY OS</span><h1>Owner Control Center</h1><p>Approve agencies, govern clients, review documents, enforce state compliance, and monitor live operations.</p></div><div className="owner-header-actions"><div className="mc-connection supabase"><Wifi/>LIVE</div><button className="owner-logout-button" type="button" onClick={()=>void signOut()} aria-label="Log out"><LogOut/><span>Logout</span></button></div></header>
   <nav className="pcc-nav owner-nav">{(['overview','map','approvals','agencies','clients','documents','compliance','marketplace','live','payments','trust','settings'] as View[]).map(x=><button type="button" key={x} className={view===x?'active':''} onClick={()=>setView(x)}>{label(x)}{badgeFor(x,{pendingAgencies,pendingDocs,riskyClients})}</button>)}</nav>
   {error&&<div className="mc-error"><AlertTriangle/>{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
   {view==='overview'&&<Overview s={s} pendingAgencies={pendingAgencies} pendingDocs={pendingDocs} riskyClients={riskyClients} agencies={agencies} clients={clients} docs={docs} events={events} activity={activity} setView={setView}/>} 
