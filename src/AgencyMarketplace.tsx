@@ -216,8 +216,9 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     try{setDispatch(await getAgencyDispatchWorkspace());setLastError(null)}catch(error){setLastError(error instanceof Error?error.message:'Agency workspace unavailable.')}
   }
 
-  const loadMarketplace=async()=>{
-    setMarketplaceLoading(true)
+  const loadMarketplace=async(options?:{background?:boolean})=>{
+    const background=Boolean(options?.background)
+    if(!background)setMarketplaceLoading(true)
     try {
       const data=await getAgencyWorkspace()
       setAgencyId(data.agencyId)
@@ -230,9 +231,10 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     } catch (error) {
       const message=error instanceof Error?error.message:'Unable to load marketplace.'
       setLastError(message)
+      if(background)return null
       throw error
     } finally {
-      setMarketplaceLoading(false)
+      if(!background)setMarketplaceLoading(false)
       setLastWorkspaceSyncAt(Date.now())
     }
   }
@@ -283,7 +285,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     setRealtimeState('connected')
 
     const syncMarketplace=()=>{
-      void loadMarketplace()
+      void loadMarketplace({background:true})
     }
 
     /*
