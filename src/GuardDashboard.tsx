@@ -101,8 +101,9 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: b
 
 function GuardSectionView({ section, online, metrics }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>(loadGuardMessages)
+  const [messageError,setMessageError]=useState('')
   useEffect(()=>saveGuardMessages(messages),[messages])
-  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive&&records.length)setMessages(records as GuardMessageRecord[])}).catch(()=>undefined);load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
+  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive)setMessages(records as GuardMessageRecord[])}).catch(error=>{if(alive)setMessageError(error instanceof Error?error.message:'Messages unavailable.')});load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
   const sendGuardMessage=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
     const form=event.currentTarget
@@ -110,8 +111,7 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
     const body=String(data.get('body')??'').trim()
     if(!body)return
     let message:GuardMessageRecord|null=null
-    try{message=await persistGuardMessage({channel:'active_mission',body}) as GuardMessageRecord}catch{message=null}
-    message=message??{id:crypto.randomUUID(),channel:'active_mission',sender:'guard',senderName:'David Martinez',body,context:'Guard reply',createdAt:new Date().toISOString()}
+    try{message=await persistGuardMessage({channel:'active_mission',body}) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
     setMessages(current=>[message,...current])
     form.reset()
   }
@@ -126,6 +126,7 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
         <textarea name="body" required placeholder="Reply to agency dispatch…"/>
         <button type="submit">Send</button>
       </form>
+      {messageError&&<small className="guard-message-error">{messageError}</small>}
       <div className="guard-message-feed">{messages.length?messages.slice(0,5).map(m=><article className={m.sender} key={m.id}><strong>{m.senderName}</strong><span>{m.body}</span><small>{m.context} · {new Date(m.createdAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</small></article>):<div><strong>No messages yet</strong><span>Agency broadcasts and mission instructions will appear here.</span></div>}</div>
     </section>
   </>

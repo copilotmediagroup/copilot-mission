@@ -4841,3 +4841,5 @@ input:disabled, select:disabled{
 .premium-agency .marketplace-roster-strip .guard-face strong,.premium-agency .marketplace-roster-strip .guard-face small{width:100%!important;text-align:left!important;margin:0!important;line-height:1.1!important}
 .premium-agency .marketplace-roster-strip .guard-face strong{font-size:10px!important;color:#fff!important}.premium-agency .marketplace-roster-strip .guard-face small{font-size:8px!important;color:#75a8d8!important}
 .premium-agency .marketplace-roster-strip .strip-title button{height:34px!important;min-width:86px!important}
+
+.guard-message-error{display:block;margin-top:8px;color:#ff6b7c;font-size:9px;font-weight:800;text-align:center}
