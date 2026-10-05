@@ -220,7 +220,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     id:row.id,title:row.title,client:row.client?.display_name||'Marketplace Client',
     address:row.property?.address||'Verified property',distance:Number((1.2+(index%7)*.9).toFixed(1)),
     eta:4+(index%6)*3,duration:row.duration_minutes,kind:row.priority,
-    property:row.property?.name||'Property',price:row.payout_cents?Math.round(row.payout_cents/100):0,
+    property:row.property?.name||'Property',price:row.agency_payout_cents?Math.round(row.agency_payout_cents/100):(row.payout_cents?Math.round(row.payout_cents/100):0),
     x:50,y:50,
     latitude:row.property?.latitude ?? null,
     longitude:row.property?.longitude ?? null,

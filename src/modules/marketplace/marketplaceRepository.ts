@@ -11,6 +11,16 @@ export type MarketplaceJobRow = {
   scheduled_for: string | null
   duration_minutes: number
   payout_cents: number | null
+  estimated_total_cents?: number | null
+  platform_fee_cents?: number | null
+  agency_payout_cents?: number | null
+  payment_status?: string | null
+  payout_status?: string | null
+  payout_hold_reason?: string | null
+  service_type?: string | null
+  requested_start?: string | null
+  can_claim?: boolean | null
+  claim_block_reason?: string | null
   required_guards: number
   created_at: string
   updated_at: string
