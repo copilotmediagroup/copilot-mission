@@ -197,7 +197,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const runtimeGuards=isPreview?guards:liveGuards
   const guardSummary=isPreview?{total:guards.length,online:guards.filter(g=>g.status!=='offline').length,offline:guards.filter(g=>g.status==='offline').length,available:guards.filter(g=>g.status==='available').length,reserved:guards.filter(g=>g.status==='reserved').length,on_mission:guards.filter(g=>g.status==='on-mission').length}:guardState.summary
   const filtered=useMemo(()=>filter==='all'?jobs:jobs.filter(j=>j.kind===filter),[jobs,filter])
-  const available=runtimeGuards.filter(g=>g.status==='available')
+  const available=guardSummary.available>0?runtimeGuards.filter(g=>g.status==='available').slice(0,guardSummary.available):[]
   const activeOperationCount=isPreview?2:activeAgencyMissionCount(dispatch,accepted)
 
   const mapLiveJob=(row:MarketplaceJobRow,index:number):Job=>({
