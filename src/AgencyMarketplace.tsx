@@ -412,6 +412,7 @@ function marketplaceJobGuidance(job:Job,availableCount:number){
 function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,lastSyncAt,realtimeState,focusedMissionId,preview,dispatch,liveLocations,onOpenGuards,onOpenOperations,onOpenMessages,onToast}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;lastSyncAt:number|null;realtimeState:'idle'|'connected'|'preview';focusedMissionId:string|null;preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[];onOpenGuards:()=>void;onOpenOperations:()=>void;onOpenMessages:()=>void;onToast:(message:string)=>void}){
  const [mapMode,setMapMode]=useState<'all'|'standard'|'priority'|'emergency'|'guards'>('all')
  const [sortNearest,setSortNearest]=useState(true)
+ const [dismissStandbyOverlay,setDismissStandbyOverlay]=useState(false)
  const syncLabel=preview?'Preview sync':lastSyncAt?`Synced ${new Date(lastSyncAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`:realtimeState==='connected'?'Connecting sync':'Waiting for sync'
 
  const jobsWithProximity=useMemo(()=>filtered.map(job=>enhanceJobWithNearestGuard(job,allGuards)),[filtered,allGuards])
@@ -590,6 +591,8 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
 
  const capacityNeedsAssignment=liveActiveMissions.filter(m=>m.status==='awaiting_guard'||!m.guard_id).length
  const marketStandby=!loading&&jobs.length===0&&liveActiveMissions.length===0
+ const showStandbyOverlay=marketStandby&&!dismissStandbyOverlay
+ useEffect(()=>{if(!marketStandby)setDismissStandbyOverlay(false)},[marketStandby])
  const commandTone=capacityNeedsAssignment?'urgent':available.length?'ready':'blocked'
  const commandTitle=capacityNeedsAssignment?'Dispatch needs assignment':available.length?'Marketplace standby — ready':'Marketplace blocked'
  const commandCopy=capacityNeedsAssignment?String(capacityNeedsAssignment)+' claimed mission'+(capacityNeedsAssignment===1?'':'s')+' need guard assignment before new claims.':available.length?'No open jobs right now. Your guard capacity is online and the marketplace feed is listening in real time.':'No available guards are online. Activate guards before claiming work.'
@@ -618,7 +621,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
       showViewerLocation={false}
       showCameraStatus={false}
     />
-    {marketStandby&&<div className="market-standby-overlay"><div><ShieldCheck/></div><small>MARKETPLACE STANDBY</small><strong>{available.length} guard{available.length===1?'':'s'} ready</strong><span>No verified jobs are open right now. Keep this command center open — new missions and Priority Response requests will appear live.</span><nav><button type="button" onClick={onOpenGuards}>View Guards</button><button type="button" onClick={onOpenMessages}>Message Guards</button><button type="button" onClick={()=>{setMapMode('guards');onToast('Guard readiness layer opened.')}}>Guard Layer</button></nav></div>}
+    {showStandbyOverlay&&<div className="market-standby-overlay"><button className="market-standby-close" type="button" aria-label="Dismiss marketplace standby panel" onClick={()=>setDismissStandbyOverlay(true)}><X/></button><div><ShieldCheck/></div><small>MARKETPLACE STANDBY</small><strong>{available.length} guard{available.length===1?'':'s'} ready</strong><span>No verified jobs are open right now. Keep this command center open — new missions and Priority Response requests will appear live.</span><nav><button type="button" onClick={onOpenGuards}>View Guards</button><button type="button" onClick={onOpenMessages}>Message Guards</button><button type="button" onClick={()=>{setMapMode('guards');onToast('Guard readiness layer opened.')}}>Guard Layer</button></nav></div>}
     {routeStatusLabel&&<div className="agency-live-route-badge"><Navigation/> LIVE ROUTE · {routeStatusLabel}</div>}
     <div className="map-key">
       <span><i className="gold"/>Open Job</span>
