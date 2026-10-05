@@ -332,6 +332,13 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     if(isPreview){setToast(isRoleMatch?'Preview Mode: claim simulated only.':'Preview Mode: signed in as Client. Switch to an approved Agency account for Live Test.');return}
     if(mode==='supabase'){
       if(!agencyId){setToast(`Signed in as ${role?.replace('_',' ')??'user'}. Agency actions require an approved Agency account.`);return}
+      if(job.kind==='emergency'){
+        const hasAvailableGuard=available.length>0
+        const message=hasAvailableGuard
+          ? 'Priority Response requires immediate dispatch confirmation. Claim this mission and assign a guard now?'
+          : 'No available guards are online. Priority Response requires immediate dispatch. Claim anyway and assign a guard as soon as one becomes available?'
+        if(!window.confirm(message)){setToast(hasAvailableGuard?'Priority Response claim cancelled.':'Priority Response claim cancelled — no available guard online.');return}
+      }
       setClaimingId(job.id)
       try{
         const result=await acceptMarketplaceJob(job.id)
