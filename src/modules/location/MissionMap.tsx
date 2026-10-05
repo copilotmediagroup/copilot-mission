@@ -686,6 +686,19 @@ export default function MissionMap({
           })
         })
 
+        if (valid.length === 1) {
+          const marker = valid[0]
+
+          map.panTo({
+            lat: marker.latitude,
+            lng: marker.longitude,
+          })
+
+          map.setZoom(zoom)
+
+          return
+        }
+
         map.fitBounds(bounds, 80)
 
         return
