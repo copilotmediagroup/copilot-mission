@@ -4885,3 +4885,10 @@ input:disabled, select:disabled{
 @keyframes copilotGuardLabelBreath{0%,100%{opacity:.78}50%{opacity:1}}
 @media(max-width:1200px){.premium-agency .premium-dashboard{grid-template-columns:minmax(0,1.25fr) minmax(290px,.75fr)!important;grid-template-rows:auto auto auto 150px!important}.command-stack{min-width:0!important}.marketplace-roster-strip{grid-column:1/-1!important}}
 @media(max-width:760px){.premium-agency .premium-dashboard{display:flex!important}.marketplace-roster-strip{min-height:150px!important}.marketplace-roster-strip .available-guards{padding:14px!important}.marketplace-roster-strip .guard-row{gap:12px!important}.marketplace-roster-strip .guard-face{min-width:78px!important}.command-stack-panel{max-height:none!important}}
+
+/* Account actions cleanup: remove theme toggle surface, place logout with profile */
+.agency-account-actions{display:flex;align-items:center;gap:8px}
+.agency-logout-button{height:48px;padding:0 14px;border:1px solid rgba(255,87,107,.20);border-radius:10px;background:linear-gradient(145deg,rgba(44,13,22,.92),rgba(10,18,31,.96));color:#ffb7c0;display:flex;align-items:center;gap:8px;font-size:10px;font-weight:900;letter-spacing:.02em}
+.agency-logout-button svg{width:14px;height:14px}
+.agency-logout-button:hover{border-color:rgba(255,87,107,.42);background:linear-gradient(145deg,rgba(84,22,34,.98),rgba(13,24,40,.98));color:#fff;box-shadow:0 14px 30px rgba(255,54,78,.12)}
+@media(max-width:760px){.agency-logout-button span{display:none}.agency-logout-button{width:34px;height:34px;padding:0;justify-content:center;border-radius:50%}.agency-account-actions .profile-pill{display:flex}}

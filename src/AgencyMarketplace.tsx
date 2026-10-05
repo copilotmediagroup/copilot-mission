@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type React
 import {
   AlertTriangle, BadgeCheck, BarChart3, Bell, BriefcaseBusiness, Building2, ClipboardList,
   CalendarClock, Check, ChevronDown, ChevronRight, CircleDollarSign, Clock3,
-  Crosshair, Filter, Flame, Gauge, Layers3, MapPin, MessageSquare, Navigation,
+  Crosshair, Filter, Flame, Gauge, Layers3, LogOut, MapPin, MessageSquare, Navigation,
   Radio, Search, Settings, ShieldCheck, Siren, SlidersHorizontal, Users, Wifi, Zap, Bug, Database, LockKeyhole, X, UserPlus, Copy, LoaderCircle, Mail
 } from 'lucide-react'
 import { useAuth, type AppRole } from './modules/auth/AuthProvider'
@@ -15,7 +15,6 @@ import ReportingWorkspace from './ReportingWorkspace'
 import { getAgencyLiveLocations, subscribeToLocationChanges, type GuardLiveLocation } from './modules/location/liveLocationRepository'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
 import type { ActiveMissionRoute } from './modules/location/missionRouting'
-import ThemeToggle from './modules/theme/ThemeToggle'
 import { getAgencyMessages as fetchAgencyMessages, sendAgencyMessage as persistAgencyMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
@@ -129,7 +128,7 @@ const navItems = [
 type Tab = typeof navItems[number][0]
 
 export default function AgencyMarketplace({developerMode=false,accessMode='live',viewedRole='agency_admin'}:{developerMode?:boolean;accessMode?:DeveloperAccessMode;viewedRole?:AppRole}){
-  const { mode, role, user, status, phase } = useAuth()
+  const { mode, role, user, status, phase, signOut } = useAuth()
   const [tab,setTab]=useState<Tab>('marketplace')
   const [jobs,setJobs]=useState<Job[]>([])
   const [accepted,setAccepted]=useState<Job[]>([])
@@ -433,7 +432,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     <header className="agency-topbar premium-topbar">
       <div className="page-title"><div className="foundation-status"><span className={mode}><Wifi/>{mode === 'supabase' ? 'SUPABASE CONNECTED' : 'BACKEND READY · MOCK DATA'}</span><small>{role ?? 'role pending'}</small></div><h1>{pageLabel}</h1><p>{pageCopy}</p></div>
       <div className="top-kpis"><Kpi icon={<CircleDollarSign/>} label="OPEN JOBS" value={jobs.length} tone="gold"/><Kpi icon={<Flame/>} label="PRIORITY" value={jobs.filter(j=>j.kind==='priority').length} tone="orange"/><Kpi icon={<Siren/>} label="PRIORITY RESPONSE" value={jobs.filter(j=>j.kind==='emergency').length} tone="red"/><Kpi icon={<Users/>} label="ACTIVE JOBS" value={activeOperationCount} tone="green"/><Kpi icon={<ShieldCheck/>} label="ONLINE GUARDS" value={guardSummary.online} tone="blue"/></div>
-      <div className="top-actions"><ThemeToggle/><button className="icon-button" type="button" onClick={openAgencyMessages} aria-label="Open alerts"><Bell/>{(isPreview||unreadMessageCount>0)&&<i>{isPreview?4:unreadMessageCount}</i>}</button><button className="icon-button" type="button" onClick={openAgencyMessages} aria-label="Open messages"><MessageSquare/>{unreadMessageCount>0&&<i>{unreadMessageCount}</i>}</button><button className="profile-pill" type="button" onClick={openAgencySettings}><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button></div>
+      <div className="top-actions"><button className="icon-button" type="button" onClick={openAgencyMessages} aria-label="Open alerts"><Bell/>{(isPreview||unreadMessageCount>0)&&<i>{isPreview?4:unreadMessageCount}</i>}</button><button className="icon-button" type="button" onClick={openAgencyMessages} aria-label="Open messages"><MessageSquare/>{unreadMessageCount>0&&<i>{unreadMessageCount}</i>}</button><div className="agency-account-actions"><button className="profile-pill" type="button" onClick={openAgencySettings}><span>AF</span><div><strong>{agencyName}</strong><small>Agency Admin</small></div><ChevronDown/></button><button className="agency-logout-button" type="button" onClick={()=>void signOut()} aria-label="Log out"><LogOut/><span>Logout</span></button></div></div>
     </header>
 
     <main className="agency-main premium-main">
