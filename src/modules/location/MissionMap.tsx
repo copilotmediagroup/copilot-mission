@@ -1349,6 +1349,7 @@ export default function MissionMap({
     viewerLocation,
     locationStatus,
     theme,
+    mapReadyGeneration,
   ])
 
   /*
