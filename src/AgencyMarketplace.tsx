@@ -131,6 +131,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const [lastError,setLastError]=useState<string | null>(null)
   const [realtimeState,setRealtimeState]=useState<'idle'|'connected'|'preview'>('idle')
   const [marketplaceLoading,setMarketplaceLoading]=useState(false)
+  const [lastWorkspaceSyncAt,setLastWorkspaceSyncAt]=useState<number | null>(null)
   const [dispatch,setDispatch]=useState<AgencyDispatchWorkspace|null>(null)
   const [reportCount,setReportCount]=useState(0)
   const [liveLocations,setLiveLocations]=useState<GuardLiveLocation[]>([])
@@ -231,6 +232,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       throw error
     } finally {
       setMarketplaceLoading(false)
+      setLastWorkspaceSyncAt(Date.now())
     }
   }
 
@@ -254,11 +256,13 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     setAgencyId(null)
     setLastError(null)
     setDispatch(null)
+    setLastWorkspaceSyncAt(null)
     setRealtimeState(isPreview?'preview':'idle')
     if(isPreview){
       setJobs(initialJobs)
       setActivity(initialActivity)
       setMarketplaceLoading(false)
+      setLastWorkspaceSyncAt(Date.now())
     } else {
       setMarketplaceLoading(mode==='supabase')
     }
@@ -366,16 +370,17 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     </header>
 
     <main className="agency-main premium-main">
-      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} preview={isPreview} dispatch={dispatch} liveLocations={liveLocations} onOpenGuards={openAgencyGuards} onOpenOperations={openAgencyOperations} onOpenMessages={openAgencyMessages} onToast={setToast}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<OperationalWorkspace tab={tab} jobs={jobs} accepted={accepted} dispatch={dispatch} guards={runtimeGuards} guardSummary={guardSummary} activity={activity} agencyName={agencyName} onNavigate={setTab}/>}
+      {tab==='marketplace'?<Marketplace jobs={jobs} filtered={filtered} filter={filter} setFilter={setFilter} accept={job=>void accept(job)} available={available} allGuards={runtimeGuards} activity={activity} loading={marketplaceLoading} lastSyncAt={lastWorkspaceSyncAt} realtimeState={realtimeState} preview={isPreview} dispatch={dispatch} liveLocations={liveLocations} onOpenGuards={openAgencyGuards} onOpenOperations={openAgencyOperations} onOpenMessages={openAgencyMessages} onToast={setToast}/>:tab==='operations'?<Operations accepted={accepted} preview={isPreview} dispatch={dispatch} onAssign={async(jobId,guardId)=>{try{await assignGuard(jobId,guardId);await loadDispatch();await loadMarketplace();setToast('Assignment sent to guard in real time.')}catch(error){setToast(error instanceof Error?error.message:'Unable to assign guard.')}}} onMarketplace={()=>setTab('marketplace')}/>:tab==='guards'?<GuardsWorkspace preview={isPreview} onToast={setToast} authoritativeGuards={guardState.guards} onRosterChanged={guardState.refresh}/>:tab==='reports'?<ReportingWorkspace preview={isPreview} onCount={setReportCount}/>:<OperationalWorkspace tab={tab} jobs={jobs} accepted={accepted} dispatch={dispatch} guards={runtimeGuards} guardSummary={guardSummary} activity={activity} agencyName={agencyName} onNavigate={setTab}/>}
     </main>
   </div>
 }
 
 function Kpi({icon,label,value,tone}:{icon:ReactNode,label:string,value:number,tone:string}){return <div className={`top-kpi ${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>}
 
-function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,preview,dispatch,liveLocations,onOpenGuards,onOpenOperations,onOpenMessages,onToast}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[];onOpenGuards:()=>void;onOpenOperations:()=>void;onOpenMessages:()=>void;onToast:(message:string)=>void}){
+function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,lastSyncAt,realtimeState,preview,dispatch,liveLocations,onOpenGuards,onOpenOperations,onOpenMessages,onToast}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;lastSyncAt:number|null;realtimeState:'idle'|'connected'|'preview';preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[];onOpenGuards:()=>void;onOpenOperations:()=>void;onOpenMessages:()=>void;onToast:(message:string)=>void}){
  const [mapMode,setMapMode]=useState<'all'|'standard'|'priority'|'emergency'|'guards'>('all')
  const [sortNearest,setSortNearest]=useState(true)
+ const syncLabel=preview?'Preview sync':lastSyncAt?`Synced ${new Date(lastSyncAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`:realtimeState==='connected'?'Connecting sync':'Waiting for sync'
 
  const jobsWithProximity=useMemo(()=>filtered.map(job=>enhanceJobWithNearestGuard(job,allGuards)),[filtered,allGuards])
  const sortedOpportunityJobs=useMemo(()=>[...jobsWithProximity].sort((a,b)=>sortNearest?(a.distance-b.distance):a.title.localeCompare(b.title)),[jobsWithProximity,sortNearest])
@@ -545,7 +550,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
     <div className="blue"><small>GUARDS</small><strong>{allGuards.filter(g=>g.status!=='offline').length}</strong></div>
   </section>
   <section className="live-map-panel premium-panel">
-   <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/> {visibleGuards.length} ONLINE GUARD{visibleGuards.length===1?'':'S'}</span></div><button type="button" onClick={()=>{setMapMode(current=>current==='guards'?'all':'guards');onToast(mapMode==='guards'?'All live layers enabled.':'Showing guard layer only.')}}><Layers3/>Layers<ChevronDown/></button></div>
+   <div className="premium-panel-head"><div><strong>LIVE MARKETPLACE MAP</strong><span><i/> {visibleGuards.length} ONLINE GUARD{visibleGuards.length===1?'':'S'} · {syncLabel}</span></div><button type="button" onClick={()=>{setMapMode(current=>current==='guards'?'all':'guards');onToast(mapMode==='guards'?'All live layers enabled.':'Showing guard layer only.')}}><Layers3/>Layers<ChevronDown/></button></div>
    <div className="map-filter-row">{(['all','standard','priority','emergency'] as const).map(v=><button key={v} type="button" className={mapMode===v?'active':''} onClick={()=>{setMapMode(v);setFilter(v)}}>{v==='all'?'All':v==='standard'?'Open Jobs':v==='emergency'?'Priority Response':v==='priority'?'Priority':v}</button>)}<button type="button" className={mapMode==='guards'?'active':''} onClick={()=>setMapMode('guards')}>My Guards</button></div>
    <div className="premium-map">
     {!preview&&onlineGuardsMissingGps>0&&<div className="agency-map-gps-warning"><Wifi/> {onlineGuardsMissingGps} online guard{onlineGuardsMissingGps===1?'':'s'} awaiting GPS fix</div>}
