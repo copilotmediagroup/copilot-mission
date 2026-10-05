@@ -340,7 +340,8 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
           if(result.reason==='ALREADY_CLAIMED_OR_UNAVAILABLE') setJobs(v=>v.filter(j=>j.id!==job.id))
           setToast(messages[result.reason||'']||'Unable to claim this mission. Refresh and try again.');return}
         await loadMarketplace()
-        setToast(`${job.title} is now owned by ${agencyName}.`)
+        setTab('operations')
+        setToast(`${job.title} is claimed. Assign an available guard now.`)
       }catch(error){setToast(error instanceof Error?error.message:'Unable to claim mission.')}
       finally{setClaimingId(null)}
       return
