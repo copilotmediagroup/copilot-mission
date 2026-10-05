@@ -4828,3 +4828,16 @@ input:disabled, select:disabled{
 .premium-agency .marketplace-roster-strip .available-guards{border-right:0!important;padding:12px 16px!important}
 .premium-agency .marketplace-roster-strip .guard-row{justify-content:flex-start!important;gap:18px!important;overflow:auto!important;padding-bottom:4px!important}
 .market-roster-empty{display:flex;align-items:center;gap:10px;color:#8fa2b8;font-size:10px;padding:10px 0}.market-roster-empty strong{color:#fff;font-size:11px}.market-roster-empty small{color:#8fa2b8}
+
+/* Marketplace map + roster tray correction */
+.security-map-layer .coverage-ring{display:none!important}
+.security-map-layer .security-sweep{position:absolute;left:0;right:0;top:45%;height:2px;background:linear-gradient(90deg,transparent,rgba(77,230,169,.32),transparent);box-shadow:0 0 22px rgba(77,230,169,.18);animation:securitySweep 4.2s ease-in-out infinite}
+@keyframes securitySweep{0%,100%{transform:translateY(-120px);opacity:.15}50%{transform:translateY(120px);opacity:.55}}
+.premium-agency .marketplace-roster-strip{height:auto!important;min-height:124px!important;overflow:visible!important;align-items:stretch!important}
+.premium-agency .marketplace-roster-strip .available-guards{padding:14px 16px 16px!important;display:flex!important;flex-direction:column!important;gap:12px!important}
+.premium-agency .marketplace-roster-strip .guard-row{min-height:62px!important;margin-top:0!important;align-items:center!important;gap:12px!important;overflow-x:auto!important;overflow-y:visible!important;padding:0 4px 4px!important}
+.premium-agency .marketplace-roster-strip .guard-face{width:156px!important;min-width:156px!important;height:58px!important;padding:8px 10px!important;border:1px solid rgba(58,220,144,.20)!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(9,25,38,.96),rgba(5,15,26,.96))!important;display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;grid-template-rows:1fr 1fr!important;column-gap:10px!important;align-items:center!important;justify-items:start!important;overflow:hidden!important}
+.premium-agency .marketplace-roster-strip .guard-face>span{grid-row:1/3!important;width:40px!important;height:40px!important;margin:0!important}
+.premium-agency .marketplace-roster-strip .guard-face strong,.premium-agency .marketplace-roster-strip .guard-face small{width:100%!important;text-align:left!important;margin:0!important;line-height:1.1!important}
+.premium-agency .marketplace-roster-strip .guard-face strong{font-size:10px!important;color:#fff!important}.premium-agency .marketplace-roster-strip .guard-face small{font-size:8px!important;color:#75a8d8!important}
+.premium-agency .marketplace-roster-strip .strip-title button{height:34px!important;min-width:86px!important}
