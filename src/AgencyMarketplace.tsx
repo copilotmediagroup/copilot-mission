@@ -759,7 +759,7 @@ function OperationalWorkspace({tab,jobs,accepted,dispatch,guards,guardSummary,ac
     const channel=(String(data.get('channel')??'all_guards') as AgencyMessageRecord['channel'])
     const thread=messageThreads.find(t=>t.key===channel)
     let message:AgencyMessageRecord|null=null
-    try{message=await persistAgencyMessage({channel,body,jobId:channel==='active_mission'?latestMission?.job_id??null:null}) as AgencyMessageRecord}
+    try{message=await persistAgencyMessage({channel,body,jobId:channel==='active_mission'?latestMission?.job_id??null:null,senderRole:'agency'}) as AgencyMessageRecord}
     catch(error){message={id:crypto.randomUUID(),channel,sender:'system',senderName:'Delivery failed',body:error instanceof Error?error.message:'Message was not delivered.',context:thread?.title??'Agency message',createdAt:new Date().toISOString()}}
     setAgencyMessages(current=>message?.sender==='system'?[message,...current]:[message!,...current])
     form.reset()

@@ -111,7 +111,7 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
     const body=String(data.get('body')??'').trim()
     if(!body)return
     let message:GuardMessageRecord|null=null
-    try{message=await persistGuardMessage({channel:'active_mission',body}) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
+    try{message=await persistGuardMessage({channel:'active_mission',body,senderRole:'guard'}) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
     setMessages(current=>[message,...current])
     form.reset()
   }
