@@ -1,0 +1,8 @@
+import { supabase } from '../../lib/supabase'
+
+export type AgencyMessageRecord={id:string;channel:'all_guards'|'active_mission'|'post_job';sender:'agency'|'guard'|'system';senderName:string;body:string;context:string;createdAt:string}
+function db(){ if(!supabase) throw new Error('Supabase is not configured.'); return supabase }
+function normalize(row:any):AgencyMessageRecord{return{id:String(row.id),channel:(row.channel??'all_guards') as AgencyMessageRecord['channel'],sender:(row.sender_role??row.sender??'system') as AgencyMessageRecord['sender'],senderName:String(row.sender_name??row.senderName??'Co Pilot'),body:String(row.body??''),context:String(row.context??row.channel??'Message'),createdAt:String(row.created_at??row.createdAt??new Date().toISOString())}}
+export async function getAgencyMessages():Promise<AgencyMessageRecord[]>{const{data,error}=await db().rpc('get_agency_messages');if(error)throw new Error(error.message);return Array.isArray(data)?data.map(normalize):[]}
+export async function sendAgencyMessage(input:{channel:AgencyMessageRecord['channel'];body:string;jobId?:string|null}):Promise<AgencyMessageRecord>{const{data,error}=await db().rpc('send_agency_message',{p_channel:input.channel,p_body:input.body,p_job_id:input.jobId??null});if(error)throw new Error(error.message);return normalize(data)}
+export function subscribeToAgencyMessages(onChange:()=>void){if(!supabase)return()=>undefined;const client=supabase;const channel=client.channel(`agency-messages-${crypto.randomUUID()}`).on('postgres_changes',{event:'*',schema:'public',table:'agency_messages'},onChange).subscribe();return()=>{void client.removeChannel(channel)}}

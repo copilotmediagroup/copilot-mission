@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, MapPin, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
 import MissionReport from './MissionReport'
 import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
@@ -6,6 +6,7 @@ import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
 import type { ActiveMissionRoute, MissionRouteResult } from './modules/location/missionRouting'
 import { toMissionRuntimeRouteInput } from './modules/mission-runtime/missionRuntimeState'
+import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGuardMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 import type { GuardNavTarget } from './ui'
 
@@ -41,6 +42,17 @@ function formatDutyTime(totalSeconds: number) {
   const hours = Math.floor(safeSeconds / 3600)
   const minutes = Math.floor((safeSeconds % 3600) / 60)
   return `${hours}h ${String(minutes).padStart(2, '0')}m`
+}
+
+
+type GuardMessageRecord={id:string;channel:'all_guards'|'active_mission'|'post_job';sender:'agency'|'guard'|'system';senderName:string;body:string;context:string;createdAt:string}
+const guardMessageStoreKey='copilot-agency-message-center-v1'
+function loadGuardMessages():GuardMessageRecord[]{
+  if(typeof window==='undefined')return []
+  try{const parsed=JSON.parse(window.localStorage.getItem(guardMessageStoreKey)??'[]');return Array.isArray(parsed)?parsed:[]}catch{return []}
+}
+function saveGuardMessages(messages:GuardMessageRecord[]){
+  if(typeof window!=='undefined')window.localStorage.setItem(guardMessageStoreKey,JSON.stringify(messages.slice(0,80)))
 }
 
 export interface GuardDashboardProps {
@@ -88,6 +100,35 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: b
 }
 
 function GuardSectionView({ section, online, metrics }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics }) {
+  const [messages,setMessages]=useState<GuardMessageRecord[]>(loadGuardMessages)
+  useEffect(()=>saveGuardMessages(messages),[messages])
+  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive&&records.length)setMessages(records as GuardMessageRecord[])}).catch(()=>undefined);load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
+  const sendGuardMessage=async(event:FormEvent<HTMLFormElement>)=>{
+    event.preventDefault()
+    const form=event.currentTarget
+    const data=new FormData(form)
+    const body=String(data.get('body')??'').trim()
+    if(!body)return
+    let message:GuardMessageRecord|null=null
+    try{message=await persistGuardMessage({channel:'active_mission',body}) as GuardMessageRecord}catch{message=null}
+    message=message??{id:crypto.randomUUID(),channel:'active_mission',sender:'guard',senderName:'David Martinez',body,context:'Guard reply',createdAt:new Date().toISOString()}
+    setMessages(current=>[message,...current])
+    form.reset()
+  }
+  if(section==='messages')return <>
+    <ProfileBlock online={online}/>
+    <section className="guard-message-center">
+      <div className="guard-main-section-icon"><MessageCircle/></div>
+      <small>MESSAGES</small>
+      <h3>Agency Comms</h3>
+      <p>Send and receive agency messages before, during, and after every job.</p>
+      <form className="guard-message-composer" onSubmit={sendGuardMessage}>
+        <textarea name="body" required placeholder="Reply to agency dispatch…"/>
+        <button type="submit">Send</button>
+      </form>
+      <div className="guard-message-feed">{messages.length?messages.slice(0,5).map(m=><article className={m.sender} key={m.id}><strong>{m.senderName}</strong><span>{m.body}</span><small>{m.context} · {new Date(m.createdAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</small></article>):<div><strong>No messages yet</strong><span>Agency broadcasts and mission instructions will appear here.</span></div>}</div>
+    </section>
+  </>
   const copy: Record<GuardNavTarget, { kicker: string; title: string; body: string; detail: string; icon: ReactNode }> = {
     home: { kicker:'HOME', title:'Guard Home', body:'Current duty status and availability.', detail:online?'Online and ready for assignment.':'Offline until you go online.', icon:<ShieldCheck/> },
     jobs: { kicker:'JOBS', title:'Assignments', body:online?'No active assignment is waiting right now. New jobs will appear here when the agency sends one.':'Go online to receive assignments from the agency.', detail:String(metrics.jobsToday)+' jobs today', icon:<BriefcaseBusiness/> },
