@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase'
 
 export type ClientProperty = { id:string; client_id:string; name:string; address:string; street:string|null; city:string|null; state:string|null; postal_code:string|null; formatted_address:string|null; latitude:number|null; longitude:number|null; geocoding_provider:string|null; geocoding_place_id:string|null; photo_path:string|null; photo_url:string|null; archived_at:string|null; created_at:string; updated_at:string }
-export type ClientJob = { id:string; client_id:string; property_id:string; title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; status:'open'|'accepted'|'assigned'|'active'|'completed'|'cancelled'; scheduled_for:string|null; duration_minutes:number; created_at:string; updated_at:string }
+export type ClientJob = { id:string; client_id:string; property_id:string; title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; status:'open'|'accepted'|'assigned'|'active'|'completed'|'cancelled'; scheduled_for:string|null; duration_minutes:number; service_type?:string|null; requested_start?:string|null; client_contact_phone?:string|null; access_notes?:string|null; created_at:string; updated_at:string }
 
 function requireSupabase() { if (!supabase) throw new Error('Supabase is not configured.'); return supabase }
 
@@ -26,7 +26,7 @@ export async function getClientWorkspace(userId:string) {
   if(!userId) throw new Error('Your session expired. Please sign in again.')
   const [{data:properties,error:propertiesError},{data:jobs,error:jobsError}]=await Promise.all([
     db.from('properties').select('id,client_id,name,address,street,city,state,postal_code,formatted_address,latitude,longitude,geocoding_provider,geocoding_place_id,photo_path,photo_url,archived_at,created_at,updated_at').eq('client_id',client.id).is('archived_at',null).order('created_at',{ascending:false}),
-    db.from('marketplace_jobs').select('id,client_id,property_id,title,instructions,priority,status,scheduled_for,duration_minutes,created_at,updated_at').eq('client_id',client.id).order('created_at',{ascending:false})
+    db.from('marketplace_jobs').select('id,client_id,property_id,title,instructions,priority,status,scheduled_for,duration_minutes,service_type,requested_start,client_contact_phone,access_notes,created_at,updated_at').eq('client_id',client.id).order('created_at',{ascending:false})
   ])
   if(propertiesError) throw propertiesError
   if(jobsError) throw jobsError
@@ -65,15 +65,19 @@ export async function createClientProperty(input:{clientId:string;name:string;ad
   return data
 }
 
-export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number}) {
+export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number;serviceType:string;requestedStart:string;contactPhone:string;accessNotes:string}) {
   const db=requireSupabase()
-  const {data,error}=await db.rpc('create_marketplace_job_rc1',{
+  const {data,error}=await db.rpc('create_marketplace_job_v2',{
     p_property_id:input.propertyId,
     p_title:input.title.trim(),
     p_instructions:input.instructions.trim()||null,
     p_priority:input.priority,
     p_scheduled_for:input.scheduledFor?new Date(input.scheduledFor).toISOString():null,
     p_duration_minutes:input.durationMinutes,
+    p_service_type:input.serviceType,
+    p_requested_start:input.requestedStart,
+    p_client_contact_phone:input.contactPhone || null,
+    p_access_notes:input.accessNotes || null,
   })
   if(error) throw error
   return {id:data as string}

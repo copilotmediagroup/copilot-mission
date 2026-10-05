@@ -397,7 +397,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       try{
         const result=await acceptMarketplaceJob(job.id)
         if(!result.accepted){
-          const messages:Record<string,string>={ALREADY_CLAIMED_OR_UNAVAILABLE:'Another agency claimed this mission first or it is no longer open.'}
+          const messages:Record<string,string>={ALREADY_CLAIMED_OR_UNAVAILABLE:'Another agency claimed this mission first or it is no longer open.',AGENCY_NOT_APPROVED:'Owner/Admin approval is required before this agency can claim jobs.',ACCOUNT_NOT_APPROVED:'This agency admin account must be approved before claiming jobs.',COMPLIANCE_INCOMPLETE:'Compliance gate blocked this claim. Approve agency license, general liability, and W-9 in Settings.'}
           if(result.reason==='ALREADY_CLAIMED_OR_UNAVAILABLE') setJobs(v=>v.filter(j=>j.id!==job.id))
           setToast(messages[result.reason||'']||'Unable to claim this mission. Refresh and try again.');return}
         await loadMarketplace()

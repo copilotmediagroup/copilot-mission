@@ -7,6 +7,7 @@ export type AgencyDocumentRecord = {
   status:DocumentStatus; submitted_note?:string|null; review_note?:string|null; reviewed_at?:string|null; created_at:string; updated_at?:string|null;
 }
 export type AgencyDocumentCenter = { agency:{id:string;name:string;status:string}; compliance:{status:string;missing:string[];expiring_soon:number}; documents:AgencyDocumentRecord[] }
+export type AgencyApplicationInput = { ownerContactName:string; operatingStates:string[]; serviceCategories:string[]; licenseNumber?:string; note?:string }
 export type OwnerDocumentRecord = AgencyDocumentRecord & { agency_name:string; agency_status:string; owner_name:string }
 export type OwnerDocumentCenter = { documents:OwnerDocumentRecord[]; agencies:{agency_id:string;agency_name:string;agency_status:string;compliance:{status:string;missing:string[];expiring_soon:number}}[] }
 
@@ -27,6 +28,11 @@ export async function uploadAgencyDocument(input:{file:File;documentType:string;
   const {data,error}=await client.rpc('submit_agency_document',{p_document_type:input.documentType,p_operating_state:input.operatingState,p_service_category:input.serviceCategory,p_file_path:path,p_file_name:input.file.name,p_mime_type:input.file.type || null,p_file_size:input.file.size,p_expires_on:input.expiresOn || null,p_note:input.note || null})
   if(error) throw new Error(error.message)
   return data as AgencyDocumentRecord
+}
+export async function submitAgencyApplication(input:AgencyApplicationInput){
+  const {data,error}=await db().rpc('submit_agency_application',{p_owner_contact_name:input.ownerContactName,p_operating_states:input.operatingStates,p_service_categories:input.serviceCategories,p_license_number:input.licenseNumber || null,p_note:input.note || null})
+  if(error) throw new Error(error.message)
+  return data
 }
 export async function getOwnerDocumentReviewCenter():Promise<OwnerDocumentCenter>{
   const {data,error}=await db().rpc('get_owner_document_review_center')

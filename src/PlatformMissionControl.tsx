@@ -32,6 +32,10 @@ const seedRules:StateRule[]=[
  {state:'NY',agencyLicense:true,insurance:true,guardLicense:true,armedAllowed:false,armedDocs:true,autoClient:false,notes:'Client business verification required before marketplace dispatch.'},
 ]
 function ownerDocToPlatform(d:OwnerDocumentRecord):PlatformDocument{return {id:d.id,owner:d.agency_name,ownerType:'Agency',type:d.document_type.replaceAll('_',' '),state:d.operating_state,status:d.status as ReviewStatus,expires:d.expires_on ?? 'N/A',uploaded:new Date(d.created_at).toLocaleDateString(),filePath:d.file_path,fileName:d.file_name,reviewNote:d.review_note}}
+function ownerDocsToAgencies(center:{documents:OwnerDocumentRecord[];agencies:{agency_id:string;agency_name:string;agency_status:string;compliance:{status:string;missing:string[];expiring_soon:number}}[]}):AgencyApplication[]{
+ return center.agencies.map(a=>{const agencyDocs=center.documents.filter(d=>d.agency_id===a.agency_id);const state=agencyDocs[0]?.operating_state ?? 'FL';return {id:a.agency_id,name:a.agency_name,owner:agencyDocs[0]?.owner_name ?? 'Owner',state,license:'Submitted in documents',licenseExpires:agencyDocs.find(d=>d.document_type==='agency_license')?.expires_on ?? 'N/A',insuranceExpires:agencyDocs.find(d=>d.document_type==='general_liability')?.expires_on ?? 'N/A',status:a.agency_status as ReviewStatus,services:['Document-backed onboarding'],risk:a.compliance.status==='compliant'?'Low':'Review',note:a.compliance.status==='compliant'?'Agency document baseline complete.':'Missing '+(a.compliance.missing?.join(', ')||'documents'),docs:agencyDocs.map(d=>({type:d.document_type.replaceAll('_',' '),status:d.status as ReviewStatus,expires:d.expires_on ?? 'N/A'}))}})
+}
+
 const seedDocuments:PlatformDocument[]=[
  {id:'doc-1',owner:'Alpha Force Security',ownerType:'Agency',type:'Agency license',state:'FL',status:'pending',expires:'2027-08-30',uploaded:'Today'},
  {id:'doc-2',owner:'Alpha Force Security',ownerType:'Agency',type:'General liability',state:'FL',status:'pending',expires:'2027-04-15',uploaded:'Today'},
@@ -43,7 +47,7 @@ export default function PlatformMissionControl(){
  const {mode,signOut}=useAuth();const[view,setView]=useState<View>('overview');const[data,setData]=useState<LiveOperationsSnapshot|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('')
  const[agencies,setAgencies]=useState(seedAgencies);const[clients,setClients]=useState(seedClients);const[docs,setDocs]=useState(seedDocuments);const[rules]=useState(seedRules);const[activity,setActivity]=useState<string[]>(['Owner portal opened','Compliance rules loaded'])
  const load=async()=>{if(mode!=='supabase'){setLoading(false);return}try{setData(await getLiveOperationsCenter());setError('')}catch(e){setError(e instanceof Error?e.message:'Live Operations unavailable')}finally{setLoading(false)}}
- const loadOwnerDocuments=async()=>{if(mode!=='supabase')return;try{const center=await getOwnerDocumentReviewCenter();setDocs(center.documents.map(ownerDocToPlatform))}catch(e){setError(e instanceof Error?e.message:'Document review center unavailable')}}
+ const loadOwnerDocuments=async()=>{if(mode!=='supabase')return;try{const center=await getOwnerDocumentReviewCenter();setDocs(center.documents.map(ownerDocToPlatform));if(center.agencies.length)setAgencies(ownerDocsToAgencies(center))}catch(e){setError(e instanceof Error?e.message:'Document review center unavailable')}}
  useEffect(()=>{void load();if(mode!=='supabase')return;return subscribeToLiveOperations(()=>void load())},[mode])
  useEffect(()=>{if(mode!=='supabase')return;void loadOwnerDocuments();return subscribeToDocuments(()=>void loadOwnerDocuments())},[mode])
  const s=data?.summary??empty;const liveMissions=useMemo(()=>data?.missions.filter(m=>!['completed','cancelled'].includes(m.status)).slice(0,12)??[],[data]);const events=data?.events.slice(0,24)??[]
