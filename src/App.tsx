@@ -52,6 +52,7 @@ function AppShell() {
 
   const activeRole: DeveloperPreview = developerMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
   const portalKey = `${developerAccessMode}:${activeRole}:${auth.user?.id ?? 'anonymous'}`
+  const showDeveloperDock = import.meta.env.DEV || developerPath || localStorage.getItem('co-pilot-show-dev-dock') === 'true'
 
   return <div className={developerMode ? 'developer-preview-active' : ''}>
     {developerMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} />}
@@ -62,7 +63,7 @@ function AppShell() {
         activeRole === 'platform_admin' ? <PlatformMissionControl /> :
         <ClientPortal developerMode={developerMode} accessMode={developerAccessMode} />}
     </div>
-    {!developerMode && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
+    {!developerMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
   </div>
 }
 

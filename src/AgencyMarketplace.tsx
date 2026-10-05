@@ -95,6 +95,18 @@ function guardInitials(name:string){
   return name.split(' ').map(v=>v[0]).join('').slice(0,2).toUpperCase() || 'G'
 }
 
+function isGenericGuardName(name?:string|null){
+  const normalized=(name??'').trim().toLowerCase()
+  return !normalized || ['guard','security guard','co pilot guard','test guard','unknown guard'].includes(normalized)
+}
+
+function guardDisplayName(guard?:Pick<Guard,'name'|'initials'>|null){
+  if(!guard)return 'No guard selected'
+  if(!isGenericGuardName(guard.name))return guard.name
+  if(guard.initials && !['G','GU','SG'].includes(guard.initials))return 'Guard '+guard.initials
+  return 'Security Guard'
+}
+
 function hasLiveCoordinates(value:{latitude?:number|null;longitude?:number|null}){
   return value.latitude!=null && value.longitude!=null && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)
 }
@@ -181,7 +193,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
       const status=normalizeGuardAvailability(location.availability)
       byId.set(key,{
         id:location.guard_id,
-        name:existing?.name || location.name || 'Security Guard',
+        name:(!isGenericGuardName(location.name) && isGenericGuardName(existing?.name)) ? location.name : (existing?.name || location.name || 'Security Guard'),
         initials:existing?.initials || guardInitials(location.name || 'Security Guard'),
         distance:existing?.distance ?? 0,
         status,
@@ -576,12 +588,14 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
  const onlineGuardsMissingGps=visibleGuards.filter(g=>!hasLiveCoordinates(g)).length
  const guardMarkers=visibleGuards
    .filter(hasLiveCoordinates)
-   .map(g=>({
+   .map(g=>{
+     const displayName=guardDisplayName(g)
+     return {
        id:`guard-${g.id}`,
        latitude:g.latitude as number,
        longitude:g.longitude as number,
-       label:g.name,
-       title:g.name,
+       label:displayName,
+       title:displayName,
        subtitle:g.currentAddress || `${(g.latitude as number).toFixed(5)}, ${(g.longitude as number).toFixed(5)}`,
        address:g.currentAddress ?? null,
        currentAddress:g.currentAddress ?? null,
@@ -590,7 +604,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
        status:g.gpsFreshness && g.gpsFreshness!=='live' ? `${g.status} · ${g.gpsFreshness} gps` : g.status,
        distance:g.distance,
        type:'guard' as const,
-     }))
+     }})
 
  const visibleMapJobs=jobsWithProximity
    .filter(j=>mapMode!=='guards')
@@ -633,6 +647,9 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
  const commandTone=capacityNeedsAssignment?'urgent':available.length?'ready':'blocked'
  const commandTitle=capacityNeedsAssignment?'Dispatch needs assignment':available.length?'Marketplace standby — ready':'Marketplace blocked'
  const commandCopy=capacityNeedsAssignment?String(capacityNeedsAssignment)+' claimed mission'+(capacityNeedsAssignment===1?'':'s')+' need guard assignment before new claims.':available.length?'No open jobs right now. Your guard capacity is online and the marketplace feed is listening in real time.':'No available guards are online. Activate guards before claiming work.'
+ const featuredGuard=available[0]??visibleGuards[0]??null
+ const featuredGuardName=guardDisplayName(featuredGuard)
+ const featuredGuardStatus=featuredGuard?featuredGuard.status.replace('-',' ')+' · '+featuredGuard.distance+' mi':'Activate a guard to unlock the market.'
  return <div className="premium-dashboard">
   <section className="mobile-market-kpis" aria-label="Marketplace status">
     <div className="gold"><small>OPEN</small><strong>{jobs.length}</strong></div>
@@ -687,8 +704,8 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
         <div className="command-ring"><span><strong>{available.length}</strong><small>Available</small></span></div>
         <div>
           <small>ONLINE GUARD</small>
-          <strong>{available[0]?.name??visibleGuards[0]?.name??'No guard selected'}</strong>
-          <span>{available[0]?(available[0].status.replace('-',' ')+' · '+available[0].distance+' mi'):visibleGuards[0]?visibleGuards[0].status.replace('-',' '):'Activate a guard to unlock the market.'}</span>
+          <strong>{featuredGuardName}</strong>
+          <span>{featuredGuardStatus}</span>
           <nav><button type="button" onClick={onOpenMessages}>Message</button><button type="button" onClick={()=>{setMapMode('guards');onToast('Guard layer focused.')}}>Locate</button></nav>
         </div>
       </div>
@@ -703,7 +720,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
     </section>
   </aside>
 
-  <section className="bottom-strip premium-panel marketplace-roster-strip"><div className="available-guards"><div className="strip-title"><strong>AVAILABLE GUARDS <b>{available.length}</b></strong><button type="button" onClick={onOpenGuards}>View All</button></div><div className="guard-row">{available.length?available.slice(0,7).map(g=><div className="guard-face" key={g.id}><span>{g.initials}</span><strong>{g.name}</strong><small>{g.distance} mi</small></div>):<div className="market-roster-empty"><strong>No available guard selected</strong><small>Use View Guards to activate or confirm guard availability.</small></div>}</div></div></section>
+  <section className="bottom-strip premium-panel marketplace-roster-strip"><div className="available-guards"><div className="strip-title"><strong>AVAILABLE GUARDS <b>{available.length}</b></strong><button type="button" onClick={onOpenGuards}>View All</button></div><div className="guard-row">{available.length?available.slice(0,7).map(g=><div className="guard-face" key={g.id}><span>{g.initials}</span><strong>{guardDisplayName(g)}</strong><small>{g.distance} mi</small></div>):<div className="market-roster-empty"><strong>No available guard selected</strong><small>Use View Guards to activate or confirm guard availability.</small></div>}</div></div></section>
  </div>
 }
 
