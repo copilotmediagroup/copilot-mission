@@ -4843,3 +4843,4 @@ input:disabled, select:disabled{
 .premium-agency .marketplace-roster-strip .strip-title button{height:34px!important;min-width:86px!important}
 
 .guard-message-error{display:block;margin-top:8px;color:#ff6b7c;font-size:9px;font-weight:800;text-align:center}
+.message-sync-warning{display:flex;gap:12px;align-items:flex-start;margin:12px 0;padding:14px 16px;border:1px solid rgba(255,178,54,.32);border-radius:18px;background:linear-gradient(145deg,rgba(70,42,8,.28),rgba(11,18,29,.92));color:#ffd28a}.message-sync-warning svg{width:20px;height:20px;color:#ffb236;flex:0 0 auto}.message-sync-warning strong{display:block;color:#fff;font-size:13px}.message-sync-warning small{display:block;margin-top:4px;color:#d8b579;font-size:11px;line-height:1.45}
