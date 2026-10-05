@@ -333,7 +333,9 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   useEffect(()=>saveAgencyMessages(agencyMessages),[agencyMessages])
   useEffect(()=>{if(tab==='messages')setUnreadMessageCount(0)},[tab])
   useEffect(()=>{
-    if(isPreview||mode!=='supabase'||!user?.id||!isRoleMatch)return
+    // Messages are live even while the agency UI is in Developer Preview.
+    // Preview mode should not hide real guard replies or unread counts.
+    if(mode!=='supabase'||!user?.id)return
     let alive=true
     let initialized=false
     const loadMessages=()=>{
@@ -360,7 +362,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     const heartbeat=window.setInterval(loadMessages,5000)
     const unsubscribe=subscribeToAgencyMessages(loadMessages)
     return()=>{alive=false;window.clearInterval(heartbeat);unsubscribe()}
-  },[isPreview,mode,user?.id,isRoleMatch,tab])
+  },[mode,user?.id,tab])
 
   const openAgencyMessages=()=>{setUnreadMessageCount(0);setTab('messages');setToast('Messages and alerts opened.')}
   const openAgencySettings=()=>{setTab('settings');setToast('Agency settings opened.')}
