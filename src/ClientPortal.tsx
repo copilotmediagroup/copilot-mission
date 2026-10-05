@@ -63,6 +63,17 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   const completedJobs = useMemo(() => jobs.filter(job => job.status === 'completed'), [jobs])
   const selectedProperty = properties[0]
 
+  const latestActiveJob = activeJobs[0]
+  const clientCommand = liveTracking
+    ? { tone:'live', icon:<Radio/>, eyebrow:'LIVE COVERAGE', title:'Track your active guard', copy:'Your live mission is running now. Open the tracking view for route, status, and report handoff.', action:'Track live coverage', secondary:'Reports', onAction:()=>setSection('activity'), onSecondary:()=>setSection('reports') }
+    : latestActiveJob
+      ? { tone:'active', icon:<ShieldAlert/>, eyebrow:'REQUEST ACTIVE', title:'Security request in progress', copy:'Stay close to status updates and tracking. The mission card shows property, urgency, and timing.', action:'View activity', secondary:'New request', onAction:()=>setSection('activity'), onSecondary:()=>openRequest() }
+      : !properties.length
+        ? { tone:'setup', icon:<Building2/>, eyebrow:'START HERE', title:'Add your first property', copy:'Clients need a verified property before requesting coverage. Add the location once, then requests are one tap.', action:'Add property', secondary:'How requests work', onAction:()=>setPropertyOpen(true), onSecondary:()=>setSection('request') }
+        : completedJobs.length
+          ? { tone:'report', icon:<FileText/>, eyebrow:'READY WORKSPACE', title:'Reports and requests ready', copy:'Your property is ready for new coverage and completed mission reports stay one click away.', action:'Request security', secondary:'View reports', onAction:()=>openRequest(), onSecondary:()=>setSection('reports') }
+          : { tone:'ready', icon:<Shield/>, eyebrow:'READY TO REQUEST', title:'Coverage is ready when you need it', copy:'Choose your property, urgency, and duration. Approved agencies can respond through the marketplace.', action:'Request security', secondary:'Manage properties', onAction:()=>openRequest(), onSecondary:()=>setSection('properties') }
+
   const navigate = (next: Section) => { setSection(next); setMobileNav(false) }
   const openRequest = () => {
     if (!properties.length) { setPropertyOpen(true); setNotice('Add a property before requesting security.'); return }
@@ -95,6 +106,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
       </header>
 
       <div className="client-content">
+        {!loading && !error && <ClientCommandStrip command={clientCommand}/>}
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
           {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
@@ -111,6 +123,9 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
     {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
   </div>
 }
+
+type ClientCommand={tone:string;icon:React.ReactNode;eyebrow:string;title:string;copy:string;action:string;secondary:string;onAction:()=>void;onSecondary:()=>void}
+function ClientCommandStrip({command}:{command:ClientCommand}){return <section className={`client-command-strip ${command.tone}`}><div className="client-command-icon">{command.icon}</div><div className="client-command-copy"><small>{command.eyebrow}</small><strong>{command.title}</strong><span>{command.copy}</span></div><div className="client-command-actions"><button type="button" className="primary" onClick={command.onAction}>{command.action}<ChevronRight/></button><button type="button" onClick={command.onSecondary}>{command.secondary}</button></div></section>}
 
 function Overview({ name, properties, activeJobs, completed, onAddProperty, onRequest }: { name:string; properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void }) {
   const latest = activeJobs[0]
