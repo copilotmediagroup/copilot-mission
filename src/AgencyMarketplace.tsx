@@ -740,10 +740,11 @@ function OperationalWorkspace({tab,jobs,accepted,dispatch,guards,guardSummary,ac
   const active=missions.filter(m=>isActiveAgencyMission(m.status))
   const scheduled=missions.filter(m=>Boolean(m.scheduled_for)&&!['completed','cancelled'].includes(m.status))
   const latestMission=active[0]??missions[0]??null
+  const countMessages=(channel:AgencyMessageRecord['channel'])=>agencyMessages.filter(m=>m.channel===channel).length
   const messageThreads=[
-    {key:'all_guards' as const,title:'All Guards',copy:'Agency-wide broadcast before, during, or after jobs.',count:guards.length},
-    {key:'active_mission' as const,title:'Mission Thread',copy:latestMission?'Attach message to '+latestMission.title:'No mission selected yet; messages still stay visible.',count:active.length},
-    {key:'post_job' as const,title:'Post-Job Follow-up',copy:'After-action notes, clarifications, and report follow-up.',count:missions.filter(m=>['review','completed'].includes(String(m.status))).length},
+    {key:'all_guards' as const,title:'All Guards',copy:'Agency-wide broadcast before, during, or after jobs.',count:countMessages('all_guards')},
+    {key:'active_mission' as const,title:'Mission Thread',copy:latestMission?'Attach message to '+latestMission.title:'No mission selected yet; messages still stay visible.',count:countMessages('active_mission')},
+    {key:'post_job' as const,title:'Post-Job Follow-up',copy:'After-action notes, clarifications, and report follow-up.',count:countMessages('post_job')},
   ]
   const sendAgencyMessage=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
@@ -754,9 +755,9 @@ function OperationalWorkspace({tab,jobs,accepted,dispatch,guards,guardSummary,ac
     const channel=(String(data.get('channel')??'all_guards') as AgencyMessageRecord['channel'])
     const thread=messageThreads.find(t=>t.key===channel)
     let message:AgencyMessageRecord|null=null
-    try{message=await persistAgencyMessage({channel,body,jobId:channel==='active_mission'?latestMission?.job_id??null:null}) as AgencyMessageRecord}catch{message=null}
-    message=message??{id:crypto.randomUUID(),channel,sender:'agency',senderName:agencyName||'Agency',body,context:thread?.title??'Agency message',createdAt:new Date().toISOString()}
-    setAgencyMessages(current=>[message,...current])
+    try{message=await persistAgencyMessage({channel,body,jobId:channel==='active_mission'?latestMission?.job_id??null:null}) as AgencyMessageRecord}
+    catch(error){message={id:crypto.randomUUID(),channel,sender:'system',senderName:'Delivery failed',body:error instanceof Error?error.message:'Message was not delivered.',context:thread?.title??'Agency message',createdAt:new Date().toISOString()}}
+    setAgencyMessages(current=>message?.sender==='system'?[message,...current]:[message!,...current])
     form.reset()
   }
   if(tab==='scheduled')return <section className="operations-page"><div className="operations-heading"><div><span className="eyebrow">SCHEDULED COVERAGE</span><h1>Upcoming jobs</h1><p>Scheduled missions stay visible here before they enter live operations.</p></div><button type="button" onClick={()=>onNavigate('marketplace')}><Crosshair/>Marketplace</button></div><div className="operations-grid">{scheduled.length?scheduled.map(m=><article className="operation-card" key={m.job_id}><div className="operation-status"><span>{m.status.replace('_',' ').toUpperCase()}</span><small>{m.scheduled_for?new Date(m.scheduled_for).toLocaleString():'Unscheduled'}</small></div><h3>{m.title}</h3><p><MapPin/>{m.property.address}</p><div className="operation-footer"><div className="guard-avatar">{m.guard?.name?.split(' ').map(v=>v[0]).join('').slice(0,2)??'—'}</div><div><small>{m.guard?'ASSIGNED':'ASSIGNMENT'}</small><strong>{m.guard?.name??'Awaiting guard'}</strong></div><button type="button" onClick={()=>onNavigate('operations')}>Open</button></div></article>):<div className="marketplace-list-state empty"><CalendarClock/><strong>No scheduled jobs</strong><small>Accepted jobs with a future start time will appear here.</small></div>}</div></section>

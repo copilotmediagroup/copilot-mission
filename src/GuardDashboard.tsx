@@ -100,10 +100,10 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: b
 }
 
 function GuardSectionView({ section, online, metrics }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics }) {
-  const [messages,setMessages]=useState<GuardMessageRecord[]>(loadGuardMessages)
+  const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
   useEffect(()=>saveGuardMessages(messages),[messages])
-  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive)setMessages(records as GuardMessageRecord[])}).catch(error=>{if(alive)setMessageError(error instanceof Error?error.message:'Messages unavailable.')});load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
+  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive){setMessages(records as GuardMessageRecord[]);setMessageError('')}}).catch(error=>{if(alive){setMessages([]);setMessageError(error instanceof Error?error.message:'Messages unavailable.')}});load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
   const sendGuardMessage=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
     const form=event.currentTarget
