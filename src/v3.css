@@ -352,3 +352,13 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
   .portal-root:has(.premium-agency) .opportunities{min-height:220px!important}.portal-root:has(.premium-agency) .opportunities .premium-job-list{min-height:160px!important}.portal-root:has(.premium-agency) .marketplace-roster-strip{min-height:136px!important}
 }
 /* End Agency V4.2 viewport contract */
+
+/* Agency V4.3 grid containment — keep the full-width guard roster below, never over the command rail. */
+@media(min-width:1181px){
+  .portal-root:has(.premium-agency) .premium-dashboard{grid-template-rows:auto auto auto auto!important}
+  .portal-root:has(.premium-agency) .right-rail.command-stack{grid-column:2!important;grid-row:2 / span 2!important;z-index:2!important;min-width:0!important}
+  .portal-root:has(.premium-agency) .marketplace-roster-strip{grid-column:1 / -1!important;grid-row:4!important;position:relative!important;z-index:1!important;clear:both!important;width:100%!important;max-width:100%!important;margin:0!important}
+  .portal-root:has(.premium-agency) .opportunities{grid-column:1!important;grid-row:3!important;min-width:0!important}
+  .portal-root:has(.premium-agency) .live-map-panel{grid-column:1!important;grid-row:2!important;min-width:0!important}
+}
+/* End Agency V4.3 grid containment */
