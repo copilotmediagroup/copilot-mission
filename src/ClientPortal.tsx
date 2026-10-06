@@ -8,7 +8,7 @@ import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
 import ClientReports from './ClientReports'
 import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrackingExperience } from './modules/client/clientLiveTrackingRepository'
 import ClientLiveTracking from './ClientLiveTracking'
-import { resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
+import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 
 type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing'
 type RequestMode = 'immediate' | 'scheduled' | 'vacation'
@@ -134,15 +134,11 @@ type ClientCommand={tone:string;icon:React.ReactNode;eyebrow:string;title:string
 function ClientCommandStrip({command}:{command:ClientCommand}){return <section className={`client-command-strip ${command.tone}`}><div className="client-command-icon">{command.icon}</div><div className="client-command-copy"><small>{command.eyebrow}</small><strong>{command.title}</strong><span>{command.copy}</span></div><div className="client-command-actions"><button type="button" className="primary" onClick={command.onAction}>{command.action}<ChevronRight/></button><button type="button" onClick={command.onSecondary}>{command.secondary}</button></div></section>}
 
 function Overview({ name, properties, activeJobs, completed, onAddProperty, onRequest }: { name:string; properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void }) {
-  const latest=activeJobs[0]; const property=properties[0]
+  const latest=activeJobs[0]
   return <div className="client-v3-home">
-    <section className="client-v3-map-hero">
-      <div className="client-v3-map-grid"/><div className="client-v3-road road-a"/><div className="client-v3-road road-b"/><div className="client-v3-road road-c"/>
-      <div className="client-v3-map-top"><span><LocateFixed/>Co Pilot network</span><button type="button" onClick={onAddProperty}><Plus/>Property</button></div>
-      {property&&<div className="client-v3-property-pin"><span><Building2/></span><div><b>{property.name}</b><small>{property.city||property.address}</small></div></div>}
-      <div className="client-v3-map-status"><span/><b>{activeJobs.length?activeJobs.length+' active request'+(activeJobs.length===1?'':'s'):'Security network ready'}</b><small>{activeJobs.length?'Live updates are connected':'Request professional coverage in a few taps'}</small></div>
-    </section>
+    <ClientCityMap properties={properties}/>
     <section className="client-v3-sheet">
+
       <div className="client-v3-handle"/><div className="client-v3-welcome"><div><small>GOOD {new Date().getHours()<12?'MORNING':new Date().getHours()<18?'AFTERNOON':'EVENING'}</small><h2>What do you need protected, {name.split(' ')[0]}?</h2></div><div className="client-v3-avatar">{name.split(/\s+/).map(v=>v[0]).join('').slice(0,2).toUpperCase()}</div></div>
       <div className="client-v3-services">
         <button className="urgent" onClick={onRequest}><span><ShieldAlert/></span><b>Guard now</b><small>On-demand coverage</small><ChevronRight/></button>
@@ -153,6 +149,11 @@ function Overview({ name, properties, activeJobs, completed, onAddProperty, onRe
     </section>
   </div>
 }
+function ClientCityMap({properties}:{properties:ClientProperty[]}){
+  const mapRef=useCallback((node:HTMLDivElement|null)=>{if(!node)return;let cancelled=false;void loadGoogleMaps().then(google=>{if(cancelled)return;const valid=properties.filter(p=>Number.isFinite(Number(p.latitude))&&Number.isFinite(Number(p.longitude)));const primary=valid[0];const city=(primary?.city||'Tampa').trim();const center=primary?{lat:Number(primary.latitude),lng:Number(primary.longitude)}:{lat:27.9506,lng:-82.4572};const map=new google.maps.Map(node,{center,zoom:11,mapTypeId:google.maps.MapTypeId.ROADMAP,mapTypeControl:false,streetViewControl:false,fullscreenControl:false,clickableIcons:false,gestureHandling:'greedy',styles:[{featureType:'poi',stylers:[{visibility:'off'}]}]});const geocoder=new google.maps.Geocoder();const fitCity=()=>geocoder.geocode({address:city+', FL, USA'},(results:any[],status:string)=>{if(status==='OK'&&results?.[0]?.geometry?.viewport){map.fitBounds(results[0].geometry.viewport,28);const once=google.maps.event.addListenerOnce(map,'idle',()=>{if((map.getZoom()||0)>12)map.setZoom(12);google.maps.event.removeListener(once)})}else{map.setCenter(center);map.setZoom(11)}});fitCity();valid.forEach(p=>new google.maps.Marker({map,position:{lat:Number(p.latitude),lng:Number(p.longitude)},title:p.name}));}).catch(()=>{});return()=>{cancelled=true}},[properties]);
+  return <section className="client-v3-map-hero client-v3-real-map"><div ref={mapRef} className="client-v3-google-map"/><div className="client-v3-map-top"><span><LocateFixed/>Co Pilot network</span><span className="client-v3-city-chip">CITY VIEW</span></div><div className="client-v3-map-status"><span/><b>{properties.length?properties.length+' protected '+(properties.length===1?'property':'properties'):'Security network ready'}</b><small>City-wide coverage view</small></div></section>
+}
+
 function PropertiesView({ properties, onAdd, onRequest, onEdit, onArchive, onDelete }: { properties:ClientProperty[]; onAdd:()=>void; onRequest:()=>void; onEdit:(property:ClientProperty)=>void; onArchive:(property:ClientProperty)=>void; onDelete:(property:ClientProperty)=>void }) { return <section className="client-section"><div className="client-section-head"><div><span>PROPERTY DIRECTORY</span><h2>Your protected locations</h2><p>Add, update, archive, or safely remove every coverage location.</p></div><button className="primary" onClick={onAdd}><Plus/>Add property</button></div>{properties.length ? <div className="client-property-grid">{properties.map(property=><article className="client-property-card" key={property.id}><div className="property-visual">{property.photo_url?<img src={property.photo_url} alt={property.name}/>:<Building2/>}<span>READY</span></div><div className="property-copy"><small>PROPERTY</small><h3>{property.name}</h3><p><MapPin/>{property.address}</p><div className="property-primary-action"><button onClick={onRequest}>Request coverage<ChevronRight/></button></div><div className="property-management-actions"><button onClick={()=>onEdit(property)}><Pencil/>Edit</button><button onClick={()=>onArchive(property)}><Archive/>Archive</button><button className="danger" onClick={()=>onDelete(property)}><Trash2/>Delete</button></div></div></article>)}</div> : <EmptyState icon={<Building2/>} title="No properties saved" body="Add your first service location to begin requesting security." action={<button onClick={onAdd}>Add your first property<Plus/></button>}/>}</section> }
 
 function ActivityView({ jobs, properties, onRequest, tracking, onViewReport }: { jobs:ClientJob[]; properties:ClientProperty[]; onRequest:()=>void; tracking:ClientTrackingExperience; onViewReport:()=>void }) { return <section className="client-section"><div className="client-section-head"><div><span>MISSION ACTIVITY</span><h2>Live security coverage</h2><p>One clear view from marketplace request through verified completion.</p></div><button className="primary" onClick={onRequest}><Plus/>New request</button></div>{tracking&&<ClientLiveTracking experience={tracking} onViewReport={onViewReport}/>} {!tracking&&jobs.length ? <div className="client-job-list">{jobs.map(job=><JobCard key={job.id} job={job} property={properties.find(p=>p.id===job.property_id)}/>)}</div> : !tracking ? <EmptyState icon={<Radio/>} title="No requests yet" body="Submit your first request when you need professional coverage." action={<button onClick={onRequest}>Request security<ChevronRight/></button>}/> : null}</section> }
