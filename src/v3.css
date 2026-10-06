@@ -324,3 +324,15 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
 .premium-agency .opportunities{min-height:250px!important}.premium-agency .opportunities .premium-job-list{min-height:190px!important;padding:18px!important}.premium-agency .marketplace-list-state.compact-standby{min-height:180px!important}.premium-agency .marketplace-roster-strip{min-height:142px!important}.premium-agency .marketplace-roster-strip .strip-title{padding:18px 22px 10px!important}.premium-agency .marketplace-roster-strip .guard-row{padding:0 22px 20px!important}
 @media(max-width:1180px){html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){overflow-y:auto!important}.premium-agency .premium-main{padding:calc(var(--topbar) + 22px) 20px 86px!important}.premium-agency .premium-dashboard{grid-template-columns:1fr!important;grid-template-areas:"command" "map" "rail" "opps" "roster"!important}.premium-agency .premium-map,.premium-agency .premium-map>div:first-child{height:460px!important;min-height:460px!important}.premium-agency .command-stack-panel{display:block!important}}
 /* End Agency V4 final composition */
+
+/* Agency V4.1 scroll ownership — override legacy desktop guard viewport lock. */
+@media(min-width:1200px){
+  html:has(.portal-root .premium-agency),body:has(.portal-root .premium-agency),#root:has(.portal-root .premium-agency){height:auto!important;min-height:100%!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important}
+  body:has(.portal-root .premium-agency)>#root{height:auto!important;min-height:100dvh!important;overflow:visible!important}
+  #root:has(.portal-root .premium-agency)>.developer-preview-active,#root:has(.portal-root .premium-agency)>.portal-runtime-boundary,.developer-preview-active:has(.premium-agency),.portal-runtime-boundary:has(.premium-agency){height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
+  .portal-root:has(.premium-agency){height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
+  .portal-root:has(.premium-agency) .premium-agency{height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
+  .portal-root:has(.premium-agency) .premium-main{height:auto!important;min-height:calc(100dvh - var(--developer-rail,0px))!important;max-height:none!important;overflow:visible!important}
+  .portal-root:has(.premium-agency) .premium-dashboard{height:auto!important;max-height:none!important;overflow:visible!important}
+}
+/* End Agency V4.1 scroll ownership */
