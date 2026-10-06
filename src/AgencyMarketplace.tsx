@@ -672,6 +672,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
    <div className="premium-map">
     {!preview&&onlineGuardsMissingGps>0&&<div className="agency-map-gps-warning"><Wifi/> {onlineGuardsMissingGps} online guard{onlineGuardsMissingGps===1?'':'s'} awaiting GPS fix</div>}
     <MissionMap
+      visualTheme="light"
       markers={mapMarkers}
       center={{latitude:27.9506,longitude:-82.4572}}
       zoom={10}

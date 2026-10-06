@@ -64,6 +64,7 @@ type MissionMapProps = {
   activeMissionRoute?: ActiveMissionRoute | null
 
   routeCameraMode?: 'agency' | 'guard' | 'client' | 'platform'
+  visualTheme?: ThemeMode
 
   onRouteUpdate?: (
     result: MissionRouteResult | null
@@ -436,6 +437,7 @@ export default function MissionMap({
   showCameraStatus = true,
   activeMissionRoute = null,
   routeCameraMode = 'agency',
+  visualTheme,
   onRouteUpdate,
 }: MissionMapProps) {
   const containerRef =
@@ -880,7 +882,7 @@ export default function MissionMap({
               zoom,
 
               colorScheme:
-                theme === 'dark'
+                (visualTheme ?? theme) === 'dark'
                   ? 'DARK'
                   : 'LIGHT',
 
@@ -984,6 +986,7 @@ export default function MissionMap({
     }
   }, [
     theme,
+    visualTheme,
     center.latitude,
     center.longitude,
     closeCard,
