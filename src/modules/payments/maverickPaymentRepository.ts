@@ -100,3 +100,10 @@ export async function saveMaverickPaymentMethod(paymentToken: string) {
   if (!data?.saved) throw new Error(data?.message || 'Unable to save payment method.')
   return data as { saved: boolean; last4: string | null; brand: string | null }
 }
+
+export async function deleteMaverickPaymentMethod() {
+  const { data, error } = await db().functions.invoke('maverick-billing', { body: { action: 'delete' } })
+  if (error) throw new Error(error.message)
+  if (!data?.deleted) throw new Error(data?.message || 'Unable to remove payment method.')
+  return data as { deleted: boolean }
+}
