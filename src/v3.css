@@ -66,3 +66,157 @@
 .client-property-card{background:#fff!important;border:1px solid #dedfe0!important;box-shadow:0 14px 36px rgba(23,28,33,.08)!important;color:#111315!important}.client-property-card .property-visual{background:#eceeed!important}.client-property-card .property-visual span{color:#fff!important;background:#111315!important;border-color:#111315!important}.property-copy{background:#fff!important}.property-copy>small{color:#7c8287!important}.property-copy h3{color:#111315!important}.property-copy p{color:#6f757a!important}.property-copy button{color:#111315!important}.property-primary-action{border-bottom:1px solid #e5e6e7!important;padding-bottom:12px!important}.property-management-actions button{color:#454a4e!important;border-color:#dfe1e2!important;background:#f6f6f5!important}.property-management-actions button:hover{background:#eceeed!important}.property-management-actions button.danger{color:#a4373f!important;background:#fff5f5!important;border-color:#efd2d5!important}
 .client-empty,.client-panel{color:#111315!important}.client-panel{background:#fff!important;border-color:#e0e3e5!important;box-shadow:0 12px 34px rgba(23,28,33,.06)!important}.client-empty>div,.client-property-row>div{background:#f1f2f2!important;color:#111315!important}.client-empty p,.client-property-row small{color:#747b82!important}.client-property-row{border-color:#e5e7e8!important}.client-property-row b{color:#111315!important}
 @media(min-width:761px){.client-sidebar nav button,.client-sidebar-bottom>button{color:#111315!important;font-weight:750!important}.client-sidebar nav button svg,.client-sidebar-bottom>button svg{color:#8b9196!important}.client-sidebar nav button:hover,.client-sidebar-bottom>button:hover{color:#111315!important;background:#f1f2f2!important}.client-sidebar nav button.active{color:#fff!important}.client-sidebar nav button.active svg{color:#fff!important}.client-sidebar nav button small{background:#e7e8e8!important;color:#555b60!important}.client-sidebar nav button.active small{background:#303234!important;color:#fff!important}.client-secure{color:#72787d!important}.client-secure b{color:#111315!important}}
+
+/* Client V3 full-portal premium surfaces — request, activity, reports, billing */
+.client-shell .request-landing{background:#fff!important;border:1px solid #dedfe0!important;color:#111315!important;box-shadow:0 16px 42px rgba(23,28,33,.07)!important}.client-shell .request-pulse{background:#f0f1f1!important;color:#111315!important;box-shadow:0 0 0 13px #11111108,0 18px 42px #0000000c!important}.client-shell .request-landing>span{color:#777d82!important}.client-shell .request-landing h2{color:#111315!important}.client-shell .request-landing>p{color:#747b82!important}.client-shell .request-ready{border-color:#dfe2e3!important;background:#f6f7f6!important;color:#111315!important}.client-shell .request-ready>svg:first-child,.client-shell .request-ready>svg:last-child{color:#111315!important}.client-shell .request-ready small,.client-shell .request-ready span{color:#7b8186!important}.client-shell .request-ready b{color:#111315!important}
+.client-shell .client-job-card{background:#fff!important;border:1px solid #dedfe0!important;color:#111315!important;box-shadow:0 12px 34px rgba(23,28,33,.055)!important}.client-shell .client-job-card:before{background:#111315!important}.client-shell .client-job-card h3{color:#111315!important}.client-shell .client-job-card>p,.client-shell .job-meta{color:#737a80!important}.client-shell .job-meta{border-color:#e4e6e7!important}.client-shell .job-status{color:#34383c!important;background:#f0f1f1!important;border-color:#d9dcde!important}.client-shell .job-status.completed{color:#16643d!important;background:#eef8f2!important;border-color:#cde7d7!important}
+.client-shell .billing-hero{background:#fff!important;border:1px solid #dedfe0!important;color:#111315!important;box-shadow:0 16px 42px rgba(23,28,33,.07)!important}.client-shell .billing-hero h2{color:#111315!important}.client-shell .billing-hero>p{color:#747b82!important}.client-shell .billing-saved-card{border-color:#dfe2e3!important;background:#f4f5f4!important}.client-shell .billing-saved-card small{color:#747b82!important}.client-shell .billing-saved-card strong{color:#111315!important}.client-shell .billing-saved-card span{color:#7a8085!important}.client-shell .billing-saved-card svg{color:#17653e!important}.client-shell .billing-card-entry{border-color:#dedfe0!important;background:#f6f7f6!important}.client-shell .billing-card-entry>div:first-child strong{color:#111315!important}.client-shell .billing-card-entry>div:first-child span,.client-shell .billing-card-entry>small{color:#777e83!important}.client-shell .nmi-payment-component{border-color:#dedfe0!important;background:#fff!important;box-shadow:none!important}.client-shell .nmi-payment-component:before{color:#777d82!important}.client-shell .nmi-payment-component:after{color:#8a9095!important}.client-shell .payment-component-loading{border-color:#dedfe0!important;background:#fff!important;color:#747b82!important}.client-shell .maverick-card-grid>div{border-color:#dfe1e2!important;background:#f5f6f5!important}.client-shell .billing-delete-card{background:#fff5f5!important}
+.client-shell .client-section :where(.report-card,.client-report-card){background:#fff!important;border-color:#dedfe0!important;color:#111315!important;box-shadow:0 12px 34px rgba(23,28,33,.05)!important}.client-shell .client-section :where(.report-card,.client-report-card) button{background:#111315!important;border-color:#111315!important;color:#fff!important}.client-shell .client-section :where(.report-card,.client-report-card) :where(p,small){color:#747b82!important}
+
+/* Neutralize legacy live-tracking internals without changing status semantics */
+.client-shell .client-live-tracking,.client-shell [class*="tracking-"]{--tracking-accent:#111315;--tracking-line:#dfe2e3;--tracking-muted:#747b82}.client-shell .client-live-tracking{background:#fff!important;border-color:#dedfe0!important;color:#111315!important;box-shadow:0 12px 34px rgba(23,28,33,.055)!important}.client-shell .client-live-tracking :where(h1,h2,h3,h4,strong,b){color:#111315!important}.client-shell .client-live-tracking :where(p,small,time){color:#747b82!important}.client-shell .client-live-tracking :where(.tracking-current,.tracking-stage,.tracking-step,.tracking-progress,.tracking-footer){border-color:#e1e4e5!important;background:#f6f7f6!important}.client-shell .client-live-tracking :where(.tracking-progress-bar,.tracking-progress-fill){background:#111315!important}
+
+.client-shell .client-tracking-experience{background:#fff!important;border:1px solid #dedfe0!important;color:#111315!important;box-shadow:0 12px 34px rgba(23,28,33,.055)!important}.client-shell .tracking-hero,.client-shell .tracking-map-panel,.client-shell .tracking-mission-card,.client-shell .tracking-timeline{background:#fff!important;border-color:#e0e3e4!important;color:#111315!important}.client-shell .tracking-live-label{color:#6f757a!important}.client-shell .tracking-status-copy h2,.client-shell .tracking-section-heading h3,.client-shell .tracking-guard strong,.client-shell .tracking-metrics b,.client-shell .tracking-event strong{color:#111315!important}.client-shell .tracking-status-copy p,.client-shell .tracking-guard em,.client-shell .tracking-guard small,.client-shell .tracking-metrics small,.client-shell .tracking-event small{color:#747b82!important}.client-shell .tracking-guard>span,.client-shell .tracking-event>i{background:#f0f1f1!important;color:#111315!important}.client-shell .tracking-progress{background:#f6f7f6!important;border-color:#e0e3e4!important}.client-shell .tracking-progress>div{color:#747b82!important}.client-shell .tracking-progress>div.active{color:#111315!important}.client-shell .tracking-progress i{background:#e6e8e8!important;border-color:#d7dadb!important;color:#6f757a!important}.client-shell .tracking-progress .active i{background:#111315!important;border-color:#111315!important;color:#fff!important}.client-shell .tracking-report-action{background:#111315!important;border-color:#111315!important;color:#fff!important}
+
+.client-shell .client-report-card{background:#fff!important;border-color:#dedfe0!important;color:#111315!important;box-shadow:0 12px 34px rgba(23,28,33,.05)!important}.client-shell .client-report-card h3,.client-shell .client-report-card-stats b{color:#111315!important}.client-shell .client-report-card>p,.client-shell .client-report-card-top>small,.client-shell .client-report-card-stats small,.client-shell .client-report-card footer{color:#747b82!important}.client-shell .client-report-card-stats>span{background:#f6f7f6!important;border-color:#e1e4e5!important}.client-shell .client-report-card button{background:#111315!important;border-color:#111315!important;color:#fff!important}.client-shell .report-status.published{background:#eef8f2!important;border-color:#cde7d7!important;color:#16643d!important}
+
+/* Keep semantic colors only for success, warning, destructive and live-map state. */
+.client-shell :where(.client-eyebrow,.client-loading>svg){color:#111315!important}.client-shell :focus-visible{box-shadow:0 0 0 3px rgba(17,19,21,.14)!important}
+
+/* Billing hosted fields sit on a premium neutral card; processor iframes retain their secure field rendering. */
+.client-shell .billing-card-entry .maverick-card-grid{background:#f6f7f6!important}.client-shell .billing-card-entry .maverick-card-grid>div{background:#fff!important;border:1px solid #dfe2e3!important}
+
+/* Client activity fallback JobCard internals */
+.client-shell .client-job-card :where(.job-current-step,.job-progress,.job-progress-step){background:#f6f7f6!important;border-color:#e0e3e4!important;color:#111315!important}.client-shell .client-job-card :where(.job-current-step small,.job-progress small,.job-progress-step small){color:#747b82!important}
+
+/* Cancelled/completed request cards stay premium white; status pills carry meaning, not the whole surface. */
+.client-shell .client-job-card[class*="priority-"]{background:#fff!important;color:#111315!important}.client-shell .client-job-card[class*="priority-"] :where(h3,strong,b){color:#111315!important}
+
+/* Client reports use quiet monochrome metadata instead of legacy slate-blue text. */
+.client-shell .client-report-card>p svg{color:#6f757a!important}.client-shell .client-report-card footer{border-color:#e3e5e6!important}.client-shell .client-report-card-top{border-color:#e3e5e6!important}
+
+/* Remove blue accents from request/activity page copy and controls. */
+.client-shell .request-landing :where(svg),.client-shell .client-job-card :where(svg){color:currentColor}.client-shell .request-landing .primary svg,.client-shell .client-job-card .primary svg{color:#fff!important}
+
+/* Published report viewer follows the same premium black/white document system. */
+.client-shell .client-report-toolbar{background:#111315!important;border-color:#2b2d2f!important}.client-shell .client-report-toolbar small{color:#aeb2b5!important}.client-shell .client-report-toolbar button{background:#242628!important;border-color:#383b3e!important;color:#fff!important}.client-shell .client-report-hero{background:#111315!important}.client-shell .client-report-brand{background:#fff!important;color:#111315!important;box-shadow:none!important}.client-shell .client-report-hero small{color:#aeb2b5!important}.client-shell .client-report-hero p{color:#c3c6c8!important}.client-shell .client-report-summary-grid svg{color:#111315!important}.client-shell .client-report-section-heading small,.client-shell .client-report-review-note small{color:#6f757a!important}.client-shell .client-report-timeline i{background:#111315!important;box-shadow:0 0 0 4px #e8e9e9!important}.client-shell .client-report-footer{background:#111315!important}.client-shell .client-report-footer svg{color:#fff!important}
+
+.client-shell .client-report-evidence-counts em{background:#f0f1f1!important;color:#44494d!important}.client-shell .client-report-section{border-color:#e1e4e5!important}.client-shell .client-report-checkpoints>div{border-color:#e1e4e5!important;background:#fafafa!important}
+
+/* Premium client section geometry */
+.client-shell .client-section{max-width:1180px;margin:0 auto}.client-shell .client-section-head{margin-bottom:28px}.client-shell .client-section-head h2{font-size:30px!important;letter-spacing:-.045em!important}.client-shell .client-section-head>div>span{letter-spacing:.16em!important}.client-shell .client-report-grid{gap:18px!important}
+
+@media(max-width:760px){.client-shell .client-section{max-width:none}.client-shell .billing-hero{padding:18px!important}.client-shell .client-report-grid{grid-template-columns:1fr!important}.client-shell .request-landing{border-radius:22px!important}}
+
+/* Billing title and secure label */
+.client-shell .billing-hero :where(.client-eyebrow,.billing-eyebrow){color:#6f757a!important}.client-shell .billing-saved-card .billing-delete-card{color:#a4373f!important}
+
+/* Premium depth: restrained shadows instead of saturated glows. */
+.client-shell :where(.request-landing,.billing-hero,.client-report-card,.client-job-card){box-shadow:0 18px 50px rgba(20,25,29,.06)!important}
+
+/* Dark is reserved for decisive actions and report chrome, not entire client workspaces. */
+.client-shell .client-content{background:transparent!important}
+
+/* Preserve map legibility inside otherwise neutral live tracking. */
+.client-shell .tracking-map-panel .client-live-map{background:#e5e8eb!important;border-color:#e0e3e4!important}
+
+/* Status color is intentionally limited to compact badges. */
+.client-shell :where(.report-status.published,.job-status.completed){box-shadow:none!important}
+
+/* Request page CTA */
+.client-shell .request-landing>.primary{border-radius:999px!important;min-height:48px!important;padding-inline:22px!important}
+
+/* Billing CTA geometry */
+.client-shell .billing-card-entry button.primary{border-radius:999px!important;min-height:46px!important;padding-inline:18px!important}
+
+/* Reports cards align to the premium product card language. */
+.client-shell .client-report-card{border-radius:20px!important;overflow:hidden}.client-shell .client-report-card button{border-radius:12px!important}
+
+/* Activity cards */
+.client-shell .client-job-card{border-radius:20px!important}.client-shell .client-job-card:before{width:0!important}
+
+/* Section action buttons share the black pill language. */
+.client-shell .client-section-head button.primary{border-radius:999px!important;min-height:46px!important;padding-inline:18px!important}
+
+/* Sidebar remains the stable premium navigation anchor on every client page. */
+.client-shell .client-sidebar{box-shadow:none!important}
+
+/* Quiet top-level labels */
+.client-shell .client-topbar>div:first-of-type>span{color:#747b82!important}
+
+/* Billing secure success stays green only as a compact trust signal. */
+.client-shell .billing-saved-card{box-shadow:none!important}
+
+/* No legacy saturated focus rings in the client portal. */
+.client-shell :where(input,select,textarea):focus{border-color:#111315!important;box-shadow:0 0 0 3px rgba(17,19,21,.08)!important}
+
+/* Neutral typography across secondary client metadata. */
+.client-shell :where(.client-section,.billing-hero,.request-landing) small{letter-spacing:.02em}
+
+/* Restore intentional uppercase tracking only for eyebrow labels. */
+.client-shell :where(.client-section-head>div>span,.request-landing>span,.client-eyebrow){letter-spacing:.15em!important}
+
+/* Premium page background */
+.client-shell .client-main{background:#f3f4f2!important}
+
+/* White content cards sit clearly above the warm-neutral canvas. */
+.client-shell :where(.billing-hero,.request-landing,.client-report-card,.client-job-card){border-color:#dfe1e1!important}
+
+/* Request ready location reads as a quiet premium confirmation card. */
+.client-shell .request-ready{border-radius:18px!important;padding:17px 19px!important}
+
+/* Billing layout aligns with the same 1180px client content rail while keeping the form compact. */
+.client-shell .billing-hero{margin-left:0!important}
+
+/* Active navigation is the only large black navigation surface. */
+.client-shell .client-sidebar nav button.active{border-radius:13px!important}
+
+/* Report archive keeps green solely for published verification. */
+.client-shell .report-status.published svg{color:#16643d!important}
+
+/* Request cancellation/other status chips no longer introduce blue into the page surface. */
+.client-shell .job-status:not(.completed){color:#454a4e!important;background:#f0f1f1!important;border-color:#d9dcde!important}
+
+/* Remove legacy blue from report version/location metadata. */
+.client-shell .client-report-card :where(p,footer,small){color:#747b82!important}
+
+/* Client headings use one strong ink tone throughout. */
+.client-shell .client-section :where(h2,h3,h4){color:#111315!important}
+
+/* Keep destructive billing action visually subordinate. */
+.client-shell .billing-delete-card{box-shadow:none!important}
+
+/* Final client premium color contract: ink, paper, warm-neutral canvas. */
+.client-shell{color:#111315!important}
+
+/* Compact status chips retain contrast on white cards. */
+.client-shell :where(.job-status,.report-status){font-weight:900!important;letter-spacing:.08em!important}
+
+/* No saturated blue shadows in client V3. */
+.client-shell :where(.request-pulse,.client-property-card,.client-panel,.client-job-card,.client-report-card,.billing-hero){filter:none!important}
+
+/* Premium client workspace spacing */
+@media(min-width:761px){.client-shell .client-content{padding:32px 38px 110px!important}}
+
+/* Client billing card entry is intentionally light; black appears on primary actions only. */
+.client-shell .billing-card-entry{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)!important}
+
+/* Request activity title row remains clean and editorial. */
+.client-shell .client-section-head{align-items:flex-end!important}
+
+/* Report archive cards: subtle border, no colored chrome. */
+.client-shell .client-report-card-top{padding-bottom:2px!important}
+
+/* Consistent premium card transitions. */
+.client-shell :where(.client-report-card,.client-job-card,.client-property-card){transition:transform .18s ease,box-shadow .18s ease}.client-shell :where(.client-report-card,.client-job-card,.client-property-card):hover{box-shadow:0 22px 58px rgba(20,25,29,.085)!important}
+
+/* Avoid motion shift on dense activity lists. */
+.client-shell .client-job-card:hover{transform:none!important}
+
+/* Neutral client top chrome completes the page-level migration. */
+.client-shell .client-topbar{box-shadow:none!important}
+
+/* End Client V3 premium full-page migration */
+
+/* Legacy activity cards use their actual JobCard class names. */
+.client-shell .client-job-card .job-status-line>small{color:#747b82!important}
