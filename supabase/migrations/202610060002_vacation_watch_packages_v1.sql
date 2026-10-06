@@ -1,0 +1,4 @@
+-- Production migration applied through Supabase: vacation_watch_packages_v1
+-- Adds Vacation Watch date range, 1-3 checks/day, total visits, and server-side package pricing.
+-- Each visit is $35 client / $25 agency / $10 platform; max package length 60 days.
+-- calculate_job_estimate/get_client_job_estimate/create_marketplace_job_v2 validate and persist package details.
