@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase'
 
 export type ClientProperty = { id:string; client_id:string; name:string; address:string; street:string|null; city:string|null; state:string|null; postal_code:string|null; formatted_address:string|null; latitude:number|null; longitude:number|null; geocoding_provider:string|null; geocoding_place_id:string|null; photo_path:string|null; photo_url:string|null; archived_at:string|null; created_at:string; updated_at:string }
-export type ClientJob = { id:string; client_id:string; property_id:string; title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; status:'open'|'accepted'|'assigned'|'active'|'completed'|'cancelled'; scheduled_for:string|null; duration_minutes:number; service_type?:string|null; requested_start?:string|null; client_contact_phone?:string|null; access_notes?:string|null; estimated_total_cents?:number|null; platform_fee_cents?:number|null; agency_payout_cents?:number|null; payment_status?:string|null; payout_status?:string|null; created_at:string; updated_at:string }
+export type ClientJob = { id:string; client_id:string; property_id:string; title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; status:'open'|'accepted'|'assigned'|'active'|'completed'|'cancelled'; scheduled_for:string|null; duration_minutes:number; service_type?:string|null; requested_start?:string|null; client_contact_phone?:string|null; access_notes?:string|null; estimated_total_cents?:number|null; platform_fee_cents?:number|null; agency_payout_cents?:number|null; payment_status?:string|null; payout_status?:string|null; required_guards?:number|null; created_at:string; updated_at:string }
 export type ClientPaymentProfile = { maverick_customer_vault_id:string|null; maverick_payment_last4:string|null; maverick_payment_brand:string|null; maverick_payment_saved_at:string|null; payment_processor:string|null }
 
 function requireSupabase() { if (!supabase) throw new Error('Supabase is not configured.'); return supabase }
@@ -27,7 +27,7 @@ export async function getClientWorkspace(userId:string) {
   if(!userId) throw new Error('Your session expired. Please sign in again.')
   const [{data:properties,error:propertiesError},{data:jobs,error:jobsError},{data:paymentProfile,error:paymentError}]=await Promise.all([
     db.from('properties').select('id,client_id,name,address,street,city,state,postal_code,formatted_address,latitude,longitude,geocoding_provider,geocoding_place_id,photo_path,photo_url,archived_at,created_at,updated_at').eq('client_id',client.id).is('archived_at',null).order('created_at',{ascending:false}),
-    db.from('marketplace_jobs').select('id,client_id,property_id,title,instructions,priority,status,scheduled_for,duration_minutes,service_type,requested_start,client_contact_phone,access_notes,estimated_total_cents,platform_fee_cents,agency_payout_cents,payment_status,payout_status,created_at,updated_at').eq('client_id',client.id).order('created_at',{ascending:false}),
+    db.from('marketplace_jobs').select('id,client_id,property_id,title,instructions,priority,status,scheduled_for,duration_minutes,service_type,requested_start,client_contact_phone,access_notes,estimated_total_cents,platform_fee_cents,agency_payout_cents,payment_status,payout_status,required_guards,created_at,updated_at').eq('client_id',client.id).order('created_at',{ascending:false}),
     db.from('clients').select('maverick_customer_vault_id,maverick_payment_last4,maverick_payment_brand,maverick_payment_saved_at,payment_processor').eq('id',client.id).maybeSingle()
   ])
   if(propertiesError) throw propertiesError
@@ -215,3 +215,7 @@ export async function withdrawClientJob(jobId:string) {
 
   if(updateError) throw updateError
 }
+
+export type ClientJobStaffing={job_id:string;required_guards:number;filled_slots:number;accepted_slots:number;en_route_slots:number;active_slots:number;completed_slots:number;slots:Array<{slot_number:number;status:string;guard_name:string|null}>}
+export async function getClientJobStaffing(jobId:string){const {data,error}=await requireSupabase().rpc('get_client_job_staffing_rc1',{p_job_id:jobId});if(error)throw error;return data as ClientJobStaffing}
+export function subscribeToClientStaffing(onChange:()=>void){const db=requireSupabase();const channel=db.channel(`client-staffing-${crypto.randomUUID()}`).on('postgres_changes',{event:'*',schema:'public',table:'job_guard_slots'},onChange).subscribe();return()=>{void db.removeChannel(channel)}}
