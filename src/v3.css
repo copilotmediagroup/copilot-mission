@@ -40,3 +40,20 @@
 /* Full-page surface consistency */
 .client-shell :where(.client-panel,.client-property-card,.client-job-card,.request-landing),.premium-agency :where(.market-map-card,.opportunity-panel,.job-drawer,.operation-card),.owner-control-center :where(.pcc-panel,.pcc-page,.owner-command-card,.owner-mini-card,.owner-review-card,.owner-agency-card){border-radius:var(--v3-radius)!important}
 @media(max-width:760px){.client-sidebar{background:#070d14!important}.client-topbar{background:rgba(255,255,255,.96)!important;color:#111!important;border-color:#e3e6e8!important}.client-menu{background:#f4f5f5!important;color:#111!important;border-color:#e0e3e5!important;border-radius:12px!important}.client-main{background:#eef1f3!important}.client-content{color:#111!important}}
+
+/* Client V3 refinement: quiet monochrome shell, no legacy blue navigation */
+@media(min-width:761px){
+.client-sidebar{background:#f7f7f5!important;border-right:1px solid #dedfdd!important;color:#111315!important}
+.client-brand>div{background:#111315!important;color:#fff!important;box-shadow:none!important}
+.client-brand b{color:#111315!important}.client-brand small{color:#8a8e91!important}
+.client-sidebar nav button,.client-sidebar-bottom>button{color:#686e73!important}
+.client-sidebar nav button svg,.client-sidebar-bottom>button svg{color:#7d8388!important}
+.client-sidebar nav button:hover,.client-sidebar-bottom>button:hover{background:#eceeec!important;color:#111315!important}
+.client-sidebar nav button.active{background:#111315!important;color:#fff!important;box-shadow:none!important}
+.client-sidebar nav button.active svg{color:#fff!important}
+.client-sidebar nav button small{background:#e5e7e5!important;color:#60666b!important}
+.client-sidebar nav button.active small{background:#303235!important;color:#fff!important}
+.client-sidebar-bottom{border-top-color:#dedfdd!important}.client-secure{color:#777d81!important}.client-secure b{color:#313539!important}.client-secure small{color:#8a8f93!important}
+.client-main{background:#f1f2f0!important}.client-content{padding-top:26px!important}
+}
+@media(max-width:760px){.client-sidebar{background:#f7f7f5!important;color:#111315!important;border-right:1px solid #dedfdd!important}.client-brand>div{background:#111315!important;color:#fff!important}.client-brand b{color:#111315!important}.client-sidebar nav button,.client-sidebar-bottom>button{color:#686e73!important}.client-sidebar nav button.active{background:#111315!important;color:#fff!important;box-shadow:none!important}.client-sidebar-bottom{border-top-color:#dedfdd!important}.client-secure b{color:#313539!important}}

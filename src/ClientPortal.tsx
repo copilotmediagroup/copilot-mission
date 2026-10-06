@@ -111,7 +111,6 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
       </header>
 
       <div className="client-content">
-        {!loading && !error && <ClientCommandStrip command={clientCommand}/>}
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
           {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
