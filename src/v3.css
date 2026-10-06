@@ -380,3 +380,9 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
 .premium-agency .guard-invite-card>header,
 .premium-agency .guard-invite-card>header *{color:#fff!important}
 .premium-agency .guard-invite-card>header small{color:#aeb4ba!important}
+
+/* Guard cards: dark panel header text must remain readable on black. */
+.premium-agency .guard-invite-card .premium-panel-head,
+.premium-agency .guard-invite-card .premium-panel-head strong,
+.premium-agency .guard-invite-card .premium-panel-head b{color:#fff!important}
+.premium-agency .guard-invite-card .premium-panel-head span{color:#aeb4ba!important}
