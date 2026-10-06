@@ -1,0 +1,28 @@
+/* Co Pilot V3 shared visual system — one language across every portal */
+:root{--v3-ink:#111315;--v3-paper:#fff;--v3-soft:#f5f6f6;--v3-line:#e3e6e8;--v3-muted:#747b82;--v3-blue:#1268ed;--v3-night:#050b12;--v3-night2:#09131d;--v3-radius:22px;--v3-shadow:0 24px 70px rgba(0,0,0,.18)}
+:where(.client-shell,.premium-agency,.guard-app,.platform-command-center) button,:where(.client-shell,.premium-agency,.guard-app,.platform-command-center) input,:where(.client-shell,.premium-agency,.guard-app,.platform-command-center) select,:where(.client-shell,.premium-agency,.guard-app,.platform-command-center) textarea{font-family:Inter,system-ui,sans-serif}
+/* Shared premium controls */
+:where(.client-shell,.premium-agency,.platform-command-center) input,:where(.client-shell,.premium-agency,.platform-command-center) select,:where(.client-shell,.premium-agency,.platform-command-center) textarea{border-radius:14px;transition:border-color .18s,box-shadow .18s,background .18s}
+:where(.client-shell,.premium-agency,.platform-command-center) button{transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
+:where(.client-shell,.premium-agency,.platform-command-center) button:not(:disabled):active{transform:scale(.985)}
+/* Agency V3: same premium black/white language, operations density retained */
+.premium-agency{--agency-v3-paper:#fff;--agency-v3-ink:#111315;--agency-v3-soft:#f5f6f6;--agency-v3-line:#e3e6e8;background:#eef1f3!important}
+.premium-agency .premium-sidebar{background:#070d14!important;border-right:1px solid #17212c!important}
+.premium-agency .premium-logo>div span{letter-spacing:.14em!important;color:#758596!important}
+.premium-agency .premium-sidebar nav button{border-radius:14px!important;margin:3px 8px!important;width:calc(100% - 16px)!important}
+.premium-agency .premium-sidebar nav button.active{background:#132237!important;box-shadow:inset 3px 0 #1685ff!important}
+.premium-agency .premium-topbar{background:rgba(255,255,255,.94)!important;color:var(--agency-v3-ink)!important;border-bottom:1px solid var(--agency-v3-line)!important;backdrop-filter:blur(18px)}
+.premium-agency .premium-topbar .page-title h1{letter-spacing:-.04em!important}.premium-agency .premium-topbar .page-title p{color:#747b82!important}
+.premium-agency .top-kpi,.premium-agency .icon-button,.premium-agency .profile-pill{background:#f5f6f6!important;border-color:#e2e5e7!important;color:#111!important;border-radius:15px!important;box-shadow:none!important}
+.premium-agency .premium-main{background:#eef1f3!important;color:#111!important}
+.premium-agency .agency-command-strip{border-radius:22px!important;border:1px solid #dfe3e6!important;box-shadow:0 16px 45px #22303d10!important}
+.premium-agency .agency-command-strip,.premium-agency .agency-command-strip.quiet,.premium-agency .agency-command-strip.ready{background:#fff!important;color:#111!important}
+.premium-agency .agency-command-copy span{color:#747b82!important}.premium-agency .agency-command-actions button{border-radius:999px!important}.premium-agency .agency-command-actions .primary{background:#111!important;color:#fff!important;border-color:#111!important}
+/* Guard V3: field-first, rounded tactile controls, preserve dark mission contrast */
+.guard-app .desktop-topbar{background:rgba(5,11,18,.94)!important}.guard-app .bottom-nav{background:#050b12!important}.guard-app .bottom-nav button{border-radius:14px!important}.guard-app .bottom-nav button.active{background:#132237!important}.guard-app .app-header{background:rgba(7,16,25,.9)!important}.guard-app .primary-button,.guard-app .secondary-button{border-radius:999px!important}.guard-app .primary-button{background:#111!important;box-shadow:0 12px 28px #0003!important}.guard-app:not(.state-offline) .primary-button{background:#fff!important;color:#111!important}.guard-app .metric,.guard-app .message-card,.guard-app .property-info,.guard-app .timer-card,.guard-app .map-card,.guard-app .notes{border-radius:18px!important}.guard-app .property-image{border-radius:22px!important}
+.guard-app.state-offline .desktop-topbar{background:rgba(255,255,255,.95)!important}.guard-app.state-offline .bottom-nav{background:#fff!important}.guard-app.state-offline .app-header{background:rgba(255,255,255,.92)!important}
+/* Platform V3: command center remains dark but inherits premium geometry */
+.platform-command-center{background:radial-gradient(circle at 70% 0,#0b1c2b 0,#050b12 38%,#03070b 100%)!important}.platform-command-center :where(.pcc-panel,.owner-panel,.mission-control-panel){border-radius:22px!important}.platform-command-center button{border-radius:12px}.platform-command-center .pcc-panel-head h2{letter-spacing:-.03em}
+/* Global premium focus + motion */
+:where(.client-shell,.premium-agency,.guard-app,.platform-command-center) :focus-visible{outline:0;box-shadow:0 0 0 3px rgba(18,104,237,.22)!important}
+@media(max-width:760px){:root{--v3-radius:18px}.premium-agency .premium-main{background:#f5f6f6!important}}
