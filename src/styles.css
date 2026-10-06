@@ -4992,3 +4992,29 @@ input:disabled, select:disabled{
 
 /* V3 desktop request focus: center the primary transaction */
 @media(min-width:761px){.client-modal-layer:has(.client-request-v3){place-items:center;padding:18px}.client-modal.client-request-v3{margin:auto}}
+
+/* Agency command stack — keep empty-state helper copy readable on dark cards */
+.agency-marketplace .command-stack .command-empty>span,
+.command-stack .command-empty>span{color:#fff!important;opacity:.92!important}
+
+/* Agency premium visual unification — charcoal/black with restrained status accents */
+.premium-agency{--agency-ink:#0b0f14;--agency-panel:#111820;--agency-panel-2:#171f28;--agency-line:#2a333d;--agency-muted:#9aa5b1;--agency-soft:#d5dbe1;--agency-accent:#d7b46a}
+.premium-agency .premium-main{background:radial-gradient(circle at 50% 0,#252b31 0,#171c21 26%,#0e1216 72%)!important;color:#f5f6f7!important}
+.premium-agency .premium-topbar,.premium-agency .premium-sidebar{background:#f7f7f5!important;border-color:#dedfdf!important}
+.premium-agency .premium-main .premium-panel,.premium-agency .premium-main .operations-hero,.premium-agency .premium-main .operations-card,.premium-agency .premium-main .analytics-card,.premium-agency .premium-main .report-card,.premium-agency .premium-main .agency-document-center,.premium-agency .premium-main .command-mini-section{border-color:var(--agency-line)!important;box-shadow:0 18px 45px rgba(0,0,0,.22)!important}
+.premium-agency .premium-main .operations-hero,.premium-agency .premium-main .analytics-hero,.premium-agency .premium-main .agency-roster-hero,.premium-agency .premium-main .settings-hero{background:linear-gradient(135deg,#1d252d,#0c1015)!important;color:#fff!important}
+.premium-agency .premium-main .operations-hero h1,.premium-agency .premium-main .analytics-hero h1,.premium-agency .premium-main .agency-roster-hero h1,.premium-agency .premium-main .settings-hero h1{color:#fff!important}
+.premium-agency .premium-main .operations-hero p,.premium-agency .premium-main .analytics-hero p,.premium-agency .premium-main .agency-roster-hero p,.premium-agency .premium-main .settings-hero p{color:#aeb7c0!important}
+.premium-agency .agency-command-strip{background:linear-gradient(110deg,#171d23,#0c1014)!important;border:1px solid #303841!important;color:#fff!important;box-shadow:0 14px 35px rgba(0,0,0,.2)!important}
+.premium-agency .agency-command-strip .agency-command-icon{background:#222a32!important;color:var(--agency-accent)!important}
+.premium-agency .agency-command-strip small{color:var(--agency-accent)!important}.premium-agency .agency-command-strip strong{color:#fff!important}.premium-agency .agency-command-strip span{color:#aeb7c0!important}
+.premium-agency .agency-command-actions button.primary{background:#f4f4f1!important;color:#0b0d10!important;border-color:#f4f4f1!important}.premium-agency .agency-command-actions button:not(.primary){background:#171d23!important;color:#fff!important;border-color:#353e47!important}
+.premium-agency .premium-main button.primary,.premium-agency .premium-main .primary-button{background:#11161b!important;color:#fff!important;border-color:#343c45!important;box-shadow:none!important}
+.premium-agency .premium-main a,.premium-agency .premium-main .text-link{color:#d8bd84!important}
+.premium-agency .premium-main [class*="eyebrow"],.premium-agency .premium-main [class*="kicker"]{color:#c9ad72!important}
+.premium-agency .premium-main .empty-state svg,.premium-agency .premium-main .marketplace-list-state svg{color:#c9ad72!important}
+.premium-agency .premium-main .empty-state strong,.premium-agency .premium-main .marketplace-list-state strong{color:#f2f3f4!important}.premium-agency .premium-main .empty-state p,.premium-agency .premium-main .empty-state small,.premium-agency .premium-main .marketplace-list-state small{color:#a6b0ba!important}
+.premium-agency .premium-main input,.premium-agency .premium-main select,.premium-agency .premium-main textarea{accent-color:#171d23!important}
+/* remove the old bright-blue action language inside agency workspace */
+.premium-agency .premium-main button:not(.danger):not(.market-standby-close):focus-visible{outline:2px solid #d7b46a!important;outline-offset:2px}
+.premium-agency .premium-main .command-empty>span{color:#fff!important;opacity:.92!important}
