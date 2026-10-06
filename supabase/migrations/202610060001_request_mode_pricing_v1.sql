@@ -1,0 +1,4 @@
+-- Production migration applied through Supabase: request_mode_pricing_v1
+-- V1 pricing: Scheduled unarmed $40/hr; Now unarmed $50/hr; Scheduled armed $55/hr; Now armed $70/hr; Vacation property check $35/visit.
+-- Marketplace split: 75% agency / 25% platform on hourly coverage; Vacation $25 agency / $10 platform.
+-- calculate_job_estimate/get_client_job_estimate/create_marketplace_job_v2 are mode-aware; priority surcharges removed.
