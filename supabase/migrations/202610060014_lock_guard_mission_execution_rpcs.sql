@@ -1,0 +1,19 @@
+-- Mission execution APIs are authenticated surfaces only.
+revoke all on function public.transition_guard_mission(uuid,text,bigint,integer,jsonb,jsonb) from public,anon;
+revoke all on function public.ensure_mission_engine_state(uuid) from public,anon;
+revoke all on function public.get_guard_mission_snapshot(uuid) from public,anon;
+revoke all on function public.respond_to_assignment_rc2(uuid,text) from public,anon;
+revoke all on function public.advance_guard_mission_rc22(uuid,text) from public,anon;
+revoke all on function public.get_guard_execution_state_rc23(uuid) from public,anon;
+revoke all on function public.save_guard_execution_payload_rc23(uuid,jsonb,jsonb) from public,anon;
+revoke all on function public.complete_guard_checkpoint_rc23(uuid,integer) from public,anon;
+revoke all on function public.submit_guard_mission_rc23(uuid) from public,anon;
+grant execute on function public.transition_guard_mission(uuid,text,bigint,integer,jsonb,jsonb) to authenticated,service_role;
+grant execute on function public.ensure_mission_engine_state(uuid) to authenticated,service_role;
+grant execute on function public.get_guard_mission_snapshot(uuid) to authenticated,service_role;
+grant execute on function public.respond_to_assignment_rc2(uuid,text) to authenticated,service_role;
+grant execute on function public.advance_guard_mission_rc22(uuid,text) to authenticated,service_role;
+grant execute on function public.get_guard_execution_state_rc23(uuid) to authenticated,service_role;
+grant execute on function public.save_guard_execution_payload_rc23(uuid,jsonb,jsonb) to authenticated,service_role;
+grant execute on function public.complete_guard_checkpoint_rc23(uuid,integer) to authenticated,service_role;
+grant execute on function public.submit_guard_mission_rc23(uuid) to authenticated,service_role;
