@@ -32,7 +32,7 @@ begin
   update public.guard_slot_mission_state set state='completed',evidence=coalesce(p_evidence,evidence),incidents=coalesce(p_incidents,incidents),completed_at=v_now,version=version+1,updated_at=v_now where slot_id=v_slot.id returning * into v_state;
   update public.job_guard_slots set status='completed',completed_at=v_now,updated_at=v_now where id=v_slot.id;
   select greatest(1,coalesce(required_guards,1)) into v_required from public.marketplace_jobs where id=p_job_id; select count(*) into v_done from public.job_guard_slots where job_id=p_job_id and status='completed';
-  if v_done>=v_required then update public.marketplace_jobs set status='completed',updated_at=v_now where id=p_job_id; end if;
+  if v_done>=v_required then update public.marketplace_jobs set status='completed',updated_at=v_now where id=p_job_id; perform public.ensure_multi_guard_mission_report_rc1(p_job_id); end if;
  else raise exception 'UNKNOWN_MISSION_ACTION' using errcode='22023'; end if;
  insert into public.mission_events(job_id,actor_user_id,event_type,payload) values(p_job_id,auth.uid(),v_event,jsonb_build_object('slot_number',v_slot.slot_number,'guard_id',v_guard.id,'state',v_state.state,'checkpoint_index',v_state.checkpoint_index,'version',v_state.version)); return to_jsonb(v_state);
 end $$;
