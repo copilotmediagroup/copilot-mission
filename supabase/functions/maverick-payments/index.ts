@@ -16,6 +16,11 @@ async function parseGatewayResponse(response: Response) {
   try { return JSON.parse(text) } catch { return Object.fromEntries(new URLSearchParams(text)) }
 }
 
+function last4From(value: unknown) {
+  const digits = String(value || '').replace(/\D/g, '')
+  return digits.length >= 4 ? digits.slice(-4) : null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return respond(405, { error: 'method' })
@@ -32,7 +37,7 @@ Deno.serve(async (req) => {
     const jobId = String(body.jobId || '')
     const token = String(body.paymentToken || body.token || '')
     const action = body.action === 'sale' ? 'sale' : 'auth'
-    if (!jobId || !token) return respond(400, { error: 'jobId and token required' })
+    if (!jobId) return respond(400, { error: 'jobId required' })
 
     const auth = req.headers.get('Authorization') || ''
     const userDb = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: auth } } })
@@ -47,8 +52,13 @@ Deno.serve(async (req) => {
       .single()
     if (jobError || !job) return respond(404, { error: 'job not found' })
 
-    const { data: client } = await db.from('clients').select('id,user_id').eq('id', job.client_id).single()
+    const { data: client } = await db
+      .from('clients')
+      .select('id,user_id,maverick_customer_vault_id')
+      .eq('id', job.client_id)
+      .single()
     if (!client || client.user_id !== userResult.user.id) return respond(403, { error: 'not your job' })
+    if (!token && !client.maverick_customer_vault_id) return respond(400, { error: 'card token required' })
 
     const { data: financials } = await db.from('job_financials').select('total_cents').eq('job_id', jobId).maybeSingle()
     const amountCents = Number(financials?.total_cents || job.estimated_total_cents || 0)
@@ -57,12 +67,17 @@ Deno.serve(async (req) => {
     const form = new URLSearchParams({
       security_key: gatewayKey,
       type: action,
-      payment_token: token,
       amount: dollars(amountCents),
       orderid: jobId,
       orderdescription: job.title || 'Co Pilot security request',
       response: 'json',
     })
+    if (token) {
+      form.set('payment_token', token)
+      form.set('customer_vault', 'add_customer')
+    } else {
+      form.set('customer_vault_id', client.maverick_customer_vault_id)
+    }
 
     const gatewayResponse = await fetch(gatewayUrl, {
       method: 'POST',
@@ -77,6 +92,9 @@ Deno.serve(async (req) => {
     const status = approved ? (action === 'sale' ? 'captured' : 'authorized') : 'declined'
     const payoutStatus = approved ? 'held_until_report' : 'not_ready'
     const holdReason = approved ? 'report_required_before_payout' : 'payment_declined'
+    const vaultId = String(processor.customer_vault_id || processor.customerVaultId || client.maverick_customer_vault_id || '')
+    const last4 = last4From(processor.cc_number || processor.card_number || processor.card || processor.account_number)
+    const brand = String(processor.card_type || processor.card_brand || processor.cc_type || '') || null
 
     await db.from('marketplace_jobs').update({
       payment_processor: 'maverick_easy_pay_direct', payment_status: status,
@@ -92,14 +110,26 @@ Deno.serve(async (req) => {
       processor_response: processor, updated_at: new Date().toISOString(),
     }).eq('job_id', jobId)
 
+    if (approved && token && vaultId) {
+      await db.from('clients').update({
+        payment_processor: 'maverick_easy_pay_direct',
+        maverick_customer_vault_id: vaultId,
+        maverick_payment_last4: last4,
+        maverick_payment_brand: brand,
+        maverick_payment_saved_at: new Date().toISOString(),
+      }).eq('id', job.client_id)
+    }
+
     await db.from('mission_events').insert({
       job_id: jobId, actor_user_id: userResult.user.id,
       event_type: approved ? 'payment_authorized' : 'payment_declined',
-      payload: { processor: 'maverick_easy_pay_direct', status, transaction_id: transactionId, message },
+      payload: { processor: 'maverick_easy_pay_direct', status, transaction_id: transactionId, customer_vault_id: vaultId || null, message },
     })
 
     return respond(approved ? 200 : 402, {
       approved, status, message, transactionId, authCode, amountCents,
+      customerVaultId: vaultId || null,
+      savedCard: Boolean(vaultId),
       processor: 'maverick_easy_pay_direct',
     })
   } catch (error) {

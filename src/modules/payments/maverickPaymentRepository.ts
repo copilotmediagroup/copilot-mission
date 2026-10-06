@@ -30,7 +30,8 @@ export async function getMaverickPaymentConfig() {
 
 export async function authorizeMaverickJobPayment(input: {
   jobId: string
-  paymentToken: string
+  paymentToken?: string
+  useSavedCard?: boolean
   action?: 'auth' | 'sale'
   billing?: {
     cardholderName?: string
@@ -46,6 +47,7 @@ export async function authorizeMaverickJobPayment(input: {
     body: {
       jobId: input.jobId,
       paymentToken: input.paymentToken,
+      useSavedCard: input.useSavedCard ?? !input.paymentToken,
       action: input.action ?? 'auth',
       billing: input.billing ?? {},
     },
@@ -63,6 +65,7 @@ export async function loadCollectJs(publicKey: string, collectJsUrl = 'https://s
     script.async = true
     script.dataset.maverickCollectJs = 'true'
     script.dataset.tokenizationKey = publicKey
+    script.dataset.variant = 'inline'
     script.onload = () => resolve()
     script.onerror = () => reject(new Error('Unable to load Maverick payment fields.'))
     document.head.appendChild(script)

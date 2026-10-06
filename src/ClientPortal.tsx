@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { AlertTriangle, Archive, Camera, Bell, Building2, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, Home, ImageOff, LoaderCircle, LocateFixed, LogOut, MapPin, Menu, Pencil, Plus, Radio, RefreshCw, Search, Shield, ShieldAlert, Sparkles, Trash2, X, FileText } from 'lucide-react'
 import { useAuth } from './modules/auth/AuthProvider'
-import { archiveClientProperty, createClientJob, createClientProperty, deleteClientProperty, getClientWorkspace, subscribeToClientWorkspace, updateClientProperty, workspaceErrorMessage, type ClientJob, type ClientProperty } from './modules/client/clientRepository'
+import { archiveClientProperty, createClientJob, createClientProperty, deleteClientProperty, getClientWorkspace, subscribeToClientWorkspace, updateClientProperty, workspaceErrorMessage, type ClientJob, type ClientPaymentProfile, type ClientProperty } from './modules/client/clientRepository'
 import { authorizeMaverickJobPayment, getMaverickPaymentConfig, loadCollectJs } from './modules/payments/maverickPaymentRepository'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
 import ClientReports from './ClientReports'
@@ -24,6 +24,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   const [properties, setProperties] = useState<ClientProperty[]>([])
   const [jobs, setJobs] = useState<ClientJob[]>([])
   const [clientId, setClientId] = useState<string | null>(null)
+  const [paymentProfile,setPaymentProfile]=useState<ClientPaymentProfile|null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [propertyOpen, setPropertyOpen] = useState(false)
@@ -34,7 +35,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   const [liveTracking,setLiveTracking]=useState<ClientTrackingExperience>(null)
 
   const load = useCallback(async () => {
-    if (isPreview) { setClientId('preview-client'); setProperties(previewProperties); setJobs(previewJobs); setError(''); setLoading(false); return }
+    if (isPreview) { setClientId('preview-client'); setPaymentProfile(null); setProperties(previewProperties); setJobs(previewJobs); setError(''); setLoading(false); return }
     if (!auth.user) return
     setLoading(true); setError('')
     try {
@@ -42,6 +43,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
       setClientId(workspace.clientId)
       setProperties(workspace.properties)
       setJobs(workspace.jobs)
+      setPaymentProfile(workspace.paymentProfile)
     } catch (cause) {
       setError(workspaceErrorMessage(cause))
     } finally { setLoading(false) }
@@ -121,7 +123,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
 
     {propertyOpen && <PropertyModal preview={isPreview} clientId={clientId} property={editingProperty} onClose={()=>{setPropertyOpen(false);setEditingProperty(null)}} onSaved={async(mode)=>{setPropertyOpen(false);setEditingProperty(null);setNotice(mode==='created'?'Property added successfully.':'Property updated everywhere.');await load()}}/>}
     {confirmAction && <ConfirmPropertyAction action={confirmAction} onClose={()=>setConfirmAction(null)} onConfirmed={async()=>{const action=confirmAction;setConfirmAction(null);try{if(!isPreview){if(action.type==='archive')await archiveClientProperty(action.property.id);else await deleteClientProperty(action.property.id)}setNotice(isPreview?'Preview simulation complete.':action.type==='archive'?'Property archived.':'Property permanently deleted.');await load()}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update property.')}}}/>}
-    {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
+    {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} paymentProfile={paymentProfile} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
   </div>
 }
 
@@ -187,7 +189,7 @@ function ConfirmPropertyAction({action,onClose,onConfirmed}:{action:{type:'archi
   return <Modal title={archive?'Archive property':'Delete property'} eyebrow="PROPERTY MANAGEMENT" onClose={onClose}><div className="property-confirm"><div className={archive?'archive':'delete'}>{archive?<Archive/>:<Trash2/>}</div><h3>{archive?'Remove this property from active use?':'Permanently delete this property?'}</h3><p>{archive?'The property will disappear from new request selection while all mission history remains protected.':'Permanent deletion is allowed only when the property has no mission history. Properties tied to missions must be archived instead.'}</p><strong>{action.property.name}</strong><span>{action.property.address}</span><div className="client-form-actions"><button onClick={onClose}>Cancel</button><button className={archive?'primary':'danger-confirm'} onClick={onConfirmed}>{archive?'Archive property':'Delete permanently'}</button></div></div></Modal>
 }
 
-function RequestModal({ preview=false, clientId, properties, onClose, onCreated }: { preview?:boolean; clientId:string; properties:ClientProperty[]; onClose:()=>void; onCreated:()=>void }) {
+function RequestModal({ preview=false, clientId, properties, paymentProfile, onClose, onCreated }: { preview?:boolean; clientId:string; properties:ClientProperty[]; paymentProfile:ClientPaymentProfile|null; onClose:()=>void; onCreated:()=>void }) {
   const [mode,setMode]=useState<RequestMode>('immediate')
   const [priority,setPriority]=useState<Priority>('standard')
   const [serviceType,setServiceType]=useState('unarmed_patrol')
@@ -202,9 +204,12 @@ function RequestModal({ preview=false, clientId, properties, onClose, onCreated 
   const priorityHelp:Record<Priority,{title:string;copy:string}>={standard:{title:'Standard routing',copy:'Best for normal patrols and routine checks.'},priority:{title:'Priority routing',copy:'Places the request higher in the agency queue for faster attention.'},emergency:{title:'Priority Response',copy:'Use only when you need private security attention fast. Call 911 for immediate danger.'}}
   const services=[['unarmed_patrol','Unarmed patrol'],['mobile_patrol','Mobile patrol'],['event_security','Event security'],['alarm_response','Alarm response'],['armed_guard','Armed guard request']]
   const hasProperties=properties.length>0
+  const hasSavedCard=Boolean(paymentProfile?.maverick_customer_vault_id)
+  const [useSavedCard,setUseSavedCard]=useState(hasSavedCard)
+  useEffect(()=>setUseSavedCard(hasSavedCard),[hasSavedCard])
   const estimatedCents=estimateClientRequest(serviceType,priority,Number(duration||60),mode==='scheduled'?scheduledFor:null)
   useEffect(()=>{
-    if(preview)return
+    if(preview||useSavedCard)return
     let active=true
     void getMaverickPaymentConfig().then(async config=>{
       if(!active)return
@@ -214,31 +219,35 @@ function RequestModal({ preview=false, clientId, properties, onClose, onCreated 
       const collect=(window as any).CollectJS
       if(!collect?.configure){setPaymentMessage('Secure payment form did not load yet.');return}
       collect.configure({
+        paymentSelector:'#maverick-secure-card-button',
         variant:'inline',
+        customCss:{'height':'38px','font-size':'16px','font-family':'Inter, system-ui, sans-serif','color':'#ffffff','background-color':'transparent'},
+        placeholderCss:{color:'rgba(232,244,255,.45)'},
+        focusCss:{color:'#ffffff'},
         fields:{ccnumber:{selector:'#maverick-card-number',title:'Card Number',placeholder:'0000 0000 0000 0000'},ccexp:{selector:'#maverick-card-exp',title:'Expiration',placeholder:'MM / YY'},cvv:{selector:'#maverick-card-cvv',title:'CVV',placeholder:'CVV'}},
         callback:(response:any)=>{const token=response?.token||response?.payment_token||response?.paymentToken||'';setPaymentToken(token);setPaymentReady(Boolean(token));setPaymentMessage(token?'Card secured. Submit request to authorize payment.':'Unable to secure card. Check the card fields and try again.')}
       })
-      setPaymentMessage('Secure payment form ready.')
+      window.setTimeout(()=>{const mounted=Boolean(document.querySelector('#maverick-card-number iframe'));setPaymentMessage(mounted?'Secure payment form ready.':'Secure payment form is loading. Try again in a second.')},500)
     }).catch(cause=>setPaymentMessage(cause instanceof Error?cause.message:'Payment form unavailable.'))
     return()=>{active=false}
-  },[preview])
-  const secureCard=()=>{setError('');setPaymentMessage('Securing card…');const collect=(window as any).CollectJS;if(!collect?.startPaymentRequest){setPaymentMessage('Secure card form is not ready yet.');return}collect.startPaymentRequest()}
+  },[preview,useSavedCard])
+  const secureCard=()=>{setError('');setPaymentMessage('Securing card…');const collect=(window as any).CollectJS;if(collect?.startPaymentRequest){collect.startPaymentRequest();return}const button=document.getElementById('maverick-secure-card-button') as HTMLButtonElement|null;if(button){button.click();return}setPaymentMessage('Secure card form is not ready yet. Refresh and try again.')} 
   const submit=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
     if(!hasProperties){setError('Add a verified property before requesting coverage.');return}
-    if(!preview&&!paymentToken){setError('Secure the card before submitting the security request.');return}
+    if(!preview&&!useSavedCard&&!paymentToken){setError('Secure the card before submitting the security request.');return}
     setBusy(true);setError('')
     const data=new FormData(event.currentTarget)
     try{
       if(preview){await onCreated();return}
       const job=await createClientJob({clientId,propertyId:String(data.get('propertyId')),title:String(data.get('title')),instructions:String(data.get('instructions')),priority,scheduledFor:mode==='scheduled'?String(data.get('scheduledFor')):null,durationMinutes:Number(duration||60),serviceType,requestedStart:mode,contactPhone:String(data.get('contactPhone')||''),accessNotes:String(data.get('accessNotes')||'')})
-      const payment=await authorizeMaverickJobPayment({jobId:job.id,paymentToken,action:'auth',billing:{cardholderName:String(data.get('cardholderName')||''),email:String(data.get('billingEmail')||''),phone:String(data.get('contactPhone')||'')}})
+      const payment=await authorizeMaverickJobPayment({jobId:job.id,paymentToken:useSavedCard?undefined:paymentToken,useSavedCard,action:'auth',billing:{cardholderName:String(data.get('cardholderName')||''),email:String(data.get('billingEmail')||''),phone:String(data.get('contactPhone')||'')}})
       if(!payment.approved){setError(payment.message||'Payment authorization declined.');return}
       await onCreated()
     }catch(cause){setError(cause instanceof Error?cause.message:'Unable to submit request and authorize payment.')}
     finally{setBusy(false)}
   }
-  return <Modal title="Request security" eyebrow="MARKETPLACE ROUTING + PAYMENT AUTH" onClose={onClose}><form className="client-form" onSubmit={submit}><div className="request-mode-grid"><Mode active={mode==='immediate'} icon={<Radio/>} label="Now" onClick={()=>setMode('immediate')}/><Mode active={mode==='scheduled'} icon={<CalendarClock/>} label="Scheduled" onClick={()=>setMode('scheduled')}/><Mode active={mode==='vacation'} icon={<Home/>} label="Vacation" onClick={()=>setMode('vacation')}/></div><div className="client-request-guidance"><CalendarClock/><span><strong>{modeHelp[mode].title}</strong><small>{modeHelp[mode].copy}</small></span></div><label>Property<select name="propertyId" required disabled={!hasProperties}>{!hasProperties&&<option value="">Add a verified property first</option>}{properties.map(p=><option key={p.id} value={p.id}>{p.name} — {p.address}</option>)}</select></label><label>Service type<select value={serviceType} onChange={e=>setServiceType(e.target.value)}>{services.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>Request title<input name="title" required defaultValue={serviceType==='armed_guard'?'Armed security request':mode==='vacation'?'Vacation property check':'Security patrol request'} /></label>{mode==='scheduled'&&<label>Scheduled time<input type="datetime-local" name="scheduledFor" value={scheduledFor} onChange={e=>setScheduledFor(e.target.value)} required/></label>}<label>Expected duration<select name="duration" value={duration} onChange={e=>setDuration(e.target.value)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label><label>Best contact phone<input name="contactPhone" type="tel" placeholder="Phone for agency/guard questions"/></label><div><span className="form-label">Priority</span><div className="priority-grid"><button type="button" className={priority==='standard'?'active':''} onClick={()=>setPriority('standard')}>Standard</button><button type="button" className={priority==='priority'?'active priority':''} onClick={()=>setPriority('priority')}>Priority</button><button type="button" className={priority==='emergency'?'active emergency':''} onClick={()=>setPriority('emergency')}>Priority Response</button></div><div className={'client-request-guidance priority-'+priority}><ShieldAlert/><span><strong>{priorityHelp[priority].title}</strong><small>{priorityHelp[priority].copy}</small></span></div></div><label>Guard instructions<textarea name="instructions" placeholder="Patrol focus, access notes, contacts, areas to avoid"/></label><label>Access notes<textarea name="accessNotes" placeholder="Gate code, entry point, parking, property manager, lockbox, concierge, etc."/></label><div className="client-payment-box"><div><strong>${Math.round(estimatedCents/100)} authorization</strong><span>Card is authorized now. Agency payout stays held until report approval.</span></div><label>Cardholder name<input name="cardholderName" placeholder="Name on card"/></label><label>Billing email<input name="billingEmail" type="email" placeholder="Receipt email"/></label><div className="maverick-card-grid"><div id="maverick-card-number"/><div id="maverick-card-exp"/><div id="maverick-card-cvv"/></div><button type="button" onClick={secureCard} disabled={busy||preview}>{paymentReady?'Card secured':'Secure card'}</button><small>{preview?'Preview skips payment authorization.':paymentMessage||'Enter card details and secure the card before submitting.'}</small></div><div className="client-request-summary"><strong>What happens after submit?</strong><span>Co Pilot authorizes payment, routes this to compliant agencies, then holds agency payout until the mission report is approved.</span></div>{error&&<div className="client-form-error"><AlertTriangle/>{error}</div>}<div className="emergency-note"><ShieldAlert/><span>If you or anyone is in immediate danger, call 911. Co Pilot connects you with private security agencies and is not a replacement for police, fire, or EMS.</span></div><div className="client-form-actions"><button type="button" onClick={onClose}>Cancel</button><button className="primary" disabled={busy||!hasProperties||(!preview&&!paymentReady)}>{busy?'Submitting…':hasProperties?'Authorize & submit':'Add property first'}</button></div></form></Modal>
+  return <Modal title="Request security" eyebrow="MARKETPLACE ROUTING + PAYMENT AUTH" onClose={onClose}><form className="client-form" onSubmit={submit}><div className="request-mode-grid"><Mode active={mode==='immediate'} icon={<Radio/>} label="Now" onClick={()=>setMode('immediate')}/><Mode active={mode==='scheduled'} icon={<CalendarClock/>} label="Scheduled" onClick={()=>setMode('scheduled')}/><Mode active={mode==='vacation'} icon={<Home/>} label="Vacation" onClick={()=>setMode('vacation')}/></div><div className="client-request-guidance"><CalendarClock/><span><strong>{modeHelp[mode].title}</strong><small>{modeHelp[mode].copy}</small></span></div><label>Property<select name="propertyId" required disabled={!hasProperties}>{!hasProperties&&<option value="">Add a verified property first</option>}{properties.map(p=><option key={p.id} value={p.id}>{p.name} — {p.address}</option>)}</select></label><label>Service type<select value={serviceType} onChange={e=>setServiceType(e.target.value)}>{services.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>Request title<input name="title" required defaultValue={serviceType==='armed_guard'?'Armed security request':mode==='vacation'?'Vacation property check':'Security patrol request'} /></label>{mode==='scheduled'&&<label>Scheduled time<input type="datetime-local" name="scheduledFor" value={scheduledFor} onChange={e=>setScheduledFor(e.target.value)} required/></label>}<label>Expected duration<select name="duration" value={duration} onChange={e=>setDuration(e.target.value)}><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label><label>Best contact phone<input name="contactPhone" type="tel" placeholder="Phone for agency/guard questions"/></label><div><span className="form-label">Priority</span><div className="priority-grid"><button type="button" className={priority==='standard'?'active':''} onClick={()=>setPriority('standard')}>Standard</button><button type="button" className={priority==='priority'?'active priority':''} onClick={()=>setPriority('priority')}>Priority</button><button type="button" className={priority==='emergency'?'active emergency':''} onClick={()=>setPriority('emergency')}>Priority Response</button></div><div className={'client-request-guidance priority-'+priority}><ShieldAlert/><span><strong>{priorityHelp[priority].title}</strong><small>{priorityHelp[priority].copy}</small></span></div></div><label>Guard instructions<textarea name="instructions" placeholder="Patrol focus, access notes, contacts, areas to avoid"/></label><label>Access notes<textarea name="accessNotes" placeholder="Gate code, entry point, parking, property manager, lockbox, concierge, etc."/></label><div className="client-payment-box"><div><strong>${Math.round(estimatedCents/100)} authorization</strong><span>{useSavedCard?'Using saved card on file.':'Card is authorized now and saved for future requests.'}</span></div>{hasSavedCard&&<div className="saved-card-row"><CheckCircle2/><span><b>{paymentProfile?.maverick_payment_brand||'Saved card'} ending {paymentProfile?.maverick_payment_last4||'••••'}</b><small>Like Uber, future requests can use this card on file.</small></span><button type="button" onClick={()=>{setUseSavedCard(!useSavedCard);setPaymentToken('');setPaymentReady(false)}}>{useSavedCard?'Change card':'Use saved card'}</button></div>}{!useSavedCard&&<><label>Cardholder name<input name="cardholderName" placeholder="Name on card"/></label><label>Billing email<input name="billingEmail" type="email" placeholder="Receipt email"/></label><div className="maverick-card-grid"><div id="maverick-card-number"/><div id="maverick-card-exp"/><div id="maverick-card-cvv"/></div><button id="maverick-secure-card-button" type="button" onClick={secureCard} disabled={busy||preview}>{paymentReady?'Card secured':'Secure card'}</button><small>{preview?'Preview skips payment authorization.':paymentMessage||'Enter card details and secure the card before submitting.'}</small></>}</div><div className="client-request-summary"><strong>What happens after submit?</strong><span>Co Pilot authorizes payment, routes this to compliant agencies, then holds agency payout until the mission report is approved.</span></div>{error&&<div className="client-form-error"><AlertTriangle/>{error}</div>}<div className="emergency-note"><ShieldAlert/><span>If you or anyone is in immediate danger, call 911. Co Pilot connects you with private security agencies and is not a replacement for police, fire, or EMS.</span></div><div className="client-form-actions"><button type="button" onClick={onClose}>Cancel</button><button className="primary" disabled={busy||!hasProperties||(!preview&&!useSavedCard&&!paymentReady)}>{busy?'Submitting…':hasProperties?'Authorize & submit':'Add property first'}</button></div></form></Modal>
 }
 
 function estimateClientRequest(serviceType:string,priority:Priority,durationMinutes:number,scheduledFor:string|null){

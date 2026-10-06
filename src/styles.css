@@ -4940,3 +4940,6 @@ input:disabled, select:disabled{
 .maverick-card-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.maverick-card-grid>div{min-height:48px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.06);padding:8px}
 .client-payment-box button{justify-self:flex-start;border:0;border-radius:999px;padding:10px 16px;background:#2d8cff;color:white;font-weight:800;cursor:pointer}.client-payment-box button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:760px){.maverick-card-grid{grid-template-columns:1fr}.client-payment-box>div:first-child{display:block}}
+
+/* Maverick card-on-file payment fields */
+.maverick-card-grid iframe{width:100%!important;min-height:36px!important;border:0!important;display:block!important;background:transparent!important}.saved-card-row{border:1px solid rgba(38,255,166,.22);background:rgba(22,163,109,.12);border-radius:16px;padding:12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}.saved-card-row svg{color:#35f3a6}.saved-card-row button{background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important}.saved-card-row b{color:#fff;display:block}.saved-card-row small{display:block;color:rgba(232,244,255,.62)}@media(max-width:760px){.saved-card-row{grid-template-columns:1fr}.saved-card-row svg{display:none}}
