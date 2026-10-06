@@ -18,7 +18,15 @@ if(job.status!=='open')return respond(409,{error:'job is not awaiting payment'})
 const {data:financials}=await db.from('job_financials').select('total_cents').eq('job_id',jobId).maybeSingle();const amountCents=Number(financials?.total_cents||job.estimated_total_cents||0);if(!amountCents)return respond(422,{error:'no estimate'})
 const form=new URLSearchParams({security_key:gatewayKey,type:action,amount:dollars(amountCents),orderid:jobId,orderdescription:job.title||'Co Pilot security request',response:'json'})
 if(token){form.set('payment_token',token);form.set('customer_vault','add_customer')}else{form.set('customer_vault_id',client.maverick_customer_vault_id)}
-const gatewayResponse=await fetch(gatewayUrl,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form});const processor=await parseGatewayResponse(gatewayResponse)
+let gatewayResponse:Response
+try{gatewayResponse=await fetch(gatewayUrl,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form})}catch(gatewayError){
+  const unknown={processor:'maverick_easy_pay_direct',state:'authorization_unknown',reason:gatewayError instanceof Error?gatewayError.message:'gateway transport failure',occurred_at:new Date().toISOString(),order_id:jobId,amount_cents:amountCents}
+  await db.from('marketplace_jobs').update({payment_status:'authorization_unknown',payout_status:'not_ready',payout_hold_reason:'payment_reconciliation_required',processor_response:unknown,updated_at:new Date().toISOString()}).eq('id',jobId).eq('payment_status','authorizing')
+  await db.from('job_financials').update({payment_status:'authorization_unknown',payout_status:'not_ready',hold_reason:'payment_reconciliation_required',processor_response:unknown,updated_at:new Date().toISOString()}).eq('job_id',jobId).eq('payment_status','authorizing')
+  await db.from('mission_events').insert({job_id:jobId,actor_user_id:userResult.user.id,event_type:'payment_authorization_unknown',payload:unknown})
+  return respond(503,{approved:false,status:'authorization_unknown',jobStatus:'open',message:'Payment result is uncertain. Do not retry this request until payment reconciliation is complete.',amountCents,processor:'maverick_easy_pay_direct'})
+}
+const processor=await parseGatewayResponse(gatewayResponse)
 const approved=String(processor.response||processor.response_code||'')==='1';const transactionId=String(processor.transactionid||processor.transaction_id||'');const authCode=String(processor.authcode||processor.auth_code||'');const message=String(processor.responsetext||processor.message||(approved?'Approved':'Declined'))
 const status=approved?(action==='sale'?'captured':'authorized'):'declined';const payoutStatus=approved?'held_until_report':'not_ready';const holdReason=approved?'report_required_before_payout':'payment_declined';const vaultId=String(processor.customer_vault_id||processor.customerVaultId||client.maverick_customer_vault_id||'')
 const last4=last4From(processor.cc_number||processor.card_number||processor.card||processor.account_number);const brand=String(processor.card_type||processor.card_brand||processor.cc_type||'')||null
