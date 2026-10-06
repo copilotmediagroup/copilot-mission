@@ -1,0 +1,2 @@
+-- Server-authoritative client quote integration checkpoint.
+-- Current RPC permissions are captured in migration 202610060003.

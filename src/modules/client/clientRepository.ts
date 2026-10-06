@@ -68,10 +68,10 @@ export async function createClientProperty(input:{clientId:string;name:string;ad
   return data
 }
 
-export type JobEstimate={service_type:string;label:string;duration_minutes:number;subtotal_cents:number;priority_surcharge_cents:number;after_hours_surcharge_cents:number;total_cents:number;platform_fee_cents:number;agency_payout_cents:number}
-export async function getClientJobEstimate(input:{propertyId:string;serviceType:string;priority:'standard'|'priority'|'emergency';durationMinutes:number;scheduledFor:string|null;requestedStart?:string}){
+export type JobEstimate={service_type:string;label:string;request_mode:string;duration_minutes:number;vacation_start_date?:string|null;vacation_end_date?:string|null;vacation_checks_per_day?:number|null;vacation_total_visits?:number|null;subtotal_cents:number;priority_surcharge_cents:number;after_hours_surcharge_cents:number;total_cents:number;platform_fee_cents:number;agency_payout_cents:number}
+export async function getClientJobEstimate(input:{propertyId:string;serviceType:string;priority:'standard'|'priority'|'emergency';durationMinutes:number;scheduledFor:string|null;requestedStart?:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null}){
   const db=requireSupabase()
-  const {data,error}=await db.rpc('get_client_job_estimate',{p_property_id:input.propertyId,p_service_type:input.serviceType,p_priority:input.priority,p_duration_minutes:input.durationMinutes,p_scheduled_for:input.scheduledFor?new Date(input.scheduledFor).toISOString():null,p_requested_start:input.requestedStart||'scheduled'})
+  const {data,error}=await db.rpc('get_client_job_estimate',{p_property_id:input.propertyId,p_service_type:input.serviceType,p_priority:input.priority,p_duration_minutes:input.durationMinutes,p_scheduled_for:input.scheduledFor?new Date(input.scheduledFor).toISOString():null,p_requested_start:input.requestedStart||'scheduled',p_vacation_start_date:input.vacationStartDate||null,p_vacation_end_date:input.vacationEndDate||null,p_vacation_checks_per_day:input.vacationChecksPerDay||null})
   if(error) throw error
   return data as JobEstimate
 }
