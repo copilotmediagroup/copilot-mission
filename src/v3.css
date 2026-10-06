@@ -368,3 +368,15 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
   .portal-root:has(.premium-agency) .marketplace-roster-strip{grid-column:1!important;grid-row:4!important;width:100%!important;max-width:none!important}
 }
 /* End Agency V4.4 */
+
+/* Premium Agency dark-surface contrast — dark cards always use white typography. */
+.premium-agency .operations-heading{color:#fff!important}
+.premium-agency .operations-heading h1{color:#fff!important}
+.premium-agency .operations-heading p{color:#aeb4ba!important}
+.premium-agency .operations-heading .eyebrow,
+.premium-agency .operations-heading>div>span{color:#9299a1!important}
+.premium-agency .operations-heading button{color:#fff!important}
+.premium-agency .operations-heading button *{color:inherit!important}
+.premium-agency .guard-invite-card>header,
+.premium-agency .guard-invite-card>header *{color:#fff!important}
+.premium-agency .guard-invite-card>header small{color:#aeb4ba!important}
