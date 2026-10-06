@@ -19,7 +19,7 @@ import { getAgencyMessages as fetchAgencyMessages, sendAgencyMessage as persistA
 import AgencyDocumentCenter from './modules/compliance/AgencyDocumentCenter'
 
 type JobKind = 'standard' | 'priority' | 'emergency'
-type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null; currentAddress?:string|null }
+type Job = { id:string; title:string; client:string; address:string; distance:number; eta:number; duration:number; guards?:number; kind:JobKind; property:string; price:number; x:number; y:number; latitude?:number|null; longitude?:number|null; live?:boolean; photoUrl?:string|null; currentAddress?:string|null }
 type Guard = { id:string|number; name:string; initials:string; distance:number; status:'available'|'on-mission'|'reserved'|'offline'; x:number; y:number; latitude?:number|null; longitude?:number|null; photoUrl?:string|null; currentAddress?:string|null; gpsFreshness?:string|null; source?:'roster'|'live-location'|'fallback' }
 type Activity = { id:number; time:string; type:'new'|'accepted'|'emergency'|'assigned'; title:string; location:string }
 
@@ -219,7 +219,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
   const mapLiveJob=(row:MarketplaceJobRow,index:number):Job=>({
     id:row.id,title:row.title,client:row.client?.display_name||'Marketplace Client',
     address:row.property?.address||'Verified property',distance:Number((1.2+(index%7)*.9).toFixed(1)),
-    eta:4+(index%6)*3,duration:row.duration_minutes,kind:row.priority,
+    eta:4+(index%6)*3,duration:row.duration_minutes,guards:Math.max(1,Number(row.required_guards||1)),kind:row.priority,
     property:row.property?.name||'Property',price:row.agency_payout_cents?Math.round(row.agency_payout_cents/100):(row.payout_cents?Math.round(row.payout_cents/100):0),
     x:50,y:50,
     latitude:row.property?.latitude ?? null,
@@ -448,15 +448,18 @@ function AgencyCommandStrip({command}:{command:AgencyCommand}){return <section c
 
 function Kpi({icon,label,value,tone}:{icon:ReactNode,label:string,value:number,tone:string}){return <div className={`top-kpi ${tone}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>}
 function marketplaceJobGuidance(job:Job,availableCount:number){
+  const required=Math.max(1,job.guards||1)
   const priority=job.kind==='emergency'
     ? {title:'Priority Response',copy:'Requires fast review, claim confirmation, and immediate guard dispatch.'}
     : job.kind==='priority'
       ? {title:'Higher-priority opportunity',copy:'Good fit when you have guard capacity ready and can respond quickly.'}
-      : {title:'Standard open job',copy:'Routine coverage opportunity. Claim only when you can assign a guard next.'}
-  const capacity=availableCount>0
-    ? {label:`${availableCount} guard${availableCount===1?'':'s'} available`,tone:'ready'}
-    : {label:'No available guards online',tone:'warn'}
-  return {...priority,capacity,after:'After claim: moves to Operations → assign guard → track route → review report.'}
+      : {title:required>1?`${required}-guard coverage request`:'Standard open job',copy:required>1?`Client requires ${required} guards for this mission. Confirm staffing capacity before claiming.`:'Routine coverage opportunity. Claim only when you can assign a guard next.'}
+  const capacity=availableCount>=required
+    ? {label:`Capacity ready · ${availableCount} available / ${required} required`,tone:'ready'}
+    : availableCount>0
+      ? {label:`Capacity short · ${availableCount} available / ${required} required`,tone:'warn'}
+      : {label:`No available guards · ${required} required`,tone:'warn'}
+  return {...priority,capacity,after:`After claim: Operations → staff ${required}/${required} guard${required===1?'':'s'} → track mission → review report.`}
 }
 function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,activity,loading,lastSyncAt,realtimeState,focusedMissionId,preview,dispatch,liveLocations,onOpenGuards,onOpenOperations,onOpenMessages,onToast}:{jobs:Job[];filtered:Job[];filter:'all'|JobKind;setFilter:(v:'all'|JobKind)=>void;accept:(j:Job)=>void;available:Guard[];allGuards:Guard[];activity:Activity[];loading:boolean;lastSyncAt:number|null;realtimeState:'idle'|'connected'|'preview';focusedMissionId:string|null;preview:boolean;dispatch:AgencyDispatchWorkspace|null;liveLocations:GuardLiveLocation[];onOpenGuards:()=>void;onOpenOperations:()=>void;onOpenMessages:()=>void;onToast:(message:string)=>void}){
  const [mapMode,setMapMode]=useState<'all'|'standard'|'priority'|'emergency'|'guards'>('all')
@@ -689,7 +692,7 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
   </div>
   </section>
 
-  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>OPEN OPPORTUNITIES <b>{jobs.length}</b></strong></div><button type="button" onClick={()=>{setSortNearest(value=>!value);onToast(sortNearest?'Sorting opportunities A-Z.':'Sorting opportunities by nearest guard.')}}>{sortNearest?'Nearest':'A-Z'}<ChevronDown/></button></div><div className="premium-job-list">{sortedOpportunityJobs.length?sortedOpportunityJobs.map(j=>{const guidance=marketplaceJobGuidance(j,available.length);return <article key={j.id} className={`premium-job-card ${j.kind}`}><div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind==='emergency'?'Priority Response':j.kind==='priority'?'Priority':j.kind}</span><span>{j.distance} mi<small>ETA {j.eta} min</small></span></div>{j.photoUrl&&<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>}<h3>{j.title}</h3><p>{j.client}<br/>{j.address}</p><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>1 guard</span></div><div className="marketplace-job-guidance"><small>WHY THIS MATTERS</small><strong>{guidance.title}</strong><span>{guidance.copy}</span><em>{guidance.after}</em></div><div className={`marketplace-job-capacity ${guidance.capacity.tone}`}><Users/><span>{guidance.capacity.label}</span></div><div className="job-card-action"><button onClick={()=>accept(j)}>{available.length?'Claim Mission':'Claim carefully'}</button></div></article>}):<div className="marketplace-list-state empty compact-standby"><BriefcaseBusiness/><strong>{loading?'Loading opportunities':'Marketplace is live'}</strong><small>{loading?'Checking the live marketplace.':'No verified jobs are available yet. Your guard coverage is standing by.'}</small></div>}</div></section>
+  <section className="opportunities premium-panel"><div className="premium-panel-head"><div><strong>OPEN OPPORTUNITIES <b>{jobs.length}</b></strong></div><button type="button" onClick={()=>{setSortNearest(value=>!value);onToast(sortNearest?'Sorting opportunities A-Z.':'Sorting opportunities by nearest guard.')}}>{sortNearest?'Nearest':'A-Z'}<ChevronDown/></button></div><div className="premium-job-list">{sortedOpportunityJobs.length?sortedOpportunityJobs.map(j=>{const guidance=marketplaceJobGuidance(j,available.length);return <article key={j.id} className={`premium-job-card ${j.kind}`}><div className="job-card-top"><span className={`kind-chip ${j.kind}`}>{j.kind==='emergency'?<Siren/>:j.kind==='priority'?<Zap/>:<BriefcaseBusiness/>}{j.kind==='standard'?'Open Job':j.kind==='emergency'?'Priority Response':j.kind==='priority'?'Priority':j.kind}</span><span>{j.distance} mi<small>ETA {j.eta} min</small></span></div>{j.photoUrl&&<div className="marketplace-property-photo"><img src={j.photoUrl} alt={`${j.property} property`}/></div>}<h3>{j.title}</h3><p>{j.client}<br/>{j.address}</p><div className="job-card-meta"><span><Building2/>{j.property}</span><span><Clock3/>{j.duration} min</span><span><Users/>{j.guards||1} guard{(j.guards||1)===1?'':'s'}</span></div><div className="marketplace-job-guidance"><small>WHY THIS MATTERS</small><strong>{guidance.title}</strong><span>{guidance.copy}</span><em>{guidance.after}</em></div><div className={`marketplace-job-capacity ${guidance.capacity.tone}`}><Users/><span>{guidance.capacity.label}</span></div><div className="job-card-action"><button onClick={()=>accept(j)}>{available.length?'Claim Mission':'Claim carefully'}</button></div></article>}):<div className="marketplace-list-state empty compact-standby"><BriefcaseBusiness/><strong>{loading?'Loading opportunities':'Marketplace is live'}</strong><small>{loading?'Checking the live marketplace.':'No verified jobs are available yet. Your guard coverage is standing by.'}</small></div>}</div></section>
 
   <aside className="right-rail command-stack">
     <section className="command-stack-panel premium-panel">
