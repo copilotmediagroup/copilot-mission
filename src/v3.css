@@ -336,3 +336,19 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
   .portal-root:has(.premium-agency) .premium-dashboard{height:auto!important;max-height:none!important;overflow:visible!important}
 }
 /* End Agency V4.1 scroll ownership */
+
+/* Agency V4.2 viewport contract — fixed navigation, one workspace scroller, independent command rail. */
+@media(min-width:1181px){
+  html:has(.portal-root .premium-agency),body:has(.portal-root .premium-agency),#root:has(.portal-root .premium-agency){height:100%!important;min-height:0!important;overflow:hidden!important}
+  body:has(.portal-root .premium-agency)>#root,#root:has(.portal-root .premium-agency)>.developer-preview-active,.developer-preview-active:has(.premium-agency),.portal-runtime-boundary:has(.premium-agency),.portal-root:has(.premium-agency),.portal-root:has(.premium-agency) .premium-agency{height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow:hidden!important}
+  .portal-root:has(.premium-agency) .premium-sidebar{position:fixed!important;top:0!important;bottom:0!important;height:100dvh!important;overflow:hidden!important;z-index:120!important}
+  .portal-root:has(.premium-agency) .premium-topbar{position:fixed!important;top:0!important;z-index:130!important}
+  .portal-root:has(.premium-agency) .premium-main{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:var(--sidebar)!important;margin-left:0!important;width:auto!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;padding:calc(var(--topbar) + 28px) 30px 48px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+  .portal-root:has(.premium-agency) .premium-dashboard{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;grid-template-columns:minmax(0,1fr) 318px!important;grid-template-areas:"command command" "map rail" "opps rail" "roster roster"!important;gap:20px!important}
+  .portal-root:has(.premium-agency) .right-rail.command-stack{position:sticky!important;top:0!important;align-self:start!important;height:calc(100dvh - var(--topbar) - 56px)!important;max-height:calc(100dvh - var(--topbar) - 56px)!important;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;padding:0 5px 12px 0!important;scrollbar-gutter:stable!important;scrollbar-width:thin!important;scrollbar-color:#b9bdc0 transparent!important}
+  .portal-root:has(.premium-agency) .right-rail.command-stack::-webkit-scrollbar{width:7px!important}.portal-root:has(.premium-agency) .right-rail.command-stack::-webkit-scrollbar-track{background:transparent!important}.portal-root:has(.premium-agency) .right-rail.command-stack::-webkit-scrollbar-thumb{background:#b9bdc0!important;border-radius:999px!important}
+  .portal-root:has(.premium-agency) .command-stack-panel{height:auto!important;min-height:max-content!important;overflow:visible!important}
+  .portal-root:has(.premium-agency) .live-map-panel{min-height:0!important}.portal-root:has(.premium-agency) .premium-map,.portal-root:has(.premium-agency) .premium-map>div:first-child{height:500px!important;min-height:500px!important}
+  .portal-root:has(.premium-agency) .opportunities{min-height:220px!important}.portal-root:has(.premium-agency) .opportunities .premium-job-list{min-height:160px!important}.portal-root:has(.premium-agency) .marketplace-roster-strip{min-height:136px!important}
+}
+/* End Agency V4.2 viewport contract */
