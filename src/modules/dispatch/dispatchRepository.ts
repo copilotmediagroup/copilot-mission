@@ -7,7 +7,7 @@ export type DispatchMission = {
   assigned_at:string; offered_at:string|null; accepted_at:string|null; declined_at:string|null; locked_at:string|null;
   title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; scheduled_for:string|null; duration_minutes:number;
   property:{name:string;address:string;latitude:number|null;longitude:number|null;photo_url:string|null};
-  client:{display_name:string}; guard:DispatchGuard|null
+  client:{display_name:string}; guard:DispatchGuard|null; slot_number?:number; required_guards?:number; multi_guard_slot?:boolean
 }
 export type DispatchEvent = { id:number; job_id:string; event_type:string; payload:Record<string,unknown>; created_at:string }
 export type AgencyDispatchWorkspace = { agency:{id:string;name:string}; guards:DispatchGuard[]; missions:DispatchMission[]; events:DispatchEvent[] }
@@ -36,8 +36,14 @@ export async function assignGuardSlot(jobId:string,slotNumber:number,guardId:str
   const {data,error}=await db().rpc('assign_guard_slot_rc1',{p_job_id:jobId,p_slot_number:slotNumber,p_guard_id:guardId});if(error)throw new Error(error.message);return data as {success:boolean;job_id:string;guard_id:string;slot_number:number;filled_slots:number;required_guards:number;status:DispatchStatus}
 }
 export async function getGuardDispatchWorkspace():Promise<GuardDispatchWorkspace>{
-  const {data,error}=await db().rpc('get_guard_dispatch_workspace_rc2'); if(error) throw new Error(error.message); return data as GuardDispatchWorkspace
+  const legacy=await db().rpc('get_guard_dispatch_workspace_rc2'); if(legacy.error) throw new Error(legacy.error.message)
+  const slot=await db().rpc('get_my_guard_slot_offer_rc1'); if(slot.error) throw new Error(slot.error.message)
+  const workspace=legacy.data as GuardDispatchWorkspace
+  return slot.data ? {...workspace,assignment:slot.data as DispatchMission} : workspace
 }
+export type GuardSlotRuntime={slot_id:string;job_id:string;agency_id:string;guard_id:string;state:MissionEngineState;checkpoint_index:number;evidence:import('../../types').PatrolEvidence[];incidents:import('../../types').IncidentRecord[];mission_started_at:string|null;route_started_at:string|null;arrived_at:string|null;completed_at:string|null;version:number;updated_at:string}
+export async function getGuardSlotRuntime(jobId:string){const {data,error}=await db().rpc('get_my_guard_slot_runtime_rc1',{p_job_id:jobId});if(error)throw new Error(error.message);return data as GuardSlotRuntime|null}
+export async function transitionGuardSlotMission(input:{jobId:string;action:string;expectedVersion?:number;checkpoint?:number;evidence?:import('../../types').PatrolEvidence[];incidents?:import('../../types').IncidentRecord[]}){const {data,error}=await db().rpc('transition_guard_slot_mission_rc1',{p_job_id:input.jobId,p_action:input.action,p_expected_version:input.expectedVersion??null,p_checkpoint:input.checkpoint??null,p_evidence:input.evidence??null,p_incidents:input.incidents??null});if(error)throw new Error(error.message);return data as GuardSlotRuntime}
 
 export type GuardPresence = { guard_id:string; agency_id:string; availability:'offline'|'available'|'reserved'|'on_mission'; online:boolean; changed?:boolean }
 export async function setGuardPresence(online:boolean):Promise<GuardPresence>{
@@ -57,6 +63,7 @@ export function subscribeToDispatch(onChange:()=>void){
     .on('postgres_changes',{event:'*',schema:'public',table:'guards'},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'mission_execution_state'},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'mission_engine_state'},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'guard_slot_mission_state'},onChange)
     .subscribe()
   return()=>{void supabase?.removeChannel(channel)}
 }

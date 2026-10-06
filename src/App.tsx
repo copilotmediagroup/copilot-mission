@@ -9,7 +9,7 @@ import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
 import AgencyMarketplace from './AgencyMarketplace'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
+import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, transitionGuardSlotMission, getGuardSlotRuntime, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
 import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-runtime/missionRuntimeRepository'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
@@ -169,8 +169,19 @@ function GuardApp({
         return
       }
 
-      const runtime = await getMissionRuntime(assignment.job_id)
-
+      const slotRuntime = assignment.multi_guard_slot ? await getGuardSlotRuntime(assignment.job_id) : null
+      const runtime: MissionRuntime | null = assignment.multi_guard_slot
+        ? slotRuntime ? {
+            jobId:assignment.job_id, assignmentId:assignment.assignment_id, state:slotRuntime.state, version:slotRuntime.version,
+            checkpointIndex:slotRuntime.checkpoint_index, evidence:slotRuntime.evidence, incidents:slotRuntime.incidents, missionStartedAt:slotRuntime.mission_started_at,
+            priority:assignment.priority,title:assignment.title,instructions:assignment.instructions,
+            client:{id:assignment.job_id,name:assignment.client.display_name},agency:{id:assignment.agency_id,name:'Assigned agency'},
+            guard:assignment.guard?{id:assignment.guard.id,name:assignment.guard.name,badgeNumber:assignment.guard.badge_number,availability:assignment.guard.availability}:null,
+            property:{id:assignment.job_id,name:assignment.property.name,address:assignment.property.address,latitude:assignment.property.latitude,longitude:assignment.property.longitude,photoUrl:assignment.property.photo_url},guardLocation:null,
+            timestamps:{createdAt:assignment.assigned_at,assignedAt:assignment.assigned_at,acceptedAt:assignment.accepted_at,routeStartedAt:slotRuntime.route_started_at,arrivedAt:slotRuntime.arrived_at,completedAt:slotRuntime.completed_at,updatedAt:slotRuntime.updated_at},timeline:[]
+          } : null
+        : await getMissionRuntime(assignment.job_id)
+      if (!runtime) { actions.hydrateLiveState('assignment'); return }
       setMissionRuntime(runtime)
 
       const startedAt = runtime.missionStartedAt
@@ -352,16 +363,19 @@ function GuardApp({
     actions.returnOnline()
   }
 
+  const liveTransition = (input:{jobId:string;action:'accept'|'decline'|'start_route'|'mark_arrived'|'save_payload'|'complete_checkpoint'|'submit';expectedVersion?:number;checkpoint?:number;evidence?:import('./types').PatrolEvidence[];incidents?:import('./types').IncidentRecord[]}) =>
+    dispatchMission?.multi_guard_slot ? transitionGuardSlotMission(input) : transitionGuardMission(input)
+
   const accept = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to accept assignment'); return }
     }
     actions.acceptAssignment()
   }
   const decline = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'decline',expectedVersion:missionRuntime?.version}); setDispatchMission(null); setMissionRuntime(null) }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'decline',expectedVersion:missionRuntime?.version}); setDispatchMission(null); setMissionRuntime(null) }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to decline assignment'); return }
     }
     actions.declineAssignment()
@@ -369,7 +383,7 @@ function GuardApp({
 
   const startRoute = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to start route'); return }
       return
     }
@@ -378,7 +392,7 @@ function GuardApp({
 
   const markArrived = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to mark arrival'); return }
       return
     }
@@ -388,20 +402,20 @@ function GuardApp({
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
     setEvidence(records)
     if (!liveDispatch || !dispatchMission) return
-    try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
+    try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch() }
   }
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
     setIncidents(records)
     if (!liveDispatch || !dispatchMission) return
-    try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch() }
+    try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch() }
   }
 
   const nextCheckpoint = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
       return
     }
@@ -410,7 +424,7 @@ function GuardApp({
 
   const submitProof = async () => {
     if (liveDispatch && dispatchMission) {
-      try { await transitionGuardMission({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission') }
       return
     }
