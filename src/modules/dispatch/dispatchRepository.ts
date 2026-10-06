@@ -27,6 +27,14 @@ export async function getAgencyDispatchWorkspace():Promise<AgencyDispatchWorkspa
 export async function assignGuard(jobId:string,guardId:string){
   const {data,error}=await db().rpc('assign_guard_rc2',{p_job_id:jobId,p_guard_id:guardId}); if(error) throw new Error(error.message); return data as {success:boolean;job_id:string;guard_id:string;status:DispatchStatus}
 }
+export type GuardStaffingSlot={id:string;slot_number:number;guard_id:string|null;status:DispatchStatus}
+export type JobStaffing={job_id:string;required_guards:number;filled_slots:number;accepted_slots:number;fully_staffed:boolean;slots:GuardStaffingSlot[]}
+export async function getJobStaffing(jobId:string):Promise<JobStaffing>{
+  const {data,error}=await db().rpc('get_job_staffing_rc1',{p_job_id:jobId});if(error)throw new Error(error.message);return data as JobStaffing
+}
+export async function assignGuardSlot(jobId:string,slotNumber:number,guardId:string){
+  const {data,error}=await db().rpc('assign_guard_slot_rc1',{p_job_id:jobId,p_slot_number:slotNumber,p_guard_id:guardId});if(error)throw new Error(error.message);return data as {success:boolean;job_id:string;guard_id:string;slot_number:number;filled_slots:number;required_guards:number;status:DispatchStatus}
+}
 export async function getGuardDispatchWorkspace():Promise<GuardDispatchWorkspace>{
   const {data,error}=await db().rpc('get_guard_dispatch_workspace_rc2'); if(error) throw new Error(error.message); return data as GuardDispatchWorkspace
 }
@@ -43,6 +51,7 @@ export function subscribeToDispatch(onChange:()=>void){
   if(!supabase)return()=>undefined
   const channel=supabase.channel(`dispatch-rc2-${crypto.randomUUID()}`)
     .on('postgres_changes',{event:'*',schema:'public',table:'job_assignments'},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'job_guard_slots'},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'marketplace_jobs'},onChange)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mission_events'},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'guards'},onChange)

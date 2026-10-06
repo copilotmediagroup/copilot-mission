@@ -1,0 +1,36 @@
+-- Agency may fill explicit staffing slots for multi-guard jobs while legacy single-guard missions keep assign_guard_rc2.
+create or replace function public.assign_guard_slot_rc1(p_job_id uuid,p_slot_number integer,p_guard_id uuid)
+returns jsonb language plpgsql security definer set search_path=public set row_security=off as $$
+declare v_user uuid:=auth.uid(); v_agency uuid; v_astatus public.agency_status; v_job public.marketplace_jobs; v_guard public.guards; v_slot public.job_guard_slots; v_conflict uuid; v_filled integer; v_required integer;
+begin
+ if v_user is null then raise exception 'SESSION_REQUIRED' using errcode='42501'; end if;
+ select agency_id,agency_status into v_agency,v_astatus from public.resolve_my_agency_workspace();
+ if v_agency is null or v_astatus<>'approved' then raise exception 'AGENCY_NOT_APPROVED' using errcode='42501'; end if;
+ select * into v_job from public.marketplace_jobs where id=p_job_id for update;
+ if v_job.id is null or v_job.accepted_agency_id is distinct from v_agency then raise exception 'MISSION_NOT_OWNED_BY_AGENCY' using errcode='42501'; end if;
+ if v_job.payment_status not in ('authorized','captured') or v_job.status not in ('accepted','assigned') then raise exception 'MISSION_NOT_ASSIGNABLE' using errcode='22023'; end if;
+ v_required:=greatest(1,least(20,coalesce(v_job.required_guards,1)));
+ if v_required<=1 then raise exception 'USE_SINGLE_GUARD_ASSIGNMENT' using errcode='22023'; end if;
+ if p_slot_number<1 or p_slot_number>v_required then raise exception 'INVALID_GUARD_SLOT' using errcode='22023'; end if;
+ perform public.ensure_job_guard_slots(p_job_id);
+ select * into v_slot from public.job_guard_slots where job_id=p_job_id and slot_number=p_slot_number for update;
+ if v_slot.guard_id is not null or v_slot.status<>'awaiting_guard' then raise exception 'GUARD_SLOT_ALREADY_FILLED' using errcode='22023'; end if;
+ select * into v_guard from public.guards where id=p_guard_id and agency_id=v_agency for update;
+ if v_guard.id is null then raise exception 'GUARD_NOT_IN_AGENCY' using errcode='42501'; end if;
+ if v_guard.availability<>'available' then raise exception 'GUARD_NOT_AVAILABLE' using errcode='22023'; end if;
+ if not exists(select 1 from public.guard_credentials gc where gc.guard_id=p_guard_id and gc.credential_type='security_officer' and gc.verification_status='verified' and (gc.expires_on is null or gc.expires_on>=current_date)) then raise exception 'GUARD_SECURITY_CREDENTIAL_NOT_VERIFIED' using errcode='22023'; end if;
+ if v_job.service_type='armed_guard' and not exists(select 1 from public.guard_credentials gc where gc.guard_id=p_guard_id and gc.credential_type='armed_qualification' and gc.verification_status='verified' and (gc.expires_on is null or gc.expires_on>=current_date)) then raise exception 'GUARD_ARMED_CREDENTIAL_NOT_VERIFIED' using errcode='22023'; end if;
+ if exists(select 1 from public.job_guard_slots where job_id=p_job_id and guard_id=p_guard_id and status<>'cancelled') then raise exception 'GUARD_ALREADY_ASSIGNED_TO_JOB' using errcode='22023'; end if;
+ select ja.job_id into v_conflict from public.job_assignments ja join public.marketplace_jobs mj on mj.id=ja.job_id where ja.guard_id=p_guard_id and ja.job_id<>p_job_id and ja.status in ('offered','accepted','en_route','active') and mj.status in ('assigned','active') limit 1;
+ if v_conflict is null then select s.job_id into v_conflict from public.job_guard_slots s join public.marketplace_jobs mj on mj.id=s.job_id where s.guard_id=p_guard_id and s.job_id<>p_job_id and s.status in ('offered','accepted','en_route','arrived','active') and mj.status in ('assigned','active') limit 1; end if;
+ if v_conflict is not null then raise exception 'GUARD_ALREADY_COMMITTED' using errcode='22023'; end if;
+ update public.job_guard_slots set guard_id=p_guard_id,status='offered',updated_at=now() where id=v_slot.id and guard_id is null and status='awaiting_guard';
+ if not found then raise exception 'GUARD_SLOT_ALREADY_FILLED' using errcode='22023'; end if;
+ update public.guards set availability='reserved' where id=p_guard_id and availability='available'; if not found then raise exception 'GUARD_NOT_AVAILABLE' using errcode='22023'; end if;
+ update public.marketplace_jobs set status='assigned',updated_at=now() where id=p_job_id;
+ select count(*) into v_filled from public.job_guard_slots where job_id=p_job_id and guard_id is not null and status<>'cancelled';
+ insert into public.mission_events(job_id,actor_user_id,event_type,payload) values(p_job_id,v_user,'guard_staffing_slot_offered',jsonb_build_object('agency_id',v_agency,'guard_id',p_guard_id,'slot_number',p_slot_number,'filled_slots',v_filled,'required_guards',v_required));
+ return jsonb_build_object('success',true,'job_id',p_job_id,'guard_id',p_guard_id,'slot_number',p_slot_number,'filled_slots',v_filled,'required_guards',v_required,'status','offered');
+end $$;
+revoke all on function public.assign_guard_slot_rc1(uuid,integer,uuid) from public,anon;
+grant execute on function public.assign_guard_slot_rc1(uuid,integer,uuid) to authenticated,service_role;
