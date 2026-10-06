@@ -5050,3 +5050,35 @@ input:disabled, select:disabled{
 .premium-agency .command-empty{border-color:rgba(255,255,255,.12)!important;background:#0d0f11!important;color:#aaa!important}.premium-agency .command-empty svg{color:#fff!important}
 .premium-agency .foundation-status span,.premium-agency .backend-mode{filter:grayscale(1)!important}
 /* status colors remain only where semantically necessary: green availability, amber priority, red emergency */
+
+/* BLACK + WHITE PREMIUM: dark sidebar/nav selections must always have readable white copy */
+.premium-agency .premium-sidebar button.active,
+.premium-agency .premium-sidebar button.active *,
+.premium-agency .premium-sidebar .active,
+.premium-agency .premium-sidebar .active *,
+.premium-agency .agency-sidebar button.active,
+.premium-agency .agency-sidebar button.active *,
+.premium-agency .agency-sidebar .active,
+.premium-agency .agency-sidebar .active *,
+.premium-agency aside nav button.active,
+.premium-agency aside nav button.active *{color:#fff!important}
+.premium-agency .premium-sidebar button.active small,
+.premium-agency .agency-sidebar button.active small,
+.premium-agency aside nav button.active small{color:rgba(255,255,255,.72)!important;opacity:1!important}
+/* Dark action boxes throughout Agency: force all nested labels/icons to white */
+.premium-agency .agency-command-actions button,
+.premium-agency .agency-command-actions button *,
+.premium-agency .operations-command-actions button,
+.premium-agency .operations-command-actions button *,
+.premium-agency .market-command-actions button,
+.premium-agency .market-command-actions button *,
+.premium-agency .quick-actions button,
+.premium-agency .quick-actions button *,
+.premium-agency .operation-footer button,
+.premium-agency .operation-footer button *,
+.premium-agency .client-command-actions button,
+.premium-agency .client-command-actions button *{color:#fff!important;opacity:1!important}
+.premium-agency .agency-command-actions button.primary,
+.premium-agency .agency-command-actions button.primary *,
+.premium-agency .market-command-actions button.primary,
+.premium-agency .market-command-actions button.primary *{color:#0a0b0c!important}
