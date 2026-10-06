@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { AlertTriangle, Archive, Camera, Bell, Building2, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, Home, ImageOff, LoaderCircle, LocateFixed, LogOut, MapPin, Menu, Pencil, Plus, Radio, RefreshCw, Search, Shield, ShieldAlert, Sparkles, Trash2, X, FileText } from 'lucide-react'
 import { useAuth } from './modules/auth/AuthProvider'
 import { archiveClientProperty, createClientJob, createClientProperty, deleteClientProperty, getClientWorkspace, subscribeToClientWorkspace, updateClientProperty, workspaceErrorMessage, type ClientJob, type ClientPaymentProfile, type ClientProperty } from './modules/client/clientRepository'
-import { authorizeMaverickJobPayment, getMaverickPaymentConfig } from './modules/payments/maverickPaymentRepository'
+import { authorizeMaverickJobPayment, getMaverickPaymentConfig, saveMaverickPaymentMethod } from './modules/payments/maverickPaymentRepository'
 import { NmiPayments } from '@nmipayments/nmi-pay-react'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
 import ClientReports from './ClientReports'
@@ -10,7 +10,7 @@ import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrac
 import ClientLiveTracking from './ClientLiveTracking'
 import { resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 
-type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports'
+type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing'
 type RequestMode = 'immediate' | 'scheduled' | 'vacation'
 type Priority = 'standard' | 'priority' | 'emergency'
 
@@ -81,6 +81,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
   const navigate = (next: Section) => { setSection(next); setMobileNav(false) }
   const openRequest = () => {
     if (!properties.length) { setPropertyOpen(true); setNotice('Add a property before requesting security.'); return }
+    if (!isPreview && !paymentProfile?.maverick_customer_vault_id) { setSection('billing'); setNotice('Add a payment method before requesting security.'); return }
     setRequestOpen(true)
   }
 
@@ -93,7 +94,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
         <NavButton active={section==='overview'} icon={<Home/>} label="Overview" onClick={()=>navigate('overview')}/>
         <NavButton active={section==='properties'} icon={<Building2/>} label="Properties" count={properties.length} onClick={()=>navigate('properties')}/>
         <NavButton active={section==='request'} icon={<ShieldAlert/>} label="Request Security" onClick={()=>{navigate('request'); openRequest()}}/>
-        <NavButton active={section==='activity'} icon={<Radio/>} label="Active Requests" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/>
+        <NavButton active={section==='activity'} icon={<Radio/>} label="Active Requests" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/><NavButton active={section==='billing'} icon={<Shield/>} label="Billing" onClick={()=>navigate('billing')}/>
       </nav>
       <div className="client-sidebar-bottom">
         <div className="client-secure"><Shield/><span><b>Secure workspace</b><small>Session protected</small></span></div>
@@ -105,7 +106,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
     <main className="client-main">
       <header className="client-topbar">
         <button className="client-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
-        <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : 'Request security'}</h1></div>
+        <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : section === 'billing' ? 'Billing & payment' : 'Request security'}</h1></div>
         <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>{setSection('activity');setNotice('Active requests and alerts opened.')}} aria-label="Open client alerts"><Bell/></button><div className="client-user"><span>{initials(auth.profile?.full_name)}</span><div><b>{auth.profile?.full_name || 'Client'}</b><small>Approved account</small></div></div></div>
       </header>
 
@@ -116,6 +117,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
           {section === 'reports' && <ClientReports preview={isPreview}/>}
+          {section === 'billing' && <BillingView paymentProfile={paymentProfile} onSaved={load}/>}
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
         </>}
       </div>
@@ -188,6 +190,13 @@ function PropertyModal({ preview=false, clientId, property, onClose, onSaved }: 
 function ConfirmPropertyAction({action,onClose,onConfirmed}:{action:{type:'archive'|'delete';property:ClientProperty};onClose:()=>void;onConfirmed:()=>void}) {
   const archive=action.type==='archive'
   return <Modal title={archive?'Archive property':'Delete property'} eyebrow="PROPERTY MANAGEMENT" onClose={onClose}><div className="property-confirm"><div className={archive?'archive':'delete'}>{archive?<Archive/>:<Trash2/>}</div><h3>{archive?'Remove this property from active use?':'Permanently delete this property?'}</h3><p>{archive?'The property will disappear from new request selection while all mission history remains protected.':'Permanent deletion is allowed only when the property has no mission history. Properties tied to missions must be archived instead.'}</p><strong>{action.property.name}</strong><span>{action.property.address}</span><div className="client-form-actions"><button onClick={onClose}>Cancel</button><button className={archive?'primary':'danger-confirm'} onClick={onConfirmed}>{archive?'Archive property':'Delete permanently'}</button></div></div></Modal>
+}
+
+function BillingView({paymentProfile,onSaved}:{paymentProfile:ClientPaymentProfile|null;onSaved:()=>void}) {
+  const saved=Boolean(paymentProfile?.maverick_customer_vault_id),[publicKey,setPublicKey]=useState(''),[token,setToken]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+  useEffect(()=>{void getMaverickPaymentConfig().then(c=>setPublicKey(String(c.publicKey||'').trim())).catch(e=>setMessage(e instanceof Error?e.message:'Payment form unavailable.'))},[])
+  const save=async()=>{if(!token)return;setBusy(true);setMessage('Saving payment method…');try{await saveMaverickPaymentMethod(token);setToken('');setMessage('Payment method saved securely.');await onSaved()}catch(e){setMessage(e instanceof Error?e.message:'Unable to save payment method.')}finally{setBusy(false)}}
+  return <section className="client-section"><div className="client-panel billing-hero"><span className="client-eyebrow"><Shield/>SECURE BILLING</span><h2>Payment method</h2><p>Add your card once. Future security requests automatically use your saved payment method.</p>{saved&&<div className="billing-saved-card"><div><small>DEFAULT PAYMENT METHOD</small><strong>{paymentProfile?.maverick_payment_brand||'Card'} •••• {paymentProfile?.maverick_payment_last4||'••••'}</strong><span>Stored securely with the processor.</span></div><CheckCircle2/></div>}<div className="billing-card-entry"><div><strong>{saved?'Replace payment method':'Add payment method'}</strong><span>{saved?'Enter a new card to replace the default.':'This becomes your default card for security requests.'}</span></div>{publicKey?<NmiPayments tokenizationKey={publicKey} paymentMethods={['card']} layout="singleLine" appearance={{theme:'dark',layoutSpacing:'compact',textSize:'default',radiusSize:'larger'}} onChange={e=>setToken(e.complete?e.token:'')}/>:<div className="payment-component-loading">Loading secure card form…</div>}<button className="primary" type="button" disabled={!token||busy} onClick={()=>void save()}>{busy?'Saving…':saved?'Replace saved card':'Save card'}</button>{message&&<small>{message}</small>}</div></div></section>
 }
 
 function RequestModal({ preview=false, clientId, properties, paymentProfile, onClose, onCreated }: { preview?:boolean; clientId:string; properties:ClientProperty[]; paymentProfile:ClientPaymentProfile|null; onClose:()=>void; onCreated:()=>void }) {

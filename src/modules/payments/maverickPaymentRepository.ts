@@ -93,3 +93,10 @@ export async function loadCollectJs(publicKey: string, collectJsUrl = 'https://s
   })
   await waitForCollectJs()
 }
+
+export async function saveMaverickPaymentMethod(paymentToken: string) {
+  const { data, error } = await db().functions.invoke('maverick-billing', { body: { paymentToken } })
+  if (error) throw new Error(error.message)
+  if (!data?.saved) throw new Error(data?.message || 'Unable to save payment method.')
+  return data as { saved: boolean; last4: string | null; brand: string | null }
+}
