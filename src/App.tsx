@@ -8,6 +8,7 @@ import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
 import AgencyMarketplace from './AgencyMarketplace'
+import AgencyV4 from './v4/AgencyV4'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
 import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, transitionGuardSlotMission, getGuardSlotRuntime, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
 import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-runtime/missionRuntimeRepository'
@@ -59,7 +60,7 @@ function AppShell() {
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={developerMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
-        activeRole === 'agency_admin' ? <div className="portal-root"><AgencyMarketplace developerMode={developerMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div> :
+        activeRole === 'agency_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <AgencyV4 /> : <div className="portal-root"><AgencyMarketplace developerMode={developerMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div>) :
         activeRole === 'platform_admin' ? <PlatformMissionControl /> :
         <ClientPortal developerMode={developerMode} accessMode={developerAccessMode} />}
     </div>
