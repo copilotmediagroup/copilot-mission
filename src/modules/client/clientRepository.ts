@@ -76,7 +76,7 @@ export async function getClientJobEstimate(input:{propertyId:string;serviceType:
   return data as JobEstimate
 }
 
-export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number;serviceType:string;requestedStart:string;contactPhone:string;accessNotes:string}) {
+export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number;serviceType:string;requestedStart:string;contactPhone:string;accessNotes:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null}) {
   const db=requireSupabase()
   const {data,error}=await db.rpc('create_marketplace_job_v2',{
     p_property_id:input.propertyId,
@@ -89,6 +89,9 @@ export async function createClientJob(input:{clientId:string;propertyId:string;t
     p_requested_start:input.requestedStart,
     p_client_contact_phone:input.contactPhone || null,
     p_access_notes:input.accessNotes || null,
+    p_vacation_start_date:input.vacationStartDate || null,
+    p_vacation_end_date:input.vacationEndDate || null,
+    p_vacation_checks_per_day:input.vacationChecksPerDay || null,
   })
   if(error) throw error
   return {id:data as string}

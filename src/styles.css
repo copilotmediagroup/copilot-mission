@@ -4954,3 +4954,12 @@ input:disabled, select:disabled{
 /* Client billing */
 .billing-hero{max-width:860px;padding:28px}.billing-hero h2{margin:8px 0 6px;color:#fff;font-size:28px}.billing-hero>p{color:#8fa4ba;line-height:1.6}.billing-saved-card{margin:20px 0;padding:20px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(48,238,166,.24);border-radius:20px;background:linear-gradient(135deg,rgba(12,56,45,.52),rgba(8,24,35,.92))}.billing-saved-card small{display:block;color:#52e9ae;font-size:9px;font-weight:1000;letter-spacing:.14em}.billing-saved-card strong{display:block;margin:7px 0;color:#fff;font-size:20px;text-transform:capitalize}.billing-saved-card span{color:#8298ad;font-size:11px}.billing-saved-card svg{color:#4af0ae}.billing-card-entry{margin-top:18px;padding:20px;border:1px solid rgba(92,174,255,.2);border-radius:20px;background:#08131f;display:grid;gap:14px}.billing-card-entry>div:first-child strong{display:block;color:#fff}.billing-card-entry>div:first-child span{display:block;margin-top:4px;color:#8095aa;font-size:11px}.billing-card-entry button.primary{justify-self:start;min-width:160px}.billing-card-entry>small{color:#8ca4ba}@media(max-width:760px){.billing-hero{padding:18px}.billing-saved-card{padding:16px}}
 .billing-delete-card{margin-top:14px;display:inline-flex;align-items:center;gap:7px;width:max-content;border:1px solid rgba(255,95,95,.28)!important;background:rgba(255,70,70,.07)!important;color:#ff8b8b!important;padding:8px 11px!important;border-radius:10px!important;font-size:11px!important;font-weight:900!important}.billing-delete-card svg{width:14px;height:14px}.billing-delete-card:hover{background:rgba(255,70,70,.14)!important;border-color:rgba(255,95,95,.5)!important}
+
+/* Vacation Watch package */
+.vacation-package{display:grid;gap:14px;padding:16px;border:1px solid rgba(92,174,255,.18);border-radius:16px;background:rgba(7,18,30,.65)}
+.vacation-date-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vacation-price-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.vacation-price-summary span{padding:12px;border:1px solid rgba(92,174,255,.14);border-radius:12px;background:#07131f}
+.vacation-price-summary small{display:block;color:#71879e;font-size:8px;font-weight:900;letter-spacing:.1em}
+.vacation-price-summary strong{display:block;margin-top:5px;color:#fff;font-size:17px}
+@media(max-width:760px){.vacation-date-grid{grid-template-columns:1fr}.vacation-price-summary{grid-template-columns:1fr 1fr}}
