@@ -220,3 +220,45 @@
 
 /* Legacy activity cards use their actual JobCard class names. */
 .client-shell .client-job-card .job-status-line>small{color:#747b82!important}
+
+/* Client Activity V3 — final legacy-blue removal */
+.client-shell .client-job-stage{background:#f6f7f6!important;border:1px solid #e1e3e4!important;color:#111315!important;border-radius:15px!important}.client-shell .client-job-stage small{color:#737980!important}.client-shell .client-job-stage strong{color:#111315!important}.client-shell .client-job-stage span{color:#747b82!important}.client-shell .client-job-stage>b{background:#eceeed!important;border:1px solid #d9dcdd!important;color:#454a4e!important;box-shadow:none!important}
+.client-shell .client-job-track{gap:6px!important}.client-shell .client-job-track span{border-top:3px solid #dfe2e3!important;color:#858b90!important}.client-shell .client-job-track span.active{border-top-color:#111315!important;color:#111315!important}.client-shell .client-job-track span:first-child.active{border-top-color:#111315!important;color:#111315!important}
+.client-shell .job-status-line small{color:#7b8186!important}.client-shell .client-job-card>p svg,.client-shell .job-meta svg{color:#777d82!important}.client-shell .job-meta{border-top:1px solid #e4e6e7!important;color:#777d82!important}.client-shell .client-job-card .job-status.cancelled{background:#f0f1f1!important;border-color:#d8dbdc!important;color:#555b60!important}.client-shell .client-job-card .job-status.completed{background:#eef8f2!important;border-color:#cde7d7!important;color:#16643d!important}
+
+.client-shell .client-job-card{padding:20px 22px!important}.client-shell .client-job-stage{margin-top:18px!important;padding:14px 16px!important}.client-shell .client-job-track{margin-top:10px!important}.client-shell .job-meta{margin-top:16px!important;padding-top:14px!important}
+
+/* Activity page uses the same quiet white-card hierarchy as Properties and Reports. */
+.client-shell .client-job-card h3{font-size:17px!important;letter-spacing:-.02em!important}.client-shell .client-job-stage strong{font-size:14px!important}.client-shell .client-job-stage small{letter-spacing:.12em!important}
+
+@media(max-width:760px){.client-shell .client-job-card{padding:16px!important}.client-shell .client-job-stage{padding:12px!important}.client-shell .client-job-track span{font-size:7px!important}}
+
+/* Client Activity V3 finishing details */
+.client-shell .client-job-stage.payment-review{background:#fff8ed!important;border-color:#ead8b8!important}
+.client-shell .client-job-card{overflow:hidden!important}
+.client-shell .client-job-card .job-status-line{align-items:center!important}
+.client-shell .client-job-card>p{color:#6f757a!important}
+.client-shell .client-job-card .job-meta span{color:#777d82!important}
+.client-shell .client-job-card .client-job-stage{box-shadow:none!important;transition:border-color .18s ease,background .18s ease}
+.client-shell .client-job-stage>div{min-width:0!important}
+.client-shell .client-job-stage span{line-height:1.5!important}
+.client-shell .client-job-stage>b{min-width:42px!important;text-align:center!important;font-size:11px!important;font-weight:900!important}
+.client-shell .client-job-card .client-job-track{background:transparent!important;border:0!important;padding-top:0!important}
+.client-shell .client-job-track span{font-weight:800!important;background:transparent!important}
+.client-shell .client-job-track span:before{background:#111315!important}
+.client-shell .client-job-track span:not(.active):before{background:#dfe2e3!important}
+/* End Client Activity V3 */
+
+/* Activity progress: override legacy blue active track */
+.client-shell .client-job-track span.active{border-color:#111315!important;color:#111315!important}.client-shell .client-job-track span:not(.active){border-color:#dfe2e3!important;color:#858b90!important}
+
+.client-shell .client-job-track span.active:before{background:#111315!important;box-shadow:none!important}.client-shell .client-job-track span:not(.active):before{background:#dfe2e3!important;box-shadow:none!important}
+
+/* Client guidance strip V3, when present */
+.client-shell .client-command-strip{border-color:#dfe2e3!important;background:#fff!important;box-shadow:0 14px 38px rgba(20,25,29,.055)!important}.client-shell .client-command-icon{background:#f0f1f1!important;color:#111315!important}.client-shell .client-command-copy small{color:#747b82!important}.client-shell .client-command-copy strong{color:#111315!important}.client-shell .client-command-copy span{color:#747b82!important}.client-shell .client-command-actions button{border-color:#dfe2e3!important;background:#f4f5f4!important;color:#111315!important}.client-shell .client-command-actions button.primary{background:#111315!important;border-color:#111315!important;color:#fff!important}
+
+.client-shell .client-command-strip.setup,.client-shell .client-command-strip.live,.client-shell .client-command-strip.active,.client-shell .client-command-strip.report{border-color:#dfe2e3!important;background:#fff!important}.client-shell .client-command-strip.live .client-command-icon,.client-shell .client-command-strip.setup .client-command-icon{background:#f0f1f1!important;color:#111315!important}
+
+.client-shell .client-job-track span{border-top:0!important}.client-shell .client-job-track span:before{height:3px!important;border-radius:999px!important}
+.client-shell .client-job-stage small{color:#737980!important}
+/* Client Activity V3 migration complete. */
