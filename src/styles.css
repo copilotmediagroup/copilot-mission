@@ -4943,3 +4943,10 @@ input:disabled, select:disabled{
 
 /* Maverick card-on-file payment fields */
 .maverick-card-grid iframe{width:100%!important;min-height:36px!important;border:0!important;display:block!important;background:transparent!important}.saved-card-row{border:1px solid rgba(38,255,166,.22);background:rgba(22,163,109,.12);border-radius:16px;padding:12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}.saved-card-row svg{color:#35f3a6}.saved-card-row button{background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important}.saved-card-row b{color:#fff;display:block}.saved-card-row small{display:block;color:rgba(232,244,255,.62)}@media(max-width:760px){.saved-card-row{grid-template-columns:1fr}.saved-card-row svg{display:none}}
+
+/* NMI Payment Component — match Co Pilot premium dark checkout */
+.nmi-payment-component{position:relative;overflow:hidden;border:1px solid rgba(92,174,255,.24);border-radius:18px;background:linear-gradient(145deg,rgba(7,17,29,.98),rgba(8,25,41,.98));padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 14px 34px rgba(0,0,0,.22)}
+.nmi-payment-component:before{content:'SECURE CARD';display:block;margin:0 0 10px;color:#67b5ff;font-size:9px;font-weight:1000;letter-spacing:.16em}
+.nmi-payment-component:after{content:'Encrypted payment • Card details never stored by Co Pilot';display:block;margin-top:10px;color:#71879e;font-size:9px;font-weight:700;letter-spacing:.02em}
+.payment-component-loading{min-height:92px;display:grid;place-items:center;border:1px solid rgba(92,174,255,.18);border-radius:16px;background:#07111d;color:#8fa8c0;font-size:11px;font-weight:800}
+@media(max-width:760px){.nmi-payment-component{padding:11px;border-radius:15px}.nmi-payment-component:after{line-height:1.45}}
