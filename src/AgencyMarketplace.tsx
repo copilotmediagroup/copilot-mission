@@ -647,9 +647,10 @@ function Marketplace({jobs,filtered,filter,setFilter,accept,available,allGuards,
  const marketStandby=!loading&&jobs.length===0&&liveActiveMissions.length===0
  const showStandbyOverlay=marketStandby&&!dismissStandbyOverlay
  useEffect(()=>{if(!marketStandby)setDismissStandbyOverlay(false)},[marketStandby])
+ const onlineGuardCount=visibleGuards.length
  const commandTone=capacityNeedsAssignment?'urgent':available.length?'ready':'blocked'
- const commandTitle=capacityNeedsAssignment?'Dispatch needs assignment':available.length?'Marketplace standby — ready':'Marketplace blocked'
- const commandCopy=capacityNeedsAssignment?String(capacityNeedsAssignment)+' claimed mission'+(capacityNeedsAssignment===1?'':'s')+' need guard assignment before new claims.':available.length?'No open jobs right now. Your guard capacity is online and the marketplace feed is listening in real time.':'No available guards are online. Activate guards before claiming work.'
+ const commandTitle=capacityNeedsAssignment?'Dispatch needs assignment':available.length?'Marketplace standby — ready':onlineGuardCount?'Guard availability required':'Marketplace blocked'
+ const commandCopy=capacityNeedsAssignment?String(capacityNeedsAssignment)+' claimed mission'+(capacityNeedsAssignment===1?'':'s')+' need guard assignment before new claims.':available.length?'No open jobs right now. Your guard capacity is online and the marketplace feed is listening in real time.':onlineGuardCount?String(onlineGuardCount)+' guard'+(onlineGuardCount===1?' is':'s are')+' online, but none are marked Available. Set a guard to Available to accept marketplace work.':'No guards are online. Bring a guard online and mark them Available before claiming work.'
  const featuredGuard=available[0]??visibleGuards[0]??null
  const featuredGuardName=guardDisplayName(featuredGuard)
  const featuredGuardStatus=featuredGuard?featuredGuard.status.replace('-',' ')+' · '+featuredGuard.distance+' mi':'Activate a guard to unlock the market.'

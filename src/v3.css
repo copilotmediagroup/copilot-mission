@@ -362,3 +362,9 @@ html:has(.premium-agency),body:has(.premium-agency),#root:has(.premium-agency){h
   .portal-root:has(.premium-agency) .live-map-panel{grid-column:1!important;grid-row:2!important;min-width:0!important}
 }
 /* End Agency V4.3 grid containment */
+
+/* Agency V4.4 — roster belongs to the left work column; command rail remains independent. */
+@media(min-width:1181px){
+  .portal-root:has(.premium-agency) .marketplace-roster-strip{grid-column:1!important;grid-row:4!important;width:100%!important;max-width:none!important}
+}
+/* End Agency V4.4 */
