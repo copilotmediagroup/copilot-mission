@@ -76,7 +76,10 @@ export async function loadCollectJs(publicKey: string, collectJsUrl = 'https://s
   if (!publicKey) throw new Error('Maverick public key is not configured.')
   if ((window as any).CollectJS?.configure) return
   const existing = document.querySelector('script[data-maverick-collect-js="true"]') as HTMLScriptElement | null
-  if (existing) { await waitForCollectJs(); return }
+  if (existing) {
+    // A failed activation leaves a dead tag behind. Remove it so a corrected key can retry.
+    existing.remove()
+  }
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = collectJsUrl
