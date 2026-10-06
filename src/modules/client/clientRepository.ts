@@ -68,15 +68,15 @@ export async function createClientProperty(input:{clientId:string;name:string;ad
   return data
 }
 
-export type JobEstimate={service_type:string;label:string;request_mode:string;duration_minutes:number;vacation_start_date?:string|null;vacation_end_date?:string|null;vacation_checks_per_day?:number|null;vacation_total_visits?:number|null;subtotal_cents:number;priority_surcharge_cents:number;after_hours_surcharge_cents:number;total_cents:number;platform_fee_cents:number;agency_payout_cents:number}
-export async function getClientJobEstimate(input:{propertyId:string;serviceType:string;priority:'standard'|'priority'|'emergency';durationMinutes:number;scheduledFor:string|null;requestedStart?:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null}){
+export type JobEstimate={service_type:string;label:string;request_mode:string;duration_minutes:number;guard_count:number;vacation_start_date?:string|null;vacation_end_date?:string|null;vacation_checks_per_day?:number|null;vacation_total_visits?:number|null;subtotal_cents:number;priority_surcharge_cents:number;after_hours_surcharge_cents:number;total_cents:number;platform_fee_cents:number;agency_payout_cents:number}
+export async function getClientJobEstimate(input:{propertyId:string;serviceType:string;priority:'standard'|'priority'|'emergency';durationMinutes:number;scheduledFor:string|null;requestedStart?:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null;guardCount?:number}){
   const db=requireSupabase()
-  const {data,error}=await db.rpc('get_client_job_estimate',{p_property_id:input.propertyId,p_service_type:input.serviceType,p_priority:input.priority,p_duration_minutes:input.durationMinutes,p_scheduled_for:input.scheduledFor?new Date(input.scheduledFor).toISOString():null,p_requested_start:input.requestedStart||'scheduled',p_vacation_start_date:input.vacationStartDate||null,p_vacation_end_date:input.vacationEndDate||null,p_vacation_checks_per_day:input.vacationChecksPerDay||null})
+  const {data,error}=await db.rpc('get_client_job_estimate',{p_property_id:input.propertyId,p_service_type:input.serviceType,p_priority:input.priority,p_duration_minutes:input.durationMinutes,p_scheduled_for:input.scheduledFor?new Date(input.scheduledFor).toISOString():null,p_requested_start:input.requestedStart||'scheduled',p_vacation_start_date:input.vacationStartDate||null,p_vacation_end_date:input.vacationEndDate||null,p_vacation_checks_per_day:input.vacationChecksPerDay||null,p_guard_count:input.guardCount||1})
   if(error) throw error
   return data as JobEstimate
 }
 
-export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number;serviceType:string;requestedStart:string;contactPhone:string;accessNotes:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null}) {
+export async function createClientJob(input:{clientId:string;propertyId:string;title:string;instructions:string;priority:'standard'|'priority'|'emergency';scheduledFor:string|null;durationMinutes:number;serviceType:string;requestedStart:string;contactPhone:string;accessNotes:string;vacationStartDate?:string|null;vacationEndDate?:string|null;vacationChecksPerDay?:number|null;guardCount?:number}) {
   const db=requireSupabase()
   const {data,error}=await db.rpc('create_marketplace_job_v2',{
     p_property_id:input.propertyId,
@@ -92,6 +92,7 @@ export async function createClientJob(input:{clientId:string;propertyId:string;t
     p_vacation_start_date:input.vacationStartDate || null,
     p_vacation_end_date:input.vacationEndDate || null,
     p_vacation_checks_per_day:input.vacationChecksPerDay || null,
+    p_guard_count:input.guardCount || 1,
   })
   if(error) throw error
   return {id:data as string}
