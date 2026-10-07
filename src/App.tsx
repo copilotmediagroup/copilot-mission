@@ -70,7 +70,7 @@ function AppShell() {
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerGuardId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.guard:undefined} onEnableDeveloperMode={enableDeveloperMode} /> :
         activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} developerAgencyId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.agency:undefined} /> :
-        activeRole === 'platform_admin' ? <OwnerV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
+        activeRole === 'platform_admin' ? <OwnerV4 /> :
         <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerClientId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.client:undefined} />}
     </div>
     {!adminDeveloperMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
