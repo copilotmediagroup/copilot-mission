@@ -5108,8 +5108,10 @@ input:disabled, select:disabled{
 
 /* Auth hero — generated Co Pilot identity artwork */
 .auth-page{grid-template-columns:minmax(0,1.6fr) minmax(420px,.85fr);background:#fff}
-.auth-visual.auth-visual-art{position:relative;display:block;padding:0;background:#fff;overflow:hidden;min-height:100dvh;border-right:1px solid #e8e8e8}
-.auth-hero-art{position:absolute;inset:0 auto 0 0;width:169.5%;height:100%;max-width:none;object-fit:cover;object-position:left center;display:block}
-.auth-panel{background:#fff;color:#111}
-@media(max-width:1100px) and (min-width:851px){.auth-page{grid-template-columns:minmax(0,1.35fr) minmax(400px,.85fr)}.auth-hero-art{width:169.5%;object-position:left center}}
+.auth-visual.auth-visual-art{position:relative;display:flex;flex-direction:column;padding:0;background:#fff;overflow:hidden;min-height:100dvh;border-right:1px solid #e8e8e8}
+.auth-hero-media{position:absolute;inset:0 0 32% 0;overflow:hidden;background:#fff}
+.auth-hero-art{width:100%;height:100%;max-width:none;object-fit:cover;object-position:center center;display:block}
+.auth-hero-brand{position:absolute;z-index:3;left:7.5%;top:4.5%;display:flex;align-items:center;gap:14px;color:#090909}.auth-brand-shield{width:48px;height:48px;border:2px solid #111;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.94)}.auth-hero-brand strong{display:block;font-size:20px;line-height:1;font-weight:900;letter-spacing:.06em}.auth-hero-brand small{display:block;margin-top:7px;font-size:7px;font-weight:900;letter-spacing:.34em}
+.auth-hero-copy{position:absolute;z-index:4;left:7.5%;right:5%;bottom:4.5%;height:29%;display:flex;flex-direction:column;justify-content:flex-end;color:#090909;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 10%,#fff 100%)}.auth-hero-eyebrow{display:none}.auth-hero-copy h1{margin:0;font-size:clamp(42px,3.45vw,61px);line-height:.92;letter-spacing:-.055em;font-weight:900}.auth-hero-copy p{margin:18px 0 0;color:#707070;font-size:14px;line-height:1.45}.auth-hero-trust{display:flex;align-items:center;gap:18px;margin-top:20px;font-size:8px;font-weight:900;letter-spacing:.3em}.auth-hero-trust i{display:block;width:58px;height:1px;background:#111}.auth-hero-trust b{font-weight:700}.auth-panel{background:#fff;color:#111}
+@media(max-width:1100px) and (min-width:851px){.auth-page{grid-template-columns:minmax(0,1.35fr) minmax(400px,.85fr)}.auth-hero-media{bottom:34%}.auth-hero-copy{height:31%}.auth-hero-copy h1{font-size:40px}.auth-hero-brand{left:6%}.auth-hero-copy{left:6%}}
 @media(max-width:850px){.auth-page{grid-template-columns:1fr}.auth-visual.auth-visual-art{display:none}.auth-panel{min-height:100dvh}}

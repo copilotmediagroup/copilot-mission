@@ -34,7 +34,11 @@ function AuthScreen() {
     setBusy(false)
   }
   return <div className="auth-page">
-    <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace"><img className="auth-hero-art" src="/copilot-auth-hero.png" alt="Co Pilot security marketplace with premium security vehicle in a modern city" /></section>
+    <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace">
+      <div className="auth-hero-media"><img className="auth-hero-art" src="/copilot-auth-hero.png" alt="Premium security vehicle in a modern city" /></div>
+      <div className="auth-hero-brand"><span className="auth-brand-shield"><ShieldCheck size={26} /></span><span><strong>CO PILOT</strong><small>SECURITY MARKETPLACE</small></span></div>
+      <div className="auth-hero-copy"><span className="auth-hero-eyebrow">SECURITY MARKETPLACE</span><h1>One secure<br/>command layer<br/>for every mission.</h1><p>Connect clients, agencies and guards through a professional,<br/>real-time operations platform.</p><div className="auth-hero-trust"><i></i><span>SECURE</span><b>/</b><span>RELIABLE</span><b>/</b><span>REAL-TIME</span></div></div>
+    </section>
     <section className="auth-panel"><div className="auth-form-wrap">
       {!inviteToken && view !== 'login' && <button className="auth-back" onClick={() => {setView('login');setMessage('')}}><ArrowLeft/>Back to sign in</button>}
       <div className="auth-mobile-brand"><ShieldCheck/><span>CO PILOT</span></div>
