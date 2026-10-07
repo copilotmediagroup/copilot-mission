@@ -34,7 +34,7 @@ function AuthScreen() {
     setBusy(false)
   }
   return <div className="auth-page">
-    <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace"><img className="auth-hero-art" src="/copilot-auth-hero.jpg" alt="Co Pilot security marketplace with premium security vehicle in a modern city" /></section>
+    <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace"><img className="auth-hero-art" src="/copilot-auth-hero.png" alt="Co Pilot security marketplace with premium security vehicle in a modern city" /></section>
     <section className="auth-panel"><div className="auth-form-wrap">
       {!inviteToken && view !== 'login' && <button className="auth-back" onClick={() => {setView('login');setMessage('')}}><ArrowLeft/>Back to sign in</button>}
       <div className="auth-mobile-brand"><ShieldCheck/><span>CO PILOT</span></div>
