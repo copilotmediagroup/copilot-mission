@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, Archive, Camera, Bell, Building2, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, Home, ImageOff, LoaderCircle, LocateFixed, LogOut, MapPin, Menu, Pencil, Plus, Radio, RefreshCw, Search, Shield, ShieldAlert, Sparkles, Trash2, X, FileText } from 'lucide-react'
+import { AlertTriangle, Archive, Camera, Bell, Building2, CalendarClock, Check, CheckCircle2, ChevronRight, Clock3, Home, ImageOff, LoaderCircle, LocateFixed, LogOut, MapPin, Menu, Pencil, Plus, Radio, RefreshCw, Search, Settings, Shield, ShieldAlert, Sparkles, Trash2, Upload, UserRound, X, FileText } from 'lucide-react'
 import { useAuth } from './modules/auth/AuthProvider'
 import { archiveClientProperty, createClientJob, getClientJobStaffing, subscribeToClientStaffing, createClientProperty, deleteClientProperty, getClientJobEstimate, getClientWorkspace, subscribeToClientWorkspace, updateClientProperty, workspaceErrorMessage, type ClientJob, type ClientPaymentProfile, type ClientProperty, type JobEstimate } from './modules/client/clientRepository'
 import { authorizeMaverickJobPayment, deleteMaverickPaymentMethod, getMaverickPaymentConfig, saveMaverickPaymentMethod } from './modules/payments/maverickPaymentRepository'
@@ -10,7 +10,7 @@ import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrac
 import ClientLiveTracking from './ClientLiveTracking'
 import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 
-type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing'
+type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing' | 'settings'
 type RequestMode = 'immediate' | 'scheduled' | 'vacation'
 type Priority = 'standard' | 'priority' | 'emergency'
 
@@ -94,7 +94,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
         <NavButton active={section==='overview'} icon={<Home/>} label="Overview" onClick={()=>navigate('overview')}/>
         <NavButton active={section==='properties'} icon={<Building2/>} label="Properties" count={properties.length} onClick={()=>navigate('properties')}/>
         <NavButton active={section==='request'} icon={<ShieldAlert/>} label="Request Security" onClick={()=>{navigate('request'); openRequest()}}/>
-        <NavButton active={section==='activity'} icon={<Radio/>} label="Active Requests" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/><NavButton active={section==='billing'} icon={<Shield/>} label="Billing" onClick={()=>navigate('billing')}/>
+        <NavButton active={section==='activity'} icon={<Radio/>} label="Active Requests" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/><NavButton active={section==='billing'} icon={<Shield/>} label="Billing" onClick={()=>navigate('billing')}/><NavButton active={section==='settings'} icon={<Settings/>} label="Settings" onClick={()=>navigate('settings')}/>
       </nav>
       <div className="client-sidebar-bottom">
         <div className="client-secure"><Shield/><span><b>Secure workspace</b><small>Session protected</small></span></div>
@@ -106,7 +106,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
     <main className="client-main">
       <header className="client-topbar">
         <button className="client-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
-        <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : section === 'billing' ? 'Billing & payment' : 'Request security'}</h1></div>
+        <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : section === 'billing' ? 'Billing & payment' : section === 'settings' ? 'Account settings' : 'Request security'}</h1></div>
         <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>{setSection('activity');setNotice('Active requests and alerts opened.')}} aria-label="Open client alerts"><Bell/></button><div className="client-user"><span>{initials(auth.profile?.full_name)}</span><div><b>{auth.profile?.full_name || 'Client'}</b><small>Approved account</small></div></div></div>
       </header>
 
@@ -117,6 +117,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
           {section === 'reports' && <ClientReports preview={isPreview}/>}
           {section === 'billing' && <BillingView preview={isPreview} paymentProfile={paymentProfile} onSaved={load}/>}
+          {section === 'settings' && <ClientSettings preview={isPreview} onNotice={setNotice} onDeactivated={()=>void auth.signOut()}/>}
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
         </>}
       </div>
@@ -127,6 +128,19 @@ export default function ClientPortal({ developerMode=false, accessMode='live' }:
     {confirmAction && <ConfirmPropertyAction action={confirmAction} onClose={()=>setConfirmAction(null)} onConfirmed={async()=>{const action=confirmAction;setConfirmAction(null);try{if(!isPreview){if(action.type==='archive')await archiveClientProperty(action.property.id);else await deleteClientProperty(action.property.id)}setNotice(isPreview?'Preview simulation complete.':action.type==='archive'?'Property archived.':'Property permanently deleted.');await load()}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update property.')}}}/>}
     {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} paymentProfile={paymentProfile} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
   </div>
+}
+
+
+function ClientSettings({preview,onNotice,onDeactivated}:{preview:boolean;onNotice:(s:string)=>void;onDeactivated:()=>void}){
+  const [account,setAccount]=useState<import('./modules/client/clientRepository').ClientAccountSettings|null>(null),[name,setName]=useState(''),[phone,setPhone]=useState(''),[image,setImage]=useState<string|null>(null),[saved,setSaved]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false)
+  const repo=()=>import('./modules/client/clientRepository')
+  useEffect(()=>{if(preview){const a={user_id:'preview',full_name:'Client',phone:'',avatar_url:null,account_status:'approved',email:'client@example.com',created_at:new Date().toISOString()};setAccount(a);setName('Client');setSaved(JSON.stringify({name:'Client',phone:'',image:null}));return}void repo().then(r=>r.getClientAccountSettings()).then(a=>{setAccount(a);setName(a.full_name||'');setPhone(a.phone||'');setImage(a.avatar_url);setSaved(JSON.stringify({name:a.full_name||'',phone:a.phone||'',image:a.avatar_url}))}).catch(e=>onNotice(e instanceof Error?e.message:'Account settings unavailable.'))},[preview])
+  const dirty=JSON.stringify({name,phone,image})!==saved
+  const upload=async(file?:File)=>{if(!file)return;setBusy(true);try{const url=preview?URL.createObjectURL(file):await (await repo()).uploadClientBranding(file);setImage(url);onNotice('Brand image uploaded. Save changes to publish it.')}catch(e){onNotice(e instanceof Error?e.message:'Upload failed.')}finally{setBusy(false)}}
+  const save=async()=>{setBusy(true);try{if(!preview){const next=await (await repo()).saveClientAccountSettings({fullName:name,phone,avatarUrl:image});setAccount(next)}setSaved(JSON.stringify({name,phone,image}));onNotice('Client account settings saved.')}catch(e){onNotice(e instanceof Error?e.message:'Unable to save settings.')}finally{setBusy(false)}}
+  const deactivate=async()=>{if(confirm!=='DEACTIVATE'||busy)return;if(!window.confirm('Deactivate this client account? Active requests must be completed or cancelled first.'))return;setBusy(true);try{if(!preview)await (await repo()).deactivateClientAccount(confirm);onNotice('Client account deactivated.');onDeactivated()}catch(e){onNotice(e instanceof Error?e.message:'Unable to deactivate account.');setBusy(false)}}
+  if(!account)return <div className="client-loading"><RefreshCw/><h2>Loading account settings</h2></div>
+  return <section className="client-settings-page"><div className="client-settings-hero"><small>CLIENT SETTINGS</small><h2>Account & branding</h2><p>Manage the identity clients and security partners see across your workspace.</p></div><div className="client-settings-grid"><section className="client-settings-card"><div className="client-settings-title"><UserRound/><div><h3>Profile & branding</h3><p>Use a personal photo or company logo.</p></div></div><div className="client-branding-upload"><div>{image?<img src={image} alt="Client branding"/>:<UserRound/>}</div><span><b>Account image</b><small>JPG, PNG or WebP · maximum 5 MB</small><label><Upload/> Upload photo or logo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void upload(e.target.files?.[0])}/></label></span></div><label className="client-settings-field">Name or company name<input value={name} onChange={e=>setName(e.target.value)}/></label><label className="client-settings-field">Email<input value={account.email} disabled/></label><label className="client-settings-field">Phone<input value={phone} onChange={e=>setPhone(e.target.value)}/></label><button className="client-settings-save" disabled={busy||!dirty} onClick={()=>void save()}>{busy?'Saving…':dirty?'Save changes':'Saved'}</button></section><section className="client-settings-card danger"><div className="client-settings-title"><Trash2/><div><h3>Deactivate account</h3><p>Disable marketplace access without deleting protected mission, billing or report history.</p></div></div><div className="client-deactivate-note"><ShieldAlert/><span>Deactivation is blocked while you have active security requests.</span></div><label className="client-settings-field">Type DEACTIVATE to confirm<input value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="DEACTIVATE"/></label><button className="client-deactivate-button" disabled={busy||confirm!=='DEACTIVATE'} onClick={()=>void deactivate()}>Deactivate account</button></section></div></section>
 }
 
 type ClientCommand={tone:string;icon:React.ReactNode;eyebrow:string;title:string;copy:string;action:string;secondary:string;onAction:()=>void;onSecondary:()=>void}
