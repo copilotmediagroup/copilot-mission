@@ -5115,3 +5115,11 @@ input:disabled, select:disabled{
 .auth-hero-copy{position:absolute;z-index:4;left:7.5%;right:5%;bottom:4.5%;height:29%;display:flex;flex-direction:column;justify-content:flex-end;color:#090909;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 10%,#fff 100%)}.auth-hero-eyebrow{display:none}.auth-hero-copy h1{margin:0;font-size:clamp(42px,3.45vw,61px);line-height:.92;letter-spacing:-.055em;font-weight:900}.auth-hero-copy p{margin:18px 0 0;color:#707070;font-size:14px;line-height:1.45}.auth-hero-trust{display:flex;align-items:center;gap:18px;margin-top:20px;font-size:8px;font-weight:900;letter-spacing:.3em}.auth-hero-trust i{display:block;width:58px;height:1px;background:#111}.auth-hero-trust b{font-weight:700}.auth-panel{background:#fff;color:#111}
 @media(max-width:1100px) and (min-width:851px){.auth-page{grid-template-columns:minmax(0,1.35fr) minmax(400px,.85fr)}.auth-hero-media{bottom:34%}.auth-hero-copy{height:31%}.auth-hero-copy h1{font-size:40px}.auth-hero-brand{left:6%}.auth-hero-copy{left:6%}}
 @media(max-width:850px){.auth-page{grid-template-columns:1fr}.auth-visual.auth-visual-art{display:none}.auth-panel{min-height:100dvh}}
+
+/* Client/Agency navigation typography parity */
+.client-shell .client-sidebar nav button{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-size:14px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:-.01em!important;color:#555b60!important}
+.client-shell .client-sidebar nav button svg{color:#7c8388!important;stroke-width:1.7!important}
+.client-shell .client-sidebar nav button.active{color:#fff!important;background:#111!important;box-shadow:none!important}
+.client-shell .client-sidebar nav button.active svg{color:#fff!important}
+.client-shell .client-sidebar nav button small{font-size:10px!important;font-weight:700!important;color:#5d6266!important;background:#e8e9e8!important}
+.client-shell .client-sidebar nav button.active small{color:#555!important;background:#e8e9e8!important}

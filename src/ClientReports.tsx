@@ -107,7 +107,7 @@ export default function ClientReports({ preview = false }: { preview?: boolean }
   </section>
 }
 
-function PublishedClientReport({ report, onClose }: { report: MissionReportRecord; onClose: () => void }) {
+export function PublishedClientReport({ report, onClose }: { report: MissionReportRecord; onClose: () => void }) {
   const snapshot = report.snapshot ?? {}
   const mission = snapshot.mission ?? {}
   const evidence = safeArray<any>(mission.evidence)

@@ -5,7 +5,7 @@ import { archiveClientProperty, createClientJob, getClientJobStaffing, subscribe
 import { authorizeMaverickJobPayment, deleteMaverickPaymentMethod, getMaverickPaymentConfig, saveMaverickPaymentMethod } from './modules/payments/maverickPaymentRepository'
 import { NmiPayments } from '@nmipayments/nmi-pay-react'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
-import ClientReports from './ClientReports'
+import ClientReports from './ClientReportsCalendar'
 import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrackingExperience } from './modules/client/clientLiveTrackingRepository'
 import ClientLiveTracking from './ClientLiveTracking'
 import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
