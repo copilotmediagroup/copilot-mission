@@ -46,8 +46,8 @@ export function DeveloperPortalSwitcher({
   }, [value])
 
   return <div className={`portal-switcher ${compactOpen ? 'mobile-open' : ''}`}>
-    <div className="portal-switcher-brand"><Code2/><span>DEVELOPER MODE</span><small>Signed in as {actualRole?.replace('_', ' ') ?? 'user'}</small></div>
-    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Preview</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Live Test</button></div>
+    <div className="portal-switcher-brand"><Code2/><span>ADMIN TEST MODE</span><small>Signed in as {actualRole?.replace('_', ' ') ?? 'user'}</small></div>
+    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Test Sandbox</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Production Owner</button></div>
     <button className="portal-switcher-mobile" onClick={() => setCompactOpen(open => !open)}>
       <selected.icon/><span>{selected.label}</span>
     </button>
@@ -58,7 +58,7 @@ export function DeveloperPortalSwitcher({
           key={option.id}
           className={option.id === displayedRole ? 'active' : ''}
           disabled={accessMode === 'live' && option.id !== actualRole}
-          title={accessMode === 'live' && option.id !== actualRole ? 'Live Test uses the authenticated account role' : undefined}
+          title={accessMode === 'live' && option.id !== actualRole ? 'Production access is locked to your authenticated owner role' : undefined}
           onClick={() => { if (accessMode === 'live' && option.id !== actualRole) return; onChange(option.id); setCompactOpen(false) }}
         ><Icon/><span>{option.label}</span></button>
       })}

@@ -1,0 +1,6 @@
+export type DeveloperSandboxJob={id:string;title:string;client:string;address:string;property:string;priority:'standard'|'priority'|'emergency';durationMinutes:number;guardCount:number;serviceType:string;requestedStart:string;estimatedTotalCents:number;createdAt:string;state:'open'|'claimed'|'assigned'|'live'|'completed'}
+const KEY='co-pilot-admin-test-jobs-v1'
+export function getDeveloperSandboxJobs():DeveloperSandboxJob[]{try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return[]}}
+export function createDeveloperSandboxJob(input:Omit<DeveloperSandboxJob,'id'|'createdAt'|'state'>){const job:DeveloperSandboxJob={...input,id:`TEST-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString(),state:'open'};localStorage.setItem(KEY,JSON.stringify([job,...getDeveloperSandboxJobs()]));window.dispatchEvent(new Event('co-pilot-test-data'));return job}
+export function clearDeveloperSandbox(){localStorage.removeItem(KEY);window.dispatchEvent(new Event('co-pilot-test-data'))}
+export function subscribeDeveloperSandbox(fn:()=>void){window.addEventListener('co-pilot-test-data',fn);return()=>window.removeEventListener('co-pilot-test-data',fn)}

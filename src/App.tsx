@@ -33,11 +33,13 @@ function AppShell() {
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))
 
   useEffect(() => {
+    if (auth.role && auth.role !== 'platform_admin' && developerMode) { localStorage.removeItem('co-pilot-developer-mode'); setDeveloperMode(false); window.history.replaceState(null, '', '/'); return }
     if (!auth.role || developerMode) return
     setPreviewRole(auth.role)
   }, [auth.role, developerMode])
 
   const enableDeveloperMode = () => {
+    if (auth.role !== 'platform_admin') return
     localStorage.setItem('co-pilot-developer-mode', 'true')
     setPreviewRole(auth.role ?? 'client')
     setDeveloperMode(true)
@@ -52,20 +54,21 @@ function AppShell() {
     window.history.replaceState(null, '', '/')
   }
 
-  const activeRole: DeveloperPreview = developerMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
+  const adminDeveloperMode = developerMode && auth.role === 'platform_admin'
+  const activeRole: DeveloperPreview = adminDeveloperMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
   const portalKey = `${developerAccessMode}:${activeRole}:${auth.user?.id ?? 'anonymous'}`
-  const showDeveloperDock = import.meta.env.DEV || developerPath || localStorage.getItem('co-pilot-show-dev-dock') === 'true'
+  const showDeveloperDock = auth.role === 'platform_admin'
 
-  return <div className={developerMode ? 'developer-preview-active' : ''}>
-    {developerMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} />}
+  return <div className={adminDeveloperMode ? 'developer-preview-active' : ''}>
+    {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} />}
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
-        activeRole === 'guard' ? <GuardApp developerMode={developerMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
-        activeRole === 'agency_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <AgencyV4 /> : <div className="portal-root"><AgencyMarketplace developerMode={developerMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div>) :
+        activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
+        activeRole === 'agency_admin' ? (adminDeveloperMode && developerAccessMode === 'preview' ? <div className="portal-root"><AgencyMarketplace developerMode accessMode="preview" viewedRole={activeRole} /></div> : localStorage.getItem('co-pilot-ui-v4') === 'true' ? <AgencyV4 /> : <div className="portal-root"><AgencyMarketplace developerMode={adminDeveloperMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div>) :
         activeRole === 'platform_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <OwnerV4 /> : <PlatformMissionControl />) :
-        <ClientPortal developerMode={developerMode} accessMode={developerAccessMode} />}
+        <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} />}
     </div>
-    {!developerMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
+    {!adminDeveloperMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
   </div>
 }
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useAuth, type AppRole } from './modules/auth/AuthProvider'
 import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
+import { getDeveloperSandboxJobs } from './modules/developer/developerSandbox'
 import { acceptMarketplaceJob, getAgencyWorkspace, subscribeToMarketplace, type MarketplaceJobRow } from './modules/marketplace/marketplaceRepository'
 import { createGuardInvitation, getGuardRoster, guardActivationUrl, revokeGuardInvitation, getGuardCredentials, submitGuardCredential, type GuardCredentialRow, type GuardRoster as GuardRosterData } from './modules/marketplace/guardOnboardingRepository'
 import { useAgencyGuardState } from './modules/marketplace/useAgencyGuardState'
@@ -280,7 +281,7 @@ export default function AgencyMarketplace({developerMode=false,accessMode='live'
     setLastWorkspaceSyncAt(null)
     setRealtimeState(isPreview?'preview':'idle')
     if(isPreview){
-      setJobs(initialJobs)
+      const sandboxJobs:Job[]=getDeveloperSandboxJobs().filter(j=>j.state==='open').map((j,index)=>({id:j.id,title:j.title,client:j.client,address:j.address,distance:1.5+index,eta:5+index*2,duration:j.durationMinutes,guards:j.guardCount,kind:j.priority,property:j.property,price:0,x:45,y:45,live:false})); setJobs([...sandboxJobs,...initialJobs])
       setActivity(initialActivity)
       setMarketplaceLoading(false)
       setLastWorkspaceSyncAt(Date.now())
