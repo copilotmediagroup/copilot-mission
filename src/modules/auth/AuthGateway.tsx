@@ -34,7 +34,7 @@ function AuthScreen() {
     setBusy(false)
   }
   return <div className="auth-page">
-    <section className="auth-visual"><div className="auth-grid"/><div className="auth-brand"><div className="auth-brand-mark"><ShieldCheck/></div><span><b>CO PILOT</b><small>SECURITY MARKETPLACE</small></span></div><div className="auth-identity-art" aria-hidden="true"><div className="auth-city"><i/><i/><i/><i/><i/></div><div className="auth-road-lines"><i/><i/><i/></div><div className="auth-security-car"><div className="auth-lightbar"/><div className="auth-car-cabin"><span/><span/></div><div className="auth-car-body"><b>SECURITY</b><ShieldCheck/></div><div className="auth-wheel left"/><div className="auth-wheel right"/></div></div><div className="auth-pitch"><span className="auth-eyebrow">SECURITY MARKETPLACE</span><h1>One secure command layer for every mission.</h1><p>Connect clients, agencies and guards through a professional, real-time operations platform.</p><div className="auth-signal"><span>SECURE</span><em>/</em><span>RELIABLE</span><em>/</em><span>REAL-TIME</span></div></div></section>
+    <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace"><img className="auth-hero-art" src="/copilot-auth-hero.jpg" alt="Co Pilot security marketplace with premium security vehicle in a modern city" /></section>
     <section className="auth-panel"><div className="auth-form-wrap">
       {!inviteToken && view !== 'login' && <button className="auth-back" onClick={() => {setView('login');setMessage('')}}><ArrowLeft/>Back to sign in</button>}
       <div className="auth-mobile-brand"><ShieldCheck/><span>CO PILOT</span></div>
