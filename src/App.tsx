@@ -438,6 +438,10 @@ function GuardApp({
   }
 
   const startRoute = async () => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); return }
+      catch(error){setNotice(error instanceof Error?error.message:'Unable to start route');return}
+    }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to start route'); return }
@@ -447,6 +451,10 @@ function GuardApp({
   }
 
   const markArrived = async () => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); return }
+      catch(error){setNotice(error instanceof Error?error.message:'Unable to mark arrival');return}
+    }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to mark arrival'); return }
@@ -457,6 +465,8 @@ function GuardApp({
 
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
     setEvidence(records)
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}) } catch(error){setNotice(error instanceof Error?error.message:'Unable to save evidence')} ; return }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}) } catch(error){setNotice(error instanceof Error?error.message:'Unable to save incident')} ; return }
     if (!liveDispatch || !dispatchMission) return
     try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch() }
@@ -470,6 +480,7 @@ function GuardApp({
   }
 
   const nextCheckpoint = async () => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
@@ -479,6 +490,7 @@ function GuardApp({
   }
 
   const submitProof = async () => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');return} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission') }
@@ -508,7 +520,8 @@ function GuardApp({
         <button
           key={state}
           className={displayedMissionState === state ? 'active' : ''}
-          onClick={() => {setDeveloperGuardState(state);try{window.sessionStorage.setItem('copilot:developer:guard-state',state)}catch{}}}
+          disabled={(['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(state) < ['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(displayedMissionState))}
+          onClick={() => {if(['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(state) < ['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(displayedMissionState))return;setDeveloperGuardState(state);try{window.sessionStorage.setItem('copilot:developer:guard-state',state)}catch{}}}
         >
           {label}
         </button>
