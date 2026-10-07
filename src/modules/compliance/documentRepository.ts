@@ -14,23 +14,24 @@ export type OwnerDocumentCenter = { documents:OwnerDocumentRecord[]; agencies:{a
 const bucket='agency-documents'
 function db(){ if(!supabase) throw new Error('Supabase is not configured.'); return supabase }
 function normalizeRows<T>(data:any, key:string):T[]{ return data && Array.isArray(data[key]) ? data[key] : [] }
+export async function getDeveloperAgencyDocuments(agencyId:string):Promise<AgencyDocumentCenter>{const{data,error}=await db().rpc('get_developer_agency_documents_rc1',{p_agency_id:agencyId});if(error)throw new Error(error.message);return {agency:data?.agency,compliance:data?.compliance??{status:'incomplete',missing:[],expiring_soon:0},documents:normalizeRows<AgencyDocumentRecord>(data,'documents')}}
 export async function getMyAgencyDocuments():Promise<AgencyDocumentCenter>{
   const {data,error}=await db().rpc('get_my_agency_documents')
   if(error) throw new Error(error.message)
   return { agency:data?.agency, compliance:data?.compliance ?? {status:'incomplete',missing:[],expiring_soon:0}, documents:normalizeRows<AgencyDocumentRecord>(data,'documents') }
 }
-export async function uploadAgencyDocument(input:{file:File;documentType:string;operatingState:string;serviceCategory:string;expiresOn?:string;note?:string}){
-  const client=db(); const center=await getMyAgencyDocuments(); const agencyId=center.agency.id
+export async function uploadAgencyDocument(input:{file:File;documentType:string;operatingState:string;serviceCategory:string;expiresOn?:string;note?:string;developerAgencyId?:string}){
+  const client=db(); const agencyId=input.developerAgencyId ?? (await getMyAgencyDocuments()).agency.id
   const safe=input.file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-96)
   const path=`${agencyId}/${crypto.randomUUID()}-${safe}`
   const upload=await client.storage.from(bucket).upload(path,input.file,{contentType:input.file.type || undefined,upsert:false})
   if(upload.error) throw new Error(upload.error.message)
-  const {data,error}=await client.rpc('submit_agency_document',{p_document_type:input.documentType,p_operating_state:input.operatingState,p_service_category:input.serviceCategory,p_file_path:path,p_file_name:input.file.name,p_mime_type:input.file.type || null,p_file_size:input.file.size,p_expires_on:input.expiresOn || null,p_note:input.note || null})
+  const rpc=input.developerAgencyId?'submit_developer_agency_document_rc1':'submit_agency_document'; const args:any={p_document_type:input.documentType,p_operating_state:input.operatingState,p_service_category:input.serviceCategory,p_file_path:path,p_file_name:input.file.name,p_mime_type:input.file.type || null,p_file_size:input.file.size,p_expires_on:input.expiresOn || null,p_note:input.note || null}; if(input.developerAgencyId)args.p_agency_id=input.developerAgencyId; const {data,error}=await client.rpc(rpc,args)
   if(error) throw new Error(error.message)
   return data as AgencyDocumentRecord
 }
-export async function submitAgencyApplication(input:AgencyApplicationInput){
-  const {data,error}=await db().rpc('submit_agency_application',{p_owner_contact_name:input.ownerContactName,p_operating_states:input.operatingStates,p_service_categories:input.serviceCategories,p_license_number:input.licenseNumber || null,p_note:input.note || null})
+export async function submitAgencyApplication(input:AgencyApplicationInput & {developerAgencyId?:string}){
+  const rpc=input.developerAgencyId?'submit_developer_agency_application_rc1':'submit_agency_application'; const args:any={p_owner_contact_name:input.ownerContactName,p_operating_states:input.operatingStates,p_service_categories:input.serviceCategories,p_license_number:input.licenseNumber || null,p_note:input.note || null}; if(input.developerAgencyId)args.p_agency_id=input.developerAgencyId; const {data,error}=await db().rpc(rpc,args)
   if(error) throw new Error(error.message)
   return data
 }

@@ -1,0 +1,4 @@
+-- Platform-admin Live Account Test wrappers for the selected real agency.
+-- Applied to production as admin_live_agency_compliance_actions. These preserve the same agency_documents,
+-- owner_audit_log and agencies records while authorizing the admin test identity to act on the selected agency.
+-- Canonical definitions are managed in Supabase migration history; do not use these wrappers outside platform_admin.
