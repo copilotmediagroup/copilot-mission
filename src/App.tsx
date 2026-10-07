@@ -62,7 +62,7 @@ function AppShell() {
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
-        activeRole === 'agency_admin' ? <AgencyV4 /> :
+        activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
         activeRole === 'platform_admin' ? <OwnerV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
         <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} />}
     </div>
