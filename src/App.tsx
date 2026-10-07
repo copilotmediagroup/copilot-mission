@@ -18,7 +18,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
-import { getDeveloperLiveAccounts,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
+import { getDeveloperLiveAccounts,setDeveloperGuardPresence,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -68,7 +68,7 @@ function AppShell() {
     {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} accounts={developerAccounts} targets={developerTargets} onTargetChange={changeDeveloperTarget} />}
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
-        activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
+        activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerGuardId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.guard:undefined} onEnableDeveloperMode={enableDeveloperMode} /> :
         activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} developerAgencyId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.agency:undefined} /> :
         activeRole === 'platform_admin' ? <OwnerV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
         <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerClientId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.client:undefined} />}
@@ -85,9 +85,11 @@ function GuardApp({
   developerMode,
   accessMode,
   onEnableDeveloperMode,
+  developerGuardId,
 }: {
   developerMode: boolean
   accessMode: DeveloperAccessMode
+  developerGuardId?: string
   onEnableDeveloperMode: () => void
 }) {
   const auth = useAuth()
@@ -355,6 +357,7 @@ function GuardApp({
     if (isDeveloperPreview) {
       setDeveloperGuardState('waiting')
       setDeveloperSandboxGuardPresence(true)
+      try { if(developerGuardId) await setDeveloperGuardPresence(developerGuardId,true) } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
       try { window.sessionStorage.setItem('copilot:developer:guard-state','waiting') } catch {}
       return
     }
@@ -368,6 +371,7 @@ function GuardApp({
     if (isDeveloperPreview) {
       setDeveloperGuardState('offline')
       setDeveloperSandboxGuardPresence(false)
+      try { if(developerGuardId) await setDeveloperGuardPresence(developerGuardId,false) } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
       try { window.sessionStorage.setItem('copilot:developer:guard-state','offline') } catch {}
       return
     }
