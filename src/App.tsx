@@ -17,6 +17,7 @@ import ClientPortal from './ClientPortal'
 import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
+import { getDeveloperSandboxJobs, subscribeDeveloperSandbox } from './modules/developer/developerSandbox'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -91,6 +92,7 @@ function GuardApp({
   const [guardMetrics, setGuardMetrics] = useState<GuardOperationalMetrics | null>(null)
   const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
   const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(null)
+  const [sandboxJobs,setSandboxJobs]=useState(()=>developerMode&&accessMode==='preview'?getDeveloperSandboxJobs():[])
 
   const canReadLiveDispatch =
     auth.mode === 'supabase' &&
@@ -104,32 +106,43 @@ function GuardApp({
     canReadLiveDispatch &&
     !isDeveloperPreview
 
+  useEffect(()=>{if(!isDeveloperPreview){setSandboxJobs([]);return}const sync=()=>setSandboxJobs(getDeveloperSandboxJobs());sync();return subscribeDeveloperSandbox(sync)},[isDeveloperPreview])
+  const sandboxJob=sandboxJobs.find(job=>job.state==='assigned'||job.state==='claimed'||job.state==='open')??sandboxJobs[0]??null
+  const sandboxRuntime=useMemo<MissionRuntime|null>(()=>sandboxJob?({
+    jobId:sandboxJob.id,assignmentId:sandboxJob.id,state:'offered',version:1,checkpointIndex:0,evidence:[],incidents:[],missionStartedAt:null,
+    priority:sandboxJob.priority,title:sandboxJob.title,instructions:'Developer sandbox request — no real charge',
+    client:{id:'preview-client',name:sandboxJob.client},agency:{id:'preview-agency',name:'Developer Agency'},guard:null,
+    property:{id:'preview-property',name:sandboxJob.property,address:sandboxJob.address,latitude:sandboxJob.latitude??null,longitude:sandboxJob.longitude??null,photoUrl:sandboxJob.photoUrl??null},guardLocation:null,
+    timestamps:{createdAt:sandboxJob.createdAt,assignedAt:sandboxJob.createdAt,acceptedAt:null,routeStartedAt:null,arrivedAt:null,completedAt:null,updatedAt:sandboxJob.createdAt},timeline:[]
+  } as MissionRuntime):null,[sandboxJob])
+
   const displayedMissionState =
     developerMode && developerGuardState
       ? developerGuardState
       : mission.state
 
   const displayedMissionRuntime = useMemo<MissionRuntime | null>(() => {
-    if (!missionRuntime) return null
-    if (!isDeveloperPreview || !developerGuardState) return missionRuntime
+    const baseRuntime=isDeveloperPreview?(sandboxRuntime??null):missionRuntime
+    if (!baseRuntime) return null
+    if (!isDeveloperPreview || !developerGuardState) return baseRuntime
 
     if (developerGuardState === 'enroute') {
       return {
-        ...missionRuntime,
+        ...baseRuntime,
         state: 'en_route',
       }
     }
 
     if (developerGuardState === 'assignment') {
       return {
-        ...missionRuntime,
+        ...baseRuntime,
         state: 'offered',
       }
     }
 
     if (developerGuardState === 'arrived') {
       return {
-        ...missionRuntime,
+        ...baseRuntime,
         state: 'active',
       }
     }
@@ -137,6 +150,7 @@ function GuardApp({
     return missionRuntime
   }, [
     missionRuntime,
+    sandboxRuntime,
     isDeveloperPreview,
     developerGuardState,
   ])
