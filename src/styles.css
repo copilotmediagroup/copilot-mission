@@ -5159,3 +5159,4 @@ input:disabled, select:disabled{
   .developer-preview-active .client-shell,
   .developer-preview-active .portal-root{padding-top:58px!important}
 }
+.developer-account-picker{display:flex;align-items:center;gap:8px;margin-left:auto;color:#8e9baa;font-size:9px;font-weight:800;letter-spacing:.12em}.developer-account-picker select{height:34px;max-width:260px;border:1px solid #263445;border-radius:8px;background:#101925;color:#fff;padding:0 28px 0 10px;font-size:11px;font-weight:700}.developer-account-picker span{white-space:nowrap}@media(max-width:900px){.developer-account-picker{width:100%;order:4;margin:6px 0 0}.developer-account-picker select{flex:1;max-width:none}}

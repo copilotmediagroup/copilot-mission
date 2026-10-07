@@ -18,6 +18,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
+import { getDeveloperLiveAccounts,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -30,6 +31,8 @@ function AppShell() {
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
   const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))
+  const [developerAccounts,setDeveloperAccounts]=useState<DeveloperLiveAccounts|null>(null)
+  const [developerTargets,setDeveloperTargets]=useState(()=>({client:localStorage.getItem('co-pilot-dev-client')||'',agency:localStorage.getItem('co-pilot-dev-agency')||'',guard:localStorage.getItem('co-pilot-dev-guard')||''}))
 
   useEffect(() => {
     if (auth.role && auth.role !== 'platform_admin' && developerMode) { localStorage.removeItem('co-pilot-developer-mode'); setDeveloperMode(false); window.history.replaceState(null, '', '/'); return }
@@ -54,18 +57,20 @@ function AppShell() {
   }
 
   const adminDeveloperMode = developerMode && auth.role === 'platform_admin'
+  useEffect(()=>{if(!adminDeveloperMode)return;void getDeveloperLiveAccounts().then(accounts=>{setDeveloperAccounts(accounts);setDeveloperTargets(current=>({client:current.client||accounts.clients[0]?.id||'',agency:current.agency||accounts.agencies[0]?.id||'',guard:current.guard||accounts.guards[0]?.id||''}))}).catch(()=>setDeveloperAccounts(null))},[adminDeveloperMode])
+  const changeDeveloperTarget=(kind:'client'|'agency'|'guard',id:string)=>{setDeveloperTargets(current=>({...current,[kind]:id}));localStorage.setItem(`co-pilot-dev-${kind}`,id)}
   const activeRole: DeveloperPreview = adminDeveloperMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
   const portalKey = `${developerAccessMode}:${activeRole}:${auth.user?.id ?? 'anonymous'}`
   const showDeveloperDock = auth.role === 'platform_admin'
 
   return <div className={adminDeveloperMode ? 'developer-preview-active' : ''}>
-    {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} />}
+    {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} accounts={developerAccounts} targets={developerTargets} onTargetChange={changeDeveloperTarget} />}
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
-        activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
+        activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} developerAgencyId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.agency:undefined} /> :
         activeRole === 'platform_admin' ? <OwnerV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
-        <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} />}
+        <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerClientId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.client:undefined} />}
     </div>
     {!adminDeveloperMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
   </div>

@@ -1,0 +1,1 @@
+-- Applied to production Supabase through managed migration admin_live_account_test_mode. Source functions: get_developer_live_accounts_rc1, get_developer_client_workspace_rc1, get_developer_job_estimate_rc1, create_developer_test_job_rc1, claim_developer_test_job_rc1.

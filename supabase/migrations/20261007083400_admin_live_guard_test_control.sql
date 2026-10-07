@@ -1,0 +1,1 @@
+-- Applied to production Supabase through managed migration admin_live_guard_test_control. Source function: set_developer_guard_presence_rc1.

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Building2, Code2, LogOut, Shield, ShieldCheck, UserRound, X } from 'lucide-react'
 import type { AppRole } from './modules/auth/AuthProvider'
+import type { DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 
 export type DeveloperPreview = AppRole | 'guard_lab'
 export type DeveloperAccessMode = 'preview' | 'live'
@@ -28,6 +29,9 @@ export function DeveloperPortalSwitcher({
   accessMode,
   onAccessModeChange,
   onSignOut,
+  accounts,
+  targets,
+  onTargetChange,
 }: {
   value: DeveloperPreview
   actualRole: AppRole | null
@@ -36,6 +40,9 @@ export function DeveloperPortalSwitcher({
   accessMode: DeveloperAccessMode
   onAccessModeChange: (mode: DeveloperAccessMode) => void
   onSignOut: () => void
+  accounts: DeveloperLiveAccounts | null
+  targets: {client:string;agency:string;guard:string}
+  onTargetChange: (kind:'client'|'agency'|'guard',id:string) => void
 }) {
   const [compactOpen, setCompactOpen] = useState(false)
   const displayedRole = accessMode === 'live' && actualRole ? actualRole : value
@@ -47,7 +54,7 @@ export function DeveloperPortalSwitcher({
 
   return <div className={`portal-switcher ${compactOpen ? 'mobile-open' : ''}`}>
     <div className="portal-switcher-brand"><Code2/><span>ADMIN TEST MODE</span><small>Signed in as {actualRole?.replace('_', ' ') ?? 'user'}</small></div>
-    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Test Sandbox</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Production Owner</button></div>
+    <div className="developer-access-toggle" role="group" aria-label="Developer access mode"><button className={accessMode === 'preview' ? 'active' : ''} onClick={() => onAccessModeChange('preview')}>Live Account Test</button><button className={accessMode === 'live' ? 'active' : ''} onClick={() => onAccessModeChange('live')}>Production Owner</button></div>
     <button className="portal-switcher-mobile" onClick={() => setCompactOpen(open => !open)}>
       <selected.icon/><span>{selected.label}</span>
     </button>
@@ -63,6 +70,7 @@ export function DeveloperPortalSwitcher({
         ><Icon/><span>{option.label}</span></button>
       })}
     </div>
+    {accessMode==='preview'&&accounts&&value!=='platform_admin'&&value!=='guard_lab'?<label className="developer-account-picker"><span>REAL ACCOUNT</span>{value==='client'?<select value={targets.client} onChange={e=>onTargetChange('client',e.target.value)}>{accounts.clients.map(a=><option key={a.id} value={a.id}>{a.name}{a.email?' · '+a.email:''}</option>)}</select>:value==='agency_admin'?<select value={targets.agency} onChange={e=>onTargetChange('agency',e.target.value)}>{accounts.agencies.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>:<select value={targets.guard} onChange={e=>onTargetChange('guard',e.target.value)}>{accounts.guards.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select>}</label>:null}
     <div className="portal-switcher-actions"><button className="portal-switcher-signout" onClick={onSignOut} title="Sign out"><LogOut/><span>Sign Out</span></button><button className="portal-switcher-exit" onClick={onExit} title="Exit developer mode"><X/><span>Exit</span></button></div>
   </div>
 }
