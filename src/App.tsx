@@ -57,10 +57,11 @@ function AppShell() {
   }
 
   const adminDeveloperMode = developerMode && auth.role === 'platform_admin'
-  useEffect(()=>{if(!adminDeveloperMode)return;void getDeveloperLiveAccounts().then(accounts=>{setDeveloperAccounts(accounts);setDeveloperTargets(current=>({client:current.client||accounts.clients[0]?.id||'',agency:current.agency||accounts.agencies[0]?.id||'',guard:current.guard||accounts.guards[0]?.id||''}))}).catch(()=>setDeveloperAccounts(null))},[adminDeveloperMode])
+  useEffect(()=>{if(!adminDeveloperMode)return;void getDeveloperLiveAccounts().then(accounts=>{setDeveloperAccounts(accounts);setDeveloperTargets(current=>{const client=accounts.clients.some(a=>a.id===current.client)?current.client:(accounts.clients[0]?.id||'');const agency=accounts.agencies.some(a=>a.id===current.agency)?current.agency:(accounts.agencies[0]?.id||'');const guard=accounts.guards.some(a=>a.id===current.guard)?current.guard:(accounts.guards[0]?.id||'');if(client)localStorage.setItem('co-pilot-dev-client',client);if(agency)localStorage.setItem('co-pilot-dev-agency',agency);if(guard)localStorage.setItem('co-pilot-dev-guard',guard);return{client,agency,guard}})}).catch(()=>setDeveloperAccounts(null))},[adminDeveloperMode])
   const changeDeveloperTarget=(kind:'client'|'agency'|'guard',id:string)=>{setDeveloperTargets(current=>({...current,[kind]:id}));localStorage.setItem(`co-pilot-dev-${kind}`,id)}
   const activeRole: DeveloperPreview = adminDeveloperMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
-  const portalKey = `${developerAccessMode}:${activeRole}:${auth.user?.id ?? 'anonymous'}`
+  const activeDeveloperTarget=activeRole==='client'?developerTargets.client:activeRole==='agency_admin'?developerTargets.agency:activeRole==='guard'?developerTargets.guard:''
+  const portalKey = `${developerAccessMode}:${activeRole}:${activeDeveloperTarget}:${auth.user?.id ?? 'anonymous'}`
   const showDeveloperDock = auth.role === 'platform_admin'
 
   return <div className={adminDeveloperMode ? 'developer-preview-active' : ''}>
