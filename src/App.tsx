@@ -16,6 +16,7 @@ import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
 import PlatformMissionControl from './PlatformMissionControl'
+import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 
@@ -61,7 +62,7 @@ function AppShell() {
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={developerMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
         activeRole === 'agency_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <AgencyV4 /> : <div className="portal-root"><AgencyMarketplace developerMode={developerMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div>) :
-        activeRole === 'platform_admin' ? <PlatformMissionControl /> :
+        activeRole === 'platform_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <OwnerV4 /> : <PlatformMissionControl />) :
         <ClientPortal developerMode={developerMode} accessMode={developerAccessMode} />}
     </div>
     {!developerMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}

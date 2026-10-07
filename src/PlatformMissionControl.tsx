@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState,type ReactNode } from 'react'
-import { Activity,AlertTriangle,BadgeCheck,Bell,Building2,Check,CheckCircle2,Clock3,CreditCard,FileCheck2,FileText,Gavel,Layers3,LogOut,MapPin,Menu,Navigation,Radio,RefreshCw,Settings as SettingsIcon,ShieldAlert,ShieldCheck,Siren,Users,Wifi,X,Zap } from 'lucide-react'
+import { Activity,AlertTriangle,BadgeCheck,Building2,Check,CheckCircle2,Clock3,CreditCard,FileCheck2,FileText,Gavel,Layers3,LogOut,MapPin,Navigation,Radio,RefreshCw,ShieldAlert,ShieldCheck,Siren,Users,Wifi,X,Zap } from 'lucide-react'
 import { useAuth } from './modules/auth/AuthProvider'
 import { getLiveOperationsCenter,subscribeToLiveOperations,type LiveOperationsSnapshot,type LiveMission,type LiveGuard } from './modules/platform/liveOperationsRepository'
 import MissionMap,{type MissionMapMarker} from './modules/location/MissionMap'
@@ -46,7 +46,7 @@ const seedDocuments:PlatformDocument[]=[
 ]
 
 export default function PlatformMissionControl(){
- const auth=useAuth();const {mode,signOut}=auth;const[view,setView]=useState<View>('overview');const[mobileNav,setMobileNav]=useState(false);const[data,setData]=useState<LiveOperationsSnapshot|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('')
+ const {mode,signOut}=useAuth();const[view,setView]=useState<View>('overview');const[data,setData]=useState<LiveOperationsSnapshot|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('')
  const[agencies,setAgencies]=useState(seedAgencies);const[clients,setClients]=useState(seedClients);const[docs,setDocs]=useState(seedDocuments);const[guardCredentials,setGuardCredentials]=useState<GuardCredentialReview[]>([]);const[payouts,setPayouts]=useState<PlatformPayoutRow[]>([]);const[rules]=useState(seedRules);const[activity,setActivity]=useState<string[]>(['Owner portal opened','Compliance rules loaded'])
  const load=async()=>{if(mode!=='supabase'){setLoading(false);return}try{setData(await getLiveOperationsCenter());setError('')}catch(e){setError(e instanceof Error?e.message:'Live Operations unavailable')}finally{setLoading(false)}}
  const loadGuardCredentials=async()=>{if(mode!=='supabase')return;try{setGuardCredentials(await getPlatformGuardCredentials())}catch(e){setError(e instanceof Error?e.message:'Guard credential review unavailable')}}
@@ -63,11 +63,9 @@ export default function PlatformMissionControl(){
  const decideDoc=async(id:string,status:ReviewStatus)=>{try{if(!id.startsWith('doc-')&&(status==='approved'||status==='rejected'||status==='needs_info')){await persistDocumentReview(id,status);await loadOwnerDocuments()}else{setDocs(v=>v.map(d=>d.id===id?{...d,status}:d))}setActivity(v=>[`Document ${status.replace('_',' ')} · ${id}`,...v].slice(0,8))}catch(e){setError(e instanceof Error?e.message:'Document review failed')}}
  const openDocument=async(d:PlatformDocument)=>{if(!d.filePath){setError('No live file is attached to this demo document yet.');return}try{const url=await getAgencyDocumentSignedUrl(d.filePath);window.open(url,'_blank','noopener,noreferrer')}catch(e){setError(e instanceof Error?e.message:'Could not open document')}}
  if(loading)return <div className="auth-state"><div className="auth-state-card"><RefreshCw/><h1>Opening Owner Control</h1><p>Synchronizing platform governance engines…</p></div></div>
- return <div className="platform-command-center live-operations-center owner-control-center owner-v4-shell">
-  <aside className={`owner-v4-sidebar ${mobileNav?'open':''}`}><div className="owner-v4-brand"><span><ShieldCheck/></span><div><b>CO PILOT</b><small>OWNER COMMAND</small></div></div><nav>{(['overview','map','approvals','agencies','clients','documents','compliance','marketplace','live','payments','trust','settings'] as View[]).map(x=><button type="button" key={x} className={view===x?'active':''} onClick={()=>{setView(x);setMobileNav(false)}}>{ownerNavIcon(x)}<span>{label(x)}</span>{badgeFor(x,{pendingAgencies,pendingDocs,riskyClients})}</button>)}</nav><footer><div><b>{auth.profile?.full_name||'Platform Owner'}</b><small>Platform administrator</small></div><button type="button" onClick={()=>void signOut()}><LogOut/> Log out</button></footer></aside>
-  {mobileNav&&<button className="owner-v4-scrim" aria-label="Close navigation" onClick={()=>setMobileNav(false)}/>}
-  <div className="owner-v4-main"><header className="owner-v4-topbar"><button className="owner-v4-menu" onClick={()=>setMobileNav(true)}><Menu/></button><div><small>OWNER CONSOLE</small><h1>{ownerViewTitle(view)}</h1></div><div className="owner-v4-top-actions"><span className="owner-v4-live"><Wifi/> LIVE SYSTEM</span><button aria-label="Notifications" onClick={()=>setView('approvals')}><Bell/></button><span className="owner-v4-avatar">{(auth.profile?.full_name||'O').slice(0,1).toUpperCase()}</span></div></header><section className="owner-v4-content">
-  <div className="owner-v4-hero"><div><small>PLATFORM COMMAND</small><h2>{ownerViewTitle(view)}</h2><p>Govern the marketplace, approvals, compliance, money movement and live security operations from one owner workspace.</p></div><span><i/> LIVE SYSTEM</span></div>
+ return <div className="platform-command-center live-operations-center owner-control-center">
+  <header className="pcc-header owner-header"><div><span><ShieldCheck/>CO PILOT SECURITY OS</span><h1>Owner Control Center</h1><p>Approve agencies, govern clients, review documents, enforce state compliance, and monitor live operations.</p></div><div className="owner-header-actions"><div className="mc-connection supabase"><Wifi/>LIVE</div><button className="owner-logout-button" type="button" onClick={()=>void signOut()} aria-label="Log out"><LogOut/><span>Logout</span></button></div></header>
+  <nav className="pcc-nav owner-nav">{(['overview','map','approvals','agencies','clients','documents','compliance','marketplace','live','payments','trust','settings'] as View[]).map(x=><button type="button" key={x} className={view===x?'active':''} onClick={()=>setView(x)}>{label(x)}{badgeFor(x,{pendingAgencies,pendingDocs,riskyClients})}</button>)}</nav>
   {error&&<div className="mc-error"><AlertTriangle/>{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
   {view==='overview'&&<Overview s={s} pendingAgencies={pendingAgencies} pendingDocs={pendingDocs} riskyClients={riskyClients} agencies={agencies} clients={clients} docs={docs} events={events} activity={activity} setView={setView}/>} 
   {view==='map'&&<GlobalCommandMap data={data} s={s} setView={setView}/>} 
@@ -82,12 +80,8 @@ export default function PlatformMissionControl(){
   {view==='trust'&&<TrustSafety/>} 
   {view==='settings'&&<SettingsPanel/>}
   <div className="build-badge">OWNER CONTROL ENGINE · MARKETPLACE GOVERNANCE BUILD</div>
-  </section></div>
  </div>
 }
-function ownerViewTitle(x:View){return x==='overview'?'Platform overview':x==='map'?'Global command map':x==='approvals'?'Approval center':x==='live'?'Live operations':x==='trust'?'Trust & safety':x==='payments'?'Payments & payouts':x==='settings'?'Platform settings':label(x)}
-function ownerNavIcon(x:View){return x==='overview'?<Activity/>:x==='map'?<MapPin/>:x==='approvals'?<BadgeCheck/>:x==='agencies'?<Building2/>:x==='clients'?<Users/>:x==='documents'?<FileText/>:x==='compliance'?<ShieldCheck/>:x==='marketplace'?<Layers3/>:x==='live'?<Radio/>:x==='payments'?<CreditCard/>:x==='trust'?<Gavel/>:<SettingsIcon/>}
-
 function label(x:View){return x==='live'?'Live Ops':x==='map'?'Global Map':x[0].toUpperCase()+x.slice(1)}
 function badgeFor(x:View,c:{pendingAgencies:number;pendingDocs:number;riskyClients:number}){const v=x==='approvals'?c.pendingAgencies+c.riskyClients:x==='documents'?c.pendingDocs:x==='clients'?c.riskyClients:0;return v?<b>{v}</b>:null}
 function statusClass(status:string){return `pcc-status ${status}`}
