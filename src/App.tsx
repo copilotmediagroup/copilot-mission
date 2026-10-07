@@ -91,7 +91,10 @@ function GuardApp({
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
   const [guardMetrics, setGuardMetrics] = useState<GuardOperationalMetrics | null>(null)
   const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
-  const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(null)
+  const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(()=>{
+    if(!(developerMode&&accessMode==='preview')) return null
+    try { const v=window.sessionStorage.getItem('copilot:developer:guard-state'); return (v as typeof mission.state|null)||null } catch { return null }
+  })
   const [sandboxJobs,setSandboxJobs]=useState(()=>developerMode&&accessMode==='preview'?getDeveloperSandboxJobs():[])
 
   const canReadLiveDispatch =
@@ -343,6 +346,11 @@ function GuardApp({
   }, [notice])
 
   const goOnline = async () => {
+    if (isDeveloperPreview) {
+      setDeveloperGuardState('waiting')
+      try { window.sessionStorage.setItem('copilot:developer:guard-state','waiting') } catch {}
+      return
+    }
     if (liveDispatch) {
       try { await setGuardPresence(true); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to go online'); return }
@@ -350,6 +358,11 @@ function GuardApp({
     actions.goOnline()
   }
   const goOffline = async () => {
+    if (isDeveloperPreview) {
+      setDeveloperGuardState('offline')
+      try { window.sessionStorage.setItem('copilot:developer:guard-state','offline') } catch {}
+      return
+    }
     if (liveDispatch) {
       try { await setGuardPresence(false); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to go offline'); return }
@@ -469,7 +482,7 @@ function GuardApp({
         <button
           key={state}
           className={displayedMissionState === state ? 'active' : ''}
-          onClick={() => setDeveloperGuardState(state)}
+          onClick={() => {setDeveloperGuardState(state);try{window.sessionStorage.setItem('copilot:developer:guard-state',state)}catch{}}}
         >
           {label}
         </button>
@@ -477,7 +490,7 @@ function GuardApp({
 
       <button
         className={developerGuardState === null ? 'active' : ''}
-        onClick={() => setDeveloperGuardState(null)}
+        onClick={() => {setDeveloperGuardState(null);try{window.sessionStorage.removeItem('copilot:developer:guard-state')}catch{}}}
       >
         LIVE STATE
       </button>
