@@ -7,7 +7,6 @@ import GuardianButton from './modules/guardian/GuardianButton'
 import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
-import AgencyMarketplace from './AgencyMarketplace'
 import AgencyV4 from './v4/AgencyV4'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
 import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, transitionGuardSlotMission, getGuardSlotRuntime, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
@@ -15,7 +14,6 @@ import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
 import ClientPortal from './ClientPortal'
-import PlatformMissionControl from './PlatformMissionControl'
 import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
@@ -64,8 +62,8 @@ function AppShell() {
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} onEnableDeveloperMode={enableDeveloperMode} /> :
-        activeRole === 'agency_admin' ? (adminDeveloperMode && developerAccessMode === 'preview' ? <div className="portal-root"><AgencyMarketplace developerMode accessMode="preview" viewedRole={activeRole} /></div> : localStorage.getItem('co-pilot-ui-v4') === 'true' ? <AgencyV4 /> : <div className="portal-root"><AgencyMarketplace developerMode={adminDeveloperMode} accessMode={developerAccessMode} viewedRole={activeRole} /></div>) :
-        activeRole === 'platform_admin' ? (localStorage.getItem('co-pilot-ui-v4') === 'true' ? <OwnerV4 /> : <PlatformMissionControl />) :
+        activeRole === 'agency_admin' ? <AgencyV4 /> :
+        activeRole === 'platform_admin' ? <OwnerV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} /> :
         <ClientPortal developerMode={adminDeveloperMode} accessMode={developerAccessMode} />}
     </div>
     {!adminDeveloperMode && showDeveloperDock && <div className="portal-session-dock"><button onClick={enableDeveloperMode}><Code2/><span>Developer Mode</span></button><button className="portal-signout" onClick={() => void auth.signOut()}><LogOut/><span>Sign Out</span></button></div>}
