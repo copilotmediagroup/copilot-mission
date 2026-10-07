@@ -18,7 +18,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
-import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace, acceptDeveloperGuardAssignment,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
+import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -413,7 +413,7 @@ function GuardApp({
   const accept = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
       try {
-        await acceptDeveloperGuardAssignment(developerGuardId,dispatchMission.job_id,missionRuntime?.version)
+        await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version})
         const workspace=await getDeveloperGuardWorkspace(developerGuardId)
         setDispatchMission(workspace.assignment??null)
         const runtime=workspace.assignment?await getMissionRuntime(workspace.assignment.job_id):null
