@@ -117,7 +117,7 @@ function GuardApp({
     canReadLiveDispatch &&
     !isDeveloperPreview
 
-  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;void getDeveloperGuardWorkspace(developerGuardId).then(workspace=>{const online=workspace.guard.availability!=='offline';setDeveloperGuardState(online?'waiting':'offline');try{window.sessionStorage.setItem('copilot:developer:guard-state',online?'waiting':'offline')}catch{};setDispatchMission(workspace.assignment??null)}).catch(error=>setNotice(error instanceof Error?error.message:'Unable to load real guard state'))},[isDeveloperPreview,developerGuardId])
+  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void getDeveloperGuardWorkspace(developerGuardId).then(workspace=>{if(cancelled)return;const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);setDeveloperGuardState(assignment?'assignment':(online?'waiting':'offline'));try{window.sessionStorage.setItem('copilot:developer:guard-state',assignment?'assignment':(online?'waiting':'offline'))}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
   useEffect(()=>{if(!isDeveloperPreview){setSandboxJobs([]);return}const sync=()=>setSandboxJobs(getDeveloperSandboxJobs());sync();return subscribeDeveloperSandbox(sync)},[isDeveloperPreview])
   const sandboxJob=sandboxJobs.find(job=>job.state==='assigned'||job.state==='claimed'||job.state==='open')??sandboxJobs[0]??null
@@ -135,7 +135,7 @@ function GuardApp({
       : mission.state
 
   const displayedMissionRuntime = useMemo<MissionRuntime | null>(() => {
-    const baseRuntime=isDeveloperPreview?(sandboxRuntime??null):missionRuntime
+    const baseRuntime=isDeveloperPreview?(missionRuntime??sandboxRuntime??null):missionRuntime
     if (!baseRuntime) return null
     if (!isDeveloperPreview || !developerGuardState) return baseRuntime
 
