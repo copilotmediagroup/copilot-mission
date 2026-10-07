@@ -5,7 +5,7 @@ import { backendMode, supabase } from '../../lib/supabase'
 export type AppRole = 'platform_admin' | 'agency_admin' | 'guard' | 'client'
 export type AccountStatus = 'pending' | 'approved' | 'disabled' | 'rejected'
 export type AuthPhase = 'booting' | 'signed_out' | 'profile_loading' | 'ready' | 'profile_missing' | 'connection_error'
-export type AppProfile = { id: string; role: AppRole; account_status: AccountStatus; full_name: string | null }
+export type AppProfile = { id: string; role: AppRole; account_status: AccountStatus; full_name: string | null; avatar_url: string | null }
 
 type AuthState = {
   phase: AuthPhase; session: Session | null; user: User | null; profile: AppProfile | null
@@ -13,7 +13,7 @@ type AuthState = {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signUp: (input: { email: string; password: string; fullName: string; accountType: 'client' | 'agency_admin'; agencyName?: string }) => Promise<{ error: AuthError | null; needsEmailConfirmation: boolean }>
   activateGuard: (input: { email: string; password: string; inviteToken: string }) => Promise<{ error: AuthError | null; needsEmailConfirmation: boolean }>
-  signOut: () => Promise<void>; retry: () => Promise<void>
+  signOut: () => Promise<void>; retry: () => Promise<void>; refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPhase('profile_loading')
     const { data, error: profileError } = await supabase
       .from('profiles')
-      .select('id,role,account_status,full_name')
+      .select('id,role,account_status,full_name,avatar_url')
       .eq('id', nextSession.user.id)
       .maybeSingle()
 
@@ -182,6 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const refreshProfile = useCallback(async () => { await loadProfile(session) }, [loadProfile, session])
+
   const value = useMemo<AuthState>(() => ({
     phase,
     session,
@@ -196,7 +198,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     activateGuard,
     signOut,
     retry: initialize,
-  }), [phase, session, profile, error, initialize])
+    refreshProfile,
+  }), [phase, session, profile, error, initialize, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
