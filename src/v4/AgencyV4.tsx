@@ -8,6 +8,7 @@ import GuardsV4 from './GuardsV4'
 import ReportsV4 from './ReportsV4'
 import ScheduledV4 from './ScheduledV4'
 import OperationsV4 from './OperationsV4'
+import MarketplaceV4 from './MarketplaceV4'
 import './design.css'
 
 const items=[['marketplace','Marketplace',Crosshair],['operations','Operations',Radio],['scheduled','Scheduled',CalendarClock],['guards','Guards',Users],['assignments','Assignments',ClipboardList],['reports','Reports',Shield],['analytics','Analytics',BarChart3],['messages','Messages',MessageSquare],['settings','Settings',Settings]] as const
