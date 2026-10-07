@@ -5137,3 +5137,25 @@ input:disabled, select:disabled{
 .client-request-v3 .vacation-price-summary span{background:#07131f;color:#fff}
 .client-request-v3 .vacation-price-summary span small,
 .client-request-v3 .vacation-price-summary span strong{color:#fff!important}
+
+/* Admin test switcher — canonical desktop layout */
+@media (min-width:851px){
+  .developer-preview-active{--developer-rail:58px!important}
+  .developer-preview-active .portal-switcher{
+    height:58px!important;
+    grid-template-columns:190px auto minmax(480px,1fr) auto!important;
+    grid-template-rows:58px!important;
+    gap:10px!important;
+    padding:0 14px!important;
+    align-items:center!important;
+  }
+  .developer-preview-active .portal-switcher-brand{display:flex!important;grid-column:1;min-width:0}
+  .developer-preview-active .developer-access-toggle{grid-column:2;margin:0!important;white-space:nowrap}
+  .developer-preview-active .portal-switcher-options{grid-column:3;display:flex!important;position:static!important;justify-content:center!important;gap:5px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+  .developer-preview-active .portal-switcher-options button{display:flex!important;min-width:82px!important;justify-content:center!important;white-space:nowrap!important}
+  .developer-preview-active .portal-switcher-actions{grid-column:4;display:flex!important;white-space:nowrap}
+  .developer-preview-active .portal-switcher-mobile{display:none!important}
+  .developer-preview-active .v4-scope,
+  .developer-preview-active .client-shell,
+  .developer-preview-active .portal-root{padding-top:58px!important}
+}
