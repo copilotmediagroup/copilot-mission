@@ -1,0 +1,2 @@
+-- Platform-admin Live Account Test wrappers for assigning and reading the selected real guard.
+-- Production rows remain authoritative; test wrappers are restricted to platform_admin and developer_test jobs.

@@ -18,7 +18,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
-import { getDeveloperLiveAccounts,setDeveloperGuardPresence,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
+import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -116,6 +116,8 @@ function GuardApp({
   const liveDispatch =
     canReadLiveDispatch &&
     !isDeveloperPreview
+
+  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;void getDeveloperGuardWorkspace(developerGuardId).then(workspace=>{const online=workspace.guard.availability!=='offline';setDeveloperGuardState(online?'waiting':'offline');try{window.sessionStorage.setItem('copilot:developer:guard-state',online?'waiting':'offline')}catch{};setDispatchMission(workspace.assignment??null)}).catch(error=>setNotice(error instanceof Error?error.message:'Unable to load real guard state'))},[isDeveloperPreview,developerGuardId])
 
   useEffect(()=>{if(!isDeveloperPreview){setSandboxJobs([]);return}const sync=()=>setSandboxJobs(getDeveloperSandboxJobs());sync();return subscribeDeveloperSandbox(sync)},[isDeveloperPreview])
   const sandboxJob=sandboxJobs.find(job=>job.state==='assigned'||job.state==='claimed'||job.state==='open')??sandboxJobs[0]??null
