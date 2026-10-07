@@ -480,9 +480,9 @@ function GuardApp({
   }
 
   const nextCheckpoint = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
     if (liveDispatch && dispatchMission) {
-      try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
       return
     }
