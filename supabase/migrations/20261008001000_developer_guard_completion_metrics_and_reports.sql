@@ -1,0 +1,4 @@
+-- Developer live-account completion/report parity.
+-- Production function body is applied through the managed migration and keeps the existing transition state machine intact.
+-- Critical completion contract: job_assignments.completed_at is written with mission completion and ensure_mission_report(job_id) is invoked.
+-- Developer agency report access is platform-admin restricted and scoped to the selected real agency/test job.
