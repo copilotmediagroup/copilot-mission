@@ -1,0 +1,2 @@
+-- Platform-admin Live Account Test read wrapper for the selected real agency's canonical dispatch workspace.
+-- Uses dispatch_mission_json_rc2 over the same job_assignments, guards, and mission_events as production.

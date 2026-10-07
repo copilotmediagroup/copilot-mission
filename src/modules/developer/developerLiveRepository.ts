@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase'
 import type { ClientJob,ClientPaymentProfile,ClientProperty,JobEstimate } from '../client/clientRepository'
 import type { MarketplaceJobRow,AgencyWorkspace } from '../marketplace/marketplaceRepository'
+import type { AgencyDispatchWorkspace } from '../dispatch/dispatchRepository'
 
 export type DeveloperLiveAccounts={clients:Array<{id:string;user_id:string;name:string;email:string|null}>;agencies:Array<{id:string;name:string;status:string}>;guards:Array<{id:string;user_id:string;agency_id:string;name:string;availability:string}>}
 function db(){if(!supabase)throw new Error('Supabase is not configured.');return supabase}
@@ -14,3 +15,5 @@ export async function claimDeveloperTestJob(jobId:string,agencyId:string){const{
 export async function getDeveloperAgencyGuards(agencyId:string){return (await getDeveloperAgencyContext(agencyId)).guards}
 
 export async function setDeveloperGuardPresence(guardId:string,online:boolean,latitude?:number|null,longitude?:number|null){const{data,error}=await db().rpc('set_developer_guard_presence_rc1',{p_guard_id:guardId,p_online:online,p_latitude:latitude??null,p_longitude:longitude??null});if(error)throw new Error(error.message);return data}
+
+export async function getDeveloperAgencyDispatchWorkspace(agencyId:string):Promise<AgencyDispatchWorkspace>{const{data,error}=await db().rpc('get_developer_agency_dispatch_workspace_rc1',{p_agency_id:agencyId});if(error)throw new Error(error.message);return data as AgencyDispatchWorkspace}
