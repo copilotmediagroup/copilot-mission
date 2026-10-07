@@ -1,0 +1,2 @@
+-- Remote migration applied: developer assignment now uses agency-managed guard eligibility instead of platform guard credential verification.
+-- See Supabase migration: developer_assignment_use_agency_guard_eligibility
