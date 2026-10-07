@@ -168,6 +168,23 @@ function GuardApp({
     developerGuardState,
   ])
 
+  const effectiveCheckpoint = isDeveloperPreview && missionRuntime
+    ? missionRuntime.checkpointIndex
+    : mission.checkpoint
+  const effectiveEvidence = isDeveloperPreview && missionRuntime
+    ? missionRuntime.evidence
+    : mission.patrolEvidence
+  const effectiveIncidents = isDeveloperPreview && missionRuntime
+    ? missionRuntime.incidents
+    : mission.incidents
+
+  const refreshDeveloperRuntime = async () => {
+    if (!isDeveloperPreview || !dispatchMission) return null
+    const runtime = await getMissionRuntime(dispatchMission.job_id)
+    setMissionRuntime(runtime)
+    return runtime
+  }
+
   const loadDispatch = useCallback(async () => {
     if (!canReadLiveDispatch) return
 
@@ -465,8 +482,7 @@ function GuardApp({
 
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
     setEvidence(records)
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}) } catch(error){setNotice(error instanceof Error?error.message:'Unable to save evidence')} ; return }
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}) } catch(error){setNotice(error instanceof Error?error.message:'Unable to save incident')} ; return }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await refreshDeveloperRuntime() } catch(error){setNotice(error instanceof Error?error.message:'Unable to save evidence')} ; return }
     if (!liveDispatch || !dispatchMission) return
     try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch() }
@@ -474,13 +490,14 @@ function GuardApp({
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
     setIncidents(records)
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await refreshDeveloperRuntime() } catch(error){setNotice(error instanceof Error?error.message:'Unable to save incident')} ; return }
     if (!liveDispatch || !dispatchMission) return
     try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch() }
     catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch() }
   }
 
   const nextCheckpoint = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
@@ -490,7 +507,7 @@ function GuardApp({
   }
 
   const submitProof = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');return} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');return} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission') }
@@ -544,10 +561,10 @@ function GuardApp({
           jobsToday: guardMetrics.jobs_today,
           onDutySeconds: guardMetrics.on_duty_seconds,
         } : undefined}
-        checkpoint={mission.checkpoint}
-        patrolEvidence={mission.patrolEvidence}
+        checkpoint={effectiveCheckpoint}
+        patrolEvidence={effectiveEvidence}
         onEvidenceChange={(records) => void updateEvidence(records)}
-        incidents={mission.incidents}
+        incidents={effectiveIncidents}
         missionStartedAt={mission.missionStartedAt}
         onIncidentsChange={(records) => void updateIncidents(records)}
         onGoOnline={() => void goOnline()}
