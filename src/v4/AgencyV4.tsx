@@ -5,7 +5,7 @@ import { acceptMarketplaceJob, getAgencyWorkspace, subscribeToMarketplace, type 
 import { getAgencySettings } from '../modules/marketplace/agencySettingsRepository'
 import { useAgencyGuardState } from '../modules/marketplace/useAgencyGuardState'
 import { getDeveloperSandboxGuardPresence, subscribeDeveloperSandbox } from '../modules/developer/developerSandbox'
-import { claimDeveloperTestJob,getDeveloperAgencyGuards,getDeveloperAgencyWorkspace } from '../modules/developer/developerLiveRepository'
+import { claimDeveloperTestJob,getDeveloperAgencyContext,getDeveloperAgencyGuards } from '../modules/developer/developerLiveRepository'
 import { assignGuard, assignGuardSlot, getAgencyDispatchWorkspace, getJobStaffing, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission, type JobStaffing } from '../modules/dispatch/dispatchRepository'
 import GuardsV4 from './GuardsV4'
 import ReportsV4 from './ReportsV4'
@@ -44,7 +44,7 @@ export default function AgencyV4({preview=false,developerAgencyId}:{preview?:boo
     if(!live&&!preview)return
     if(preview&&!developerAgencyId)return
     try{
-      if(preview){const [workspace,realGuards]=await Promise.all([getDeveloperAgencyWorkspace(developerAgencyId!),getDeveloperAgencyGuards(developerAgencyId!)]);setAgencyName(workspace.name);setJobs(workspace.open);setClaimed(workspace.claimed);setDeveloperGuards(realGuards);setDispatch(null);setNotice('');return}
+      if(preview){const {workspace,guards:realGuards}=await getDeveloperAgencyContext(developerAgencyId!);setAgencyName(workspace.name);setJobs(workspace.open);setClaimed(workspace.claimed);setDeveloperGuards(realGuards);setDispatch(null);setNotice('');return}
       const [workspace,dispatchData,settings]=await Promise.all([getAgencyWorkspace(),getAgencyDispatchWorkspace(),getAgencySettings()])
       setAgencyName(workspace.name); setJobs(workspace.open); setClaimed(workspace.claimed); setDispatch(dispatchData); setServiceRadius(Number(settings.service_radius_miles)||25); setAgencyLogo(settings.logo_url??null); setNotice('')
     }catch(error){setNotice(error instanceof Error?error.message:'Unable to sync agency workspace.')}

@@ -1,0 +1,2 @@
+-- Adds platform-admin selected-agency workspace/guard read context with RLS bypass inside SECURITY DEFINER.
+-- Applied to production as managed migration admin_live_agency_workspace.

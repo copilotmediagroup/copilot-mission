@@ -1,0 +1,2 @@
+-- Fixes admin live-account selector: profiles has no email column; email belongs to auth.users.
+-- Applied to production as managed migration fix_admin_live_account_selector.
