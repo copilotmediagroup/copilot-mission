@@ -17,7 +17,7 @@ import ClientPortal from './ClientPortal'
 import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
-import { getDeveloperSandboxJobs, subscribeDeveloperSandbox } from './modules/developer/developerSandbox'
+import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 
 const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
 
@@ -348,6 +348,7 @@ function GuardApp({
   const goOnline = async () => {
     if (isDeveloperPreview) {
       setDeveloperGuardState('waiting')
+      setDeveloperSandboxGuardPresence(true)
       try { window.sessionStorage.setItem('copilot:developer:guard-state','waiting') } catch {}
       return
     }
@@ -360,6 +361,7 @@ function GuardApp({
   const goOffline = async () => {
     if (isDeveloperPreview) {
       setDeveloperGuardState('offline')
+      setDeveloperSandboxGuardPresence(false)
       try { window.sessionStorage.setItem('copilot:developer:guard-state','offline') } catch {}
       return
     }

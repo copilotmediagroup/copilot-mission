@@ -4,3 +4,8 @@ export function getDeveloperSandboxJobs():DeveloperSandboxJob[]{try{const v=JSON
 export function createDeveloperSandboxJob(input:Omit<DeveloperSandboxJob,'id'|'createdAt'|'state'>){const job:DeveloperSandboxJob={...input,id:`TEST-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString(),state:'open'};localStorage.setItem(KEY,JSON.stringify([job,...getDeveloperSandboxJobs()]));window.dispatchEvent(new Event('co-pilot-test-data'));return job}
 export function clearDeveloperSandbox(){localStorage.removeItem(KEY);window.dispatchEvent(new Event('co-pilot-test-data'))}
 export function subscribeDeveloperSandbox(fn:()=>void){window.addEventListener('co-pilot-test-data',fn);return()=>window.removeEventListener('co-pilot-test-data',fn)}
+
+export type DeveloperSandboxGuardPresence={online:boolean;name:string;updatedAt:string}
+const GUARD_KEY='co-pilot-admin-test-guard-presence-v1'
+export function getDeveloperSandboxGuardPresence():DeveloperSandboxGuardPresence{try{const v=JSON.parse(localStorage.getItem(GUARD_KEY)||'null');if(v&&typeof v.online==='boolean')return v}catch{}return{online:false,name:'David Martinez',updatedAt:new Date(0).toISOString()}}
+export function setDeveloperSandboxGuardPresence(online:boolean){const value:DeveloperSandboxGuardPresence={online,name:'David Martinez',updatedAt:new Date().toISOString()};localStorage.setItem(GUARD_KEY,JSON.stringify(value));window.dispatchEvent(new Event('co-pilot-test-data'));return value}
