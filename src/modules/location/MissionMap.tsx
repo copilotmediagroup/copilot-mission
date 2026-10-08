@@ -580,6 +580,11 @@ export default function MissionMap({
 
       if (!map || !google) return
 
+      // A cinematic target owns the camera completely. Without this guard,
+      // prop/filter changes can run fitBounds/panTo before or during Locate Guard
+      // and visually erase the Earth-style flight.
+      if (cinematicTarget) return
+
       if (
         manualCameraRef.current &&
         !force
@@ -796,6 +801,7 @@ export default function MissionMap({
       overviewMode,
       markers,
       showViewerLocation,
+      cinematicTarget,
       startProgrammaticCamera,
       center.latitude,
       center.longitude,
