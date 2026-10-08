@@ -550,6 +550,7 @@ function GuardApp({
     <div className="production-workspace">
       <div className="production-stage" key={displayedMissionState}>
       <GuardDashboard
+        developerGuardId={isDeveloperPreview?developerGuardId:undefined}
         state={displayedMissionState}
         runtime={displayedMissionRuntime}
         metrics={guardMetrics ? {

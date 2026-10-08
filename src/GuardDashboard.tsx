@@ -99,7 +99,7 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: b
   </>
 }
 
-function GuardSectionView({ section, online, metrics }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics }) {
+function GuardSectionView({ section, online, metrics, developerGuardId }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
   useEffect(()=>saveGuardMessages(messages),[messages])
@@ -115,7 +115,7 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
     setMessages(current=>[message,...current])
     form.reset()
   }
-  if(section==='settings')return <GuardSettingsPage/>
+  if(section==='settings')return <GuardSettingsPage guardId={developerGuardId}/>
   if(section==='messages')return <>
     <ProfileBlock online={online}/>
     <section className="guard-message-center">
@@ -152,14 +152,14 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
   </>
 }
 
-function Offline({ next, metrics }: { next: () => void; metrics: GuardDashboardMetrics }) {
+function Offline({ next, metrics, developerGuardId }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next}/>:<GuardSectionView section={section} online={false} metrics={metrics}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
 }
 
-function Waiting({ offline, metrics }: { offline: () => void; metrics: GuardDashboardMetrics }) {
+function Waiting({ offline, metrics, developerGuardId }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline}/>:<GuardSectionView section={section} online metrics={metrics}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline}/>:<GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
 }
 function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/>{runtime?.property.photoUrl?<img className="property-image" src={runtime.property.photoUrl} alt={runtime.property.name??"Property"}/>:null}<div className="two-stats"><div><small>DISTANCE</small><strong>4.2 mi</strong></div><div><small>ETA</small><strong>9 min</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
 function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
@@ -564,15 +564,15 @@ function Completed({ next, incidents, records, missionStartedAt, runtime }: { ne
   return <PhoneShell><AppHeader title="MISSION COMPLETE"/><main className="screen-content completed-screen command-complete"><div className="completion-kicker"><ShieldCheck/> MISSION SECURED</div><h2 className="property-title">{runtime?.property.name??"Property"}</h2><p>The professional mission report is ready for agency review and client delivery.</p><div className="success-orbit"><Check/></div><div className="completion-processing report-ready"><span><CheckCircle2/> Evidence synchronized</span><span><CheckCircle2/> Timeline secured</span><span><CheckCircle2/> Report ready</span></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton tone="purple" onClick={()=>setReportOpen(true)}><Eye/> VIEW MISSION REPORT</PrimaryButton><SecondaryButton onClick={next}><RefreshCw/> RETURN ONLINE</SecondaryButton></main><BottomNav/>{reportOpen&&<MissionReport records={records} incidents={incidents} missionStartedAt={missionStartedAt} onClose={()=>setReportOpen(false)}/>}</PhoneShell>
 }
 
-export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>}) {
+export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>;developerGuardId?:string}) {
   const dashboardMetrics = props.metrics ?? {
     jobsToday: 0,
     onDutySeconds: 0,
   }
 
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
-  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics}/>
-  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics}/>
+  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId}/>
+  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId}/>
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
