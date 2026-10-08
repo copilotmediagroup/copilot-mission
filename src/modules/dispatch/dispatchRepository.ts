@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase'
 
 export type DispatchStatus = 'awaiting_guard'|'offered'|'accepted'|'en_route'|'arrived'|'active'|'completed'|'cancelled'
-export type DispatchGuard = { id:string; user_id:string; name:string; badge_number:string|null; availability:'offline'|'available'|'reserved'|'on_mission' }
+export type DispatchGuard = { id:string; user_id:string; name:string; badge_number:string|null; availability:'offline'|'available'|'reserved'|'on_mission'; avatar_url:string|null }
 export type DispatchMission = {
   assignment_id:string; job_id:string; agency_id:string; guard_id:string|null; status:DispatchStatus;
   assigned_at:string; offered_at:string|null; accepted_at:string|null; declined_at:string|null; locked_at:string|null;

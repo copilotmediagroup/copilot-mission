@@ -9,6 +9,7 @@ import { toMissionRuntimeRouteInput } from './modules/mission-runtime/missionRun
 import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGuardMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 import GuardSettingsPage from './GuardSettings'
+import { getMyGuardSettings, type GuardSettings } from './modules/guard/guardSettingsRepository'
 import type { GuardNavTarget } from './ui'
 
 
@@ -79,14 +80,13 @@ export interface GuardDashboardProps {
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
 
-function ProfileBlock({ online = false }: { online?: boolean }) {
-  return <div className="profile-row"><div><small>Good Morning,</small><h2>David Martinez</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div><div className="avatar">DM</div></div>
+function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:GuardSettings|null }) { const name=profile?.name||'Guard',initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(); return <div className="profile-row"><div><small>Good Morning,</small><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div><div className={`avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div></div>
 }
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
-function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: boolean; metrics: GuardDashboardMetrics; onGoOnline?: () => void; onGoOffline?: () => void }) {
+function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { online: boolean; metrics: GuardDashboardMetrics; onGoOnline?: () => void; onGoOffline?: () => void; profile?:GuardSettings|null }) {
   return <>
-    <ProfileBlock online={online}/>
+    <ProfileBlock online={online} profile={profile}/>
     <section className={online ? 'waiting-hero' : 'offline-hero'}>
       {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className="shield-orbit"><ShieldCheck/></div>}
       <h3>{online ? "You're online and available" : 'You are currently offline'}</h3>
@@ -99,7 +99,7 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline }: { online: b
   </>
 }
 
-function GuardSectionView({ section, online, metrics, developerGuardId }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
+function GuardSectionView({ section, online, metrics, developerGuardId, profile }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
   useEffect(()=>saveGuardMessages(messages),[messages])
@@ -117,7 +117,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId }: { sect
   }
   if(section==='settings')return <GuardSettingsPage guardId={developerGuardId}/>
   if(section==='messages')return <>
-    <ProfileBlock online={online}/>
+    <ProfileBlock online={online} profile={profile}/>
     <section className="guard-message-center">
       <div className="guard-main-section-icon"><MessageCircle/></div>
       <small>MESSAGES</small>
@@ -141,7 +141,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId }: { sect
   const selected = copy[section]
 
   return <>
-    <ProfileBlock online={online}/>
+    <ProfileBlock online={online} profile={profile}/>
     <section className="guard-main-section">
       <div className="guard-main-section-icon">{selected.icon}</div>
       <small>{selected.kicker}</small>
@@ -152,14 +152,14 @@ function GuardSectionView({ section, online, metrics, developerGuardId }: { sect
   </>
 }
 
-function Offline({ next, metrics, developerGuardId }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
+function Offline({ next, metrics, developerGuardId, profile }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell light><AppHeader light/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
 }
 
-function Waiting({ offline, metrics, developerGuardId }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string }) {
+function Waiting({ offline, metrics, developerGuardId, profile }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline}/>:<GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline} profile={profile}/>:<GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
 }
 function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/>{runtime?.property.photoUrl?<img className="property-image" src={runtime.property.photoUrl} alt={runtime.property.name??"Property"}/>:null}<div className="two-stats"><div><small>DISTANCE</small><strong>4.2 mi</strong></div><div><small>ETA</small><strong>9 min</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
 function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
@@ -570,9 +570,11 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
     onDutySeconds: 0,
   }
 
+  const [guardProfile,setGuardProfile]=useState<GuardSettings|null>(null)
+  useEffect(()=>{let live=true;void getMyGuardSettings(props.developerGuardId).then(p=>{if(live)setGuardProfile(p)}).catch(()=>{});return()=>{live=false}},[props.developerGuardId])
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
-  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId}/>
-  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId}/>
+  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>
+  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>

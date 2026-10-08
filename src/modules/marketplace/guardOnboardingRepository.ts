@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase'
-export type GuardRosterRow={id:string;user_id:string;name:string;phone:string|null;email:string;badge_number:string|null;availability:'offline'|'available'|'reserved'|'on_mission';created_at:string}
+export type GuardRosterRow={id:string;user_id:string;name:string;phone:string|null;email:string;badge_number:string|null;availability:'offline'|'available'|'reserved'|'on_mission';created_at:string;avatar_url:string|null}
 export type GuardInvitationRow={id:string;email:string;full_name:string;phone:string|null;badge_number:string|null;status:'pending'|'activated'|'revoked'|'expired';expires_at:string;created_at:string}
 export type GuardRoster={guards:GuardRosterRow[];invitations:GuardInvitationRow[]}
 function db(){if(!supabase)throw new Error('Supabase is not configured.');return supabase}
