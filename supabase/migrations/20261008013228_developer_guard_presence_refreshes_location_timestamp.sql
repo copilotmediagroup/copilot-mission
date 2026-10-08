@@ -1,0 +1,8 @@
+create or replace function public.set_developer_guard_presence_rc1(p_guard_id uuid, p_online boolean, p_latitude double precision default null, p_longitude double precision default null)
+returns jsonb language plpgsql security definer set search_path=public set row_security=off as $$
+declare v_guard public.guards; v_has_active_assignment boolean; begin
+if auth.uid() is null or public.current_role()<>'platform_admin' then raise exception 'PLATFORM_ADMIN_REQUIRED' using errcode='42501'; end if;
+select exists(select 1 from public.job_assignments a join public.marketplace_jobs j on j.id=a.job_id where a.guard_id=p_guard_id and a.status not in ('completed','cancelled','declined') and j.status in ('accepted','assigned','active')) into v_has_active_assignment;
+update public.guards set availability=case when not p_online then 'offline' when v_has_active_assignment then 'on_mission' else 'available' end,current_latitude=case when p_online and p_latitude is not null then p_latitude else current_latitude end,current_longitude=case when p_online and p_longitude is not null then p_longitude else current_longitude end,last_location_at=case when p_online and coalesce(p_latitude,current_latitude) is not null and coalesce(p_longitude,current_longitude) is not null then now() else last_location_at end where id=p_guard_id returning * into v_guard;
+if v_guard.id is null then raise exception 'GUARD_NOT_FOUND' using errcode='22023'; end if;
+return jsonb_build_object('guard_id',v_guard.id,'agency_id',v_guard.agency_id,'availability',v_guard.availability,'online',v_guard.availability<>'offline','latitude',v_guard.current_latitude,'longitude',v_guard.current_longitude,'last_location_at',v_guard.last_location_at); end $$;
