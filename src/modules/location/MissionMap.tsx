@@ -73,6 +73,7 @@ type MissionMapProps = {
   ) => void
   /* Agency/Platform command mode: no route lock; frame all mission markers. */
   overviewMode?: boolean
+  cinematicTarget?: LatLngPoint | null
 }
 
 type LatLngPoint = {
@@ -445,6 +446,7 @@ export default function MissionMap({
   visualTheme,
   onRouteUpdate,
   overviewMode = false,
+  cinematicTarget = null,
 }: MissionMapProps) {
   const containerRef =
     useRef<HTMLDivElement | null>(null)
@@ -635,8 +637,7 @@ export default function MissionMap({
           const bounds = new google.maps.LatLngBounds()
           valid.forEach(marker => bounds.extend({lat:marker.latitude,lng:marker.longitude}))
           if (valid.length === 1) {
-            map.panTo({lat:valid[0].latitude,lng:valid[0].longitude})
-            map.setZoom(Math.min(15,zoom))
+            smoothLocateCamera({latitude:valid[0].latitude,longitude:valid[0].longitude},Math.min(15,zoom))
           } else {
             map.fitBounds(bounds,100)
           }
@@ -660,12 +661,7 @@ export default function MissionMap({
       ) {
         startProgrammaticCamera()
 
-        map.panTo({
-          lat: activeDestination.latitude,
-          lng: activeDestination.longitude,
-        })
-
-        map.setZoom(19)
+        smoothLocateCamera({ latitude: activeDestination.latitude, longitude: activeDestination.longitude }, 19)
 
         return
       }
@@ -745,12 +741,7 @@ export default function MissionMap({
       if (viewerLocation) {
         startProgrammaticCamera()
 
-        map.panTo({
-          lat: viewerLocation.latitude,
-          lng: viewerLocation.longitude,
-        })
-
-        map.setZoom(zoom)
+        smoothLocateCamera(viewerLocation, zoom)
 
         return
       }
@@ -780,12 +771,7 @@ export default function MissionMap({
         if (valid.length === 1) {
           const marker = valid[0]
 
-          map.panTo({
-            lat: marker.latitude,
-            lng: marker.longitude,
-          })
-
-          map.setZoom(zoom)
+          smoothLocateCamera({ latitude: marker.latitude, longitude: marker.longitude }, zoom)
 
           return
         }
@@ -797,12 +783,7 @@ export default function MissionMap({
 
       startProgrammaticCamera()
 
-      map.setCenter({
-        lat: center.latitude,
-        lng: center.longitude,
-      })
-
-      map.setZoom(zoom)
+      smoothLocateCamera(center, zoom)
     },
     [
       viewerLocation,
@@ -816,6 +797,7 @@ export default function MissionMap({
       markers,
       showViewerLocation,
       startProgrammaticCamera,
+      smoothLocateCamera,
       center.latitude,
       center.longitude,
       zoom,
@@ -1079,8 +1061,6 @@ export default function MissionMap({
   }, [
     theme,
     visualTheme,
-    center.latitude,
-    center.longitude,
     closeCard,
   ])
 
@@ -1454,6 +1434,20 @@ export default function MissionMap({
     visualTheme,
     mapReadyGeneration,
   ])
+
+  /* Cinematic command target: preserve the map instance and fly the camera. */
+  useEffect(() => {
+    if (!cinematicTarget || !mapRef.current) return
+    manualCameraRef.current = true
+    setManualCamera(true)
+    closeCard()
+    smoothLocateCamera(cinematicTarget, zoom)
+    const release = window.setTimeout(() => {
+      manualCameraRef.current = false
+      setManualCamera(false)
+    }, 7600)
+    return () => window.clearTimeout(release)
+  }, [cinematicTarget?.latitude, cinematicTarget?.longitude, zoom, mapReadyGeneration, smoothLocateCamera, closeCard])
 
   /*
    * Smart camera follows GPS updates
