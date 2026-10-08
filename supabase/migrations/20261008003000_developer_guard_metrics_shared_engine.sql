@@ -1,0 +1,3 @@
+-- Live Account Test guard metrics use the same authoritative records as the canonical guard metrics engine:
+-- guards -> agencies.operational_timezone -> job_assignments.completed_at.
+-- Remote managed migration: developer_guard_metrics_shared_engine.
