@@ -116,6 +116,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
     form.reset()
   }
   if(section==='settings')return <GuardSettingsPage guardId={developerGuardId}/>
+  if(section==='profile')return <GuardSettingsPage guardId={developerGuardId}/>
   if(section==='messages')return <>
     <ProfileBlock online={online} profile={profile}/>
     <section className="guard-message-center">
