@@ -559,9 +559,9 @@ export default function MissionMap({
     if (meaningfulPan && zoomedIn) {
       const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
       const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
-      const pullDuration = 430
-      const travelDuration = Math.max(700, Math.min(1500, 620 + distance * 11))
-      const settleDuration = 620
+      const pullDuration = 1100
+      const travelDuration = Math.max(1500, Math.min(3000, 1350 + distance * 20))
+      const settleDuration = 1200
       const total = pullDuration + travelDuration + settleDuration
       const startedAt = performance.now()
       const animate = (now: number) => {
@@ -591,7 +591,7 @@ export default function MissionMap({
 
     // Already zoomed out: glide home while smoothly restoring default zoom.
     const zoomDelta = finalZoom - fromZoom
-    const duration = Math.max(950, Math.min(1900, 900 + Math.abs(zoomDelta) * 120))
+    const duration = Math.max(1800, Math.min(3200, 1650 + Math.abs(zoomDelta) * 180))
     const startedAt = performance.now()
     const animate = (now: number) => {
       const liveMap = mapRef.current
