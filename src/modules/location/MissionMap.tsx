@@ -543,10 +543,9 @@ export default function MissionMap({
     if (!map) return
 
     const startCenter = map.getCenter()
-    if (!startCenter) return
+    if (!startCenter) { map.setCenter({ lat: target.latitude, lng: target.longitude }); map.setZoom(targetZoom); return }
 
-    const fromLat = startCenter.lat()
-    const fromLng = startCenter.lng()
+    const fromLat = startCenter.lat(), fromLng = startCenter.lng()
     let lngDelta = target.longitude - fromLng
     if (lngDelta > 180) lngDelta -= 360
     if (lngDelta < -180) lngDelta += 360
@@ -554,44 +553,60 @@ export default function MissionMap({
     const distance = Math.hypot(latDelta, lngDelta)
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
+    startProgrammaticCamera()
 
-    // Earth-style flight: position and altitude are one continuous camera move,
-    // not three separate animations. A smootherstep time curve gives zero
-    // velocity at both ends; a bell-shaped zoom envelope pulls the camera back
-    // through the middle of the flight and naturally descends at destination.
-    const distancePullback = distance > 35 ? 5.0 : distance > 20 ? 4.4 : distance > 10 ? 3.7 : distance > 4 ? 3.0 : distance > 1 ? 2.2 : 1.3
-    const existingPullback = Math.max(0, finalZoom - fromZoom)
-    const pullback = Math.max(0.8, distancePullback - existingPullback * 0.55)
-    const duration = Math.max(3200, Math.min(7200, 3300 + distance * 55))
+    // Cinematic locate: when panned a meaningful distance while zoomed in,
+    // pull back just enough to establish geography, travel, then settle into
+    // the app's default location zoom. The pullback scales with distance.
+    const meaningfulPan = distance > 0.35
+    const zoomedIn = fromZoom >= finalZoom - 0.75
+    if (meaningfulPan && zoomedIn) {
+      const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
+      const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
+      const pullDuration = 1100
+      const travelDuration = Math.max(1500, Math.min(3000, 1350 + distance * 20))
+      const settleDuration = 1200
+      const total = pullDuration + travelDuration + settleDuration
+      const startedAt = performance.now()
+      const animate = (now: number) => {
+        const liveMap = mapRef.current
+        if (!liveMap) return
+        const elapsed = now - startedAt
+        if (elapsed < pullDuration) {
+          const t = Math.min(1, elapsed / pullDuration), eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(fromZoom + (travelZoom - fromZoom) * eased)
+        } else if (elapsed < pullDuration + travelDuration) {
+          const t = Math.min(1, (elapsed - pullDuration) / travelDuration)
+          const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+          liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+          liveMap.setZoom(travelZoom)
+        } else {
+          liveMap.setCenter({lat:target.latitude,lng:target.longitude})
+          const t = Math.min(1, (elapsed - pullDuration - travelDuration) / settleDuration)
+          const eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(travelZoom + (finalZoom - travelZoom) * eased)
+        }
+        if (elapsed < total) window.requestAnimationFrame(animate)
+        else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
+      }
+      window.requestAnimationFrame(animate)
+      return
+    }
+
+    // Already zoomed out: glide home while smoothly restoring default zoom.
+    const zoomDelta = finalZoom - fromZoom
+    const duration = Math.max(1800, Math.min(3200, 1650 + Math.abs(zoomDelta) * 180))
     const startedAt = performance.now()
-    startProgrammaticCamera(duration + 300)
-
-    const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
     const animate = (now: number) => {
       const liveMap = mapRef.current
       if (!liveMap) return
-      const raw = Math.min(1, (now - startedAt) / duration)
-      const travel = smootherstep(raw)
-
-      // The base zoom blends start -> default while the altitude envelope rises
-      // and falls. Using the same eased clock keeps lat/lng/zoom synchronized,
-      // which is what removes the staged, jerky feeling.
-      const baseZoom = fromZoom + (finalZoom - fromZoom) * travel
-      const altitudeEnvelope = Math.sin(Math.PI * travel)
-      const flightZoom = Math.max(3, baseZoom - pullback * altitudeEnvelope)
-
-      liveMap.moveCamera({
-        center: {
-          lat: fromLat + latDelta * travel,
-          lng: fromLng + lngDelta * travel,
-        },
-        zoom: flightZoom,
-      })
-
-      if (raw < 1) window.requestAnimationFrame(animate)
-      else liveMap.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
+      const t = Math.min(1, (now - startedAt) / duration)
+      const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+      liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+      liveMap.setZoom(fromZoom + zoomDelta * (1 - Math.pow(1-t,3)))
+      if (t < 1) window.requestAnimationFrame(animate)
+      else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
     }
-
     window.requestAnimationFrame(animate)
   }, [startProgrammaticCamera])
 
