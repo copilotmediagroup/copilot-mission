@@ -533,6 +533,32 @@ export default function MissionMap({
     }, 600)
   }, [])
 
+  /* Global locate-camera motion shared by every MissionMap. */
+  const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
+    const map = mapRef.current
+    if (!map) return
+    const fromZoom = map.getZoom() ?? targetZoom
+    const finalZoom = Math.max(3, Math.min(21, targetZoom))
+    const delta = finalZoom - fromZoom
+    const steps = Math.max(1, Math.min(9, Math.ceil(Math.abs(delta))))
+    const duration = Math.max(650, Math.min(1450, 620 + Math.abs(delta) * 105))
+    const stepMs = duration / steps
+    startProgrammaticCamera()
+    map.panTo({ lat: target.latitude, lng: target.longitude })
+    if (Math.abs(delta) < 0.35) { map.setZoom(finalZoom); return }
+    let step = 0
+    const tick = () => {
+      const liveMap = mapRef.current
+      if (!liveMap) return
+      step += 1
+      const t = step / steps
+      const eased = 1 - Math.pow(1 - t, 3)
+      liveMap.setZoom(fromZoom + delta * eased)
+      if (step < steps) window.setTimeout(tick, stepMs)
+    }
+    window.setTimeout(tick, Math.min(90, stepMs))
+  }, [startProgrammaticCamera])
+
   const applySmartCamera = useCallback(
     (force = false) => {
       const map = mapRef.current
@@ -1786,8 +1812,16 @@ export default function MissionMap({
   const recenter = () => {
     manualCameraRef.current = false
     setManualCamera(false)
-
     closeCard()
+    if (viewerLocation && !activeDestination) {
+      smoothLocateCamera(viewerLocation, zoom)
+      return
+    }
+    const valid = markers.filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude))
+    if (!viewerLocation && valid.length === 1) {
+      smoothLocateCamera({ latitude: valid[0].latitude, longitude: valid[0].longitude }, Math.min(15, zoom))
+      return
+    }
     applySmartCamera(true)
   }
 
