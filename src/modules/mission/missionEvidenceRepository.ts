@@ -24,3 +24,5 @@ export async function uploadMissionPhoto(input:UploadInput){
 }
 export async function getMissionEvidence(jobId:string){const{data,error}=await db().rpc('get_mission_evidence_for_report_rc1',{p_job_id:jobId});if(error)throw error;return(data??[]) as MissionEvidenceMedia[]}
 export async function getMissionEvidenceUrl(path:string){const{data,error}=await db().storage.from(BUCKET).createSignedUrl(path,600);if(error)throw error;return data.signedUrl}
+export type MissionEvidenceMediaWithUrl=MissionEvidenceMedia&{url:string}
+export async function getMissionEvidenceWithUrls(jobId:string){const rows=await getMissionEvidence(jobId);return Promise.all(rows.map(async row=>({...row,url:await getMissionEvidenceUrl(row.storage_path)}))) as Promise<MissionEvidenceMediaWithUrl[]>}

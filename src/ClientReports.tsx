@@ -18,6 +18,7 @@ import {
   subscribeToReports,
   type MissionReportRecord,
 } from './modules/reporting/reportingRepository'
+import { getMissionEvidenceWithUrls,type MissionEvidenceMediaWithUrl } from './modules/mission/missionEvidenceRepository'
 
 const checkpointNames = [
   'Exterior Perimeter',
@@ -110,8 +111,13 @@ export default function ClientReports({ preview = false }: { preview?: boolean }
 export function PublishedClientReport({ report, onClose }: { report: MissionReportRecord; onClose: () => void }) {
   const snapshot = report.snapshot ?? {}
   const mission = snapshot.mission ?? {}
-  const evidence = safeArray<any>(mission.evidence)
+  const guards = safeArray<any>(snapshot.guards)
+  const evidence = guards.length ? guards.flatMap((guard:any)=>safeArray<any>(guard?.mission?.evidence)) : safeArray<any>(mission.evidence)
   const timeline = safeArray<any>(snapshot.timeline)
+  const [media,setMedia]=useState<MissionEvidenceMediaWithUrl[]>([])
+  const [mediaLoading,setMediaLoading]=useState(true)
+  const [mediaFailed,setMediaFailed]=useState(false)
+  useEffect(()=>{let alive=true;setMediaLoading(true);setMediaFailed(false);getMissionEvidenceWithUrls(report.job_id).then(rows=>{if(alive)setMedia(rows)}).catch(()=>{if(alive){setMedia([]);setMediaFailed(true)}}).finally(()=>{if(alive)setMediaLoading(false)});return()=>{alive=false}},[report.job_id])
   const evidenceTotal = useMemo(() => evidence.reduce((total, item) => (
     total + Number(item?.photos || 0) + Number(item?.videos || 0) + (item?.note ? 1 : 0)
   ), 0), [evidence])
@@ -143,8 +149,8 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
         </header>
 
         <section className="client-report-summary-grid">
-          <div><Clock3 /><span><small>COMPLETED</small><strong>{formatDate(mission.completed_at)}</strong></span></div>
-          <div><UserRound /><span><small>GUARD</small><strong>{snapshot?.guard?.name ?? 'Assigned Guard'}</strong></span></div>
+          <div><Clock3 /><span><small>COMPLETED</small><strong>{formatDate(mission.completed_at ?? snapshot?.job?.completed_at)}</strong></span></div>
+          <div><UserRound /><span><small>GUARD</small><strong>{snapshot?.guard?.name ?? (guards.length?`${guards.length} assigned guards`:'Assigned Guard')}</strong></span></div>
           <div><Building2 /><span><small>AGENCY</small><strong>{snapshot?.agency?.name ?? 'Security Agency'}</strong></span></div>
           <div><CheckCircle2 /><span><small>CHECKPOINTS</small><strong>6 of 6 verified</strong></span></div>
         </section>
@@ -175,6 +181,11 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
         </section>
 
         <section className="client-report-section">
+          <div className="client-report-section-heading"><div><small>GUARD EVIDENCE</small><h2>Photos & videos</h2></div>{!mediaLoading&&!mediaFailed&&<span>{media.length} media item{media.length===1?'':'s'}</span>}</div>
+          {mediaLoading?<p>Loading secure evidence…</p>:mediaFailed?<p>Evidence media could not be loaded.</p>:media.length?<div className="client-evidence-gallery">{media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls preload="metadata"/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt={`Guard evidence checkpoint ${item.checkpoint_index+1}`}/></a>}<figcaption>Checkpoint {item.checkpoint_index+1} · {new Date(item.captured_at).toLocaleString()}</figcaption></figure>)}</div>:<p>No uploaded photo or video evidence for this mission.</p>}
+        </section>
+
+        <section className="client-report-section">
           <div className="client-report-section-heading">
             <div><small>PROTECTED HISTORY</small><h2>Mission timeline</h2></div>
           </div>
@@ -185,7 +196,7 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
                 <strong>{String(event?.event_type ?? 'Mission update').replaceAll('_', ' ')}</strong>
                 <small>{formatDate(event?.created_at)} · {event?.actor_name ?? 'Co Pilot Security OS'}</small>
               </span>
-            </div>) : <div><i /><span><strong>Mission completed</strong><small>{formatDate(mission.completed_at)}</small></span></div>}
+            </div>) : <div><i /><span><strong>Mission completed</strong><small>{formatDate(mission.completed_at ?? snapshot?.job?.completed_at)}</small></span></div>}
           </div>
         </section>
 
