@@ -1158,6 +1158,21 @@ body{overflow-x:hidden;}
   height:100%;
 }
 
+.mission-google-earth-flight{
+  position:absolute;
+  inset:0;
+  z-index:6;
+  opacity:0;
+  pointer-events:none;
+  visibility:hidden;
+  background:#000;
+}
+.mission-google-earth-flight.active{
+  opacity:1;
+  visibility:visible;
+}
+
+
 .mission-map-engine-badge{
   position:absolute;
   z-index:5;

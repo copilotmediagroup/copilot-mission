@@ -452,6 +452,8 @@ export default function MissionMap({
     useRef<HTMLDivElement | null>(null)
 
   const mapRef = useRef<any>(null)
+  const earthMapRef = useRef<any>(null)
+  const earthLayerRef = useRef<HTMLDivElement | null>(null)
   const [earthView, setEarthView] = useState(false)
   const googleRef = useRef<any>(null)
 
@@ -537,12 +539,14 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /* Google-Earth-style FlyTo/bounce flight: lift first, travel high, descend last. */
+  /* Native Google 3D locate flight for long-distance travel. */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
-    if (!map) return
+    const google = googleRef.current
+    if (!map || !google) return
     const startCenter = map.getCenter()
     if (!startCenter) return
+
     const fromLat = startCenter.lat()
     const fromLng = startCenter.lng()
     let lngDelta = target.longitude - fromLng
@@ -550,39 +554,84 @@ export default function MissionMap({
     if (lngDelta < -180) lngDelta += 360
     const latDelta = target.latitude - fromLat
     const rad = Math.PI / 180
-    const a = Math.sin((latDelta * rad) / 2) ** 2 + Math.cos(fromLat * rad) * Math.cos(target.latitude * rad) * Math.sin((lngDelta * rad) / 2) ** 2
-    const miles = 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    const fromZoom = map.getZoom() ?? targetZoom
+    const hav = Math.sin((latDelta * rad) / 2) ** 2 + Math.cos(fromLat * rad) * Math.cos(target.latitude * rad) * Math.sin((lngDelta * rad) / 2) ** 2
+    const miles = 3958.8 * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav))
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    const cruiseZoom = miles > 1800 ? 3.6 : miles > 1000 ? 4.2 : miles > 600 ? 4.8 : miles > 300 ? 5.5 : miles > 150 ? 6.4 : miles > 75 ? 7.4 : miles > 30 ? 8.6 : Math.max(9.5, Math.min(fromZoom, finalZoom) - 2.5)
-    const duration = Math.round(Math.max(4200, Math.min(10500, 4200 + miles * 5.2)))
-    const startedAt = performance.now()
     const flightId = ++cameraFlightIdRef.current
-    startProgrammaticCamera(duration + 700)
-    const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
-    const animate = (now: number) => {
-      if (cameraFlightIdRef.current !== flightId || !mapRef.current) return
-      const t = Math.min(1, (now - startedAt) / duration)
-      let travel: number
-      let flightZoom: number
-      if (t < 0.26) {
-        const phase = smootherstep(t / 0.26)
-        travel = 0.04 * phase
-        flightZoom = fromZoom + (cruiseZoom - fromZoom) * phase
-      } else if (t < 0.74) {
-        const phase = smootherstep((t - 0.26) / 0.48)
-        travel = 0.04 + 0.92 * phase
-        flightZoom = cruiseZoom
-      } else {
-        const phase = smootherstep((t - 0.74) / 0.26)
-        travel = 0.96 + 0.04 * phase
-        flightZoom = cruiseZoom + (finalZoom - cruiseZoom) * phase
-      }
-      mapRef.current.moveCamera({ center: { lat: fromLat + latDelta * travel, lng: fromLng + lngDelta * travel }, zoom: flightZoom })
-      if (t < 1) window.requestAnimationFrame(animate)
-      else mapRef.current.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
+
+    // Keep the proven local behavior for short moves. Interstate/cross-country
+    // movement is handed to Google's native parabolic 3D camera.
+    if (miles < 90 || !earthLayerRef.current) {
+      startProgrammaticCamera(2200)
+      map.panTo({ lat: target.latitude, lng: target.longitude })
+      window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 700)
+      return
     }
-    window.requestAnimationFrame(animate)
+
+    const layer = earthLayerRef.current
+    layer.classList.add('active')
+    startProgrammaticCamera(16000)
+
+    void (async () => {
+      try {
+        const maps3d = await google.maps.importLibrary('maps3d')
+        if (cameraFlightIdRef.current !== flightId) return
+        const Map3DElement = maps3d.Map3DElement
+        if (!Map3DElement) throw new Error('Google Maps 3D unavailable')
+
+        const startZoom = map.getZoom() ?? finalZoom
+        const zoomToRange = (z: number) => Math.max(350, Math.min(12000000, 40075016.686 / Math.pow(2, Math.max(0, z - 1))))
+        const durationMillis = Math.round(Math.max(6500, Math.min(14000, 6500 + miles * 4)))
+
+        let earthMap = earthMapRef.current
+        if (!earthMap) {
+          earthMap = new Map3DElement({
+            center: { lat: fromLat, lng: fromLng, altitude: 0 },
+            range: zoomToRange(startZoom),
+            tilt: 35,
+            heading: 0,
+            mode: 'SATELLITE',
+            defaultUIHidden: true,
+            gestureHandling: 'COOPERATIVE',
+          })
+          earthMap.style.width = '100%'
+          earthMap.style.height = '100%'
+          layer.replaceChildren(earthMap)
+          earthMapRef.current = earthMap
+        } else {
+          earthMap.center = { lat: fromLat, lng: fromLng, altitude: 0 }
+          earthMap.range = zoomToRange(startZoom)
+          earthMap.tilt = 35
+          earthMap.heading = 0
+        }
+
+        const finish = () => {
+          if (cameraFlightIdRef.current !== flightId) return
+          mapRef.current?.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
+          window.setTimeout(() => {
+            if (cameraFlightIdRef.current === flightId) layer.classList.remove('active')
+          }, 250)
+        }
+        earthMap.addEventListener('gmp-animationend', finish, { once: true })
+        await Promise.resolve(earthMap.flyCameraTo({
+          endCamera: {
+            center: { lat: target.latitude, lng: target.longitude, altitude: 0 },
+            range: zoomToRange(finalZoom),
+            tilt: 52,
+            heading: 0,
+          },
+          durationMillis,
+        }))
+        window.setTimeout(finish, durationMillis + 1800)
+      } catch (error) {
+        if (cameraFlightIdRef.current !== flightId) return
+        layer.classList.remove('active')
+        console.warn('Native 3D locate flight unavailable.', error)
+        startProgrammaticCamera(2200)
+        map.panTo({ lat: target.latitude, lng: target.longitude })
+        window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 700)
+      }
+    })()
   }, [startProgrammaticCamera])
 
   const applySmartCamera = useCallback(
@@ -1911,6 +1960,12 @@ export default function MissionMap({
       <div
         ref={containerRef}
         className="mission-google-map"
+      />
+
+      <div
+        ref={earthLayerRef}
+        className="mission-google-earth-flight"
+        aria-hidden="true"
       />
 
       {(error || mapBlocked) && (
