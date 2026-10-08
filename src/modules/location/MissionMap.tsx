@@ -544,12 +544,40 @@ export default function MissionMap({
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
     const delta = finalZoom - fromZoom
-    const steps = Math.max(1, Math.min(9, Math.ceil(Math.abs(delta))))
-    const duration = Math.max(650, Math.min(1450, 620 + Math.abs(delta) * 105))
-    const stepMs = duration / steps
     startProgrammaticCamera()
+
+    // If the user only panned away, preserve zoom and animate the center
+    // ourselves. Google panTo can snap on long distances (for example CA -> FL),
+    // so interpolate the geographic center for a guaranteed visible glide.
+    if (Math.abs(delta) < 0.75) {
+      const start = map.getCenter()
+      if (!start) { map.setCenter({ lat: target.latitude, lng: target.longitude }); return }
+      const fromLat = start.lat(), fromLng = start.lng()
+      let lngDelta = target.longitude - fromLng
+      if (lngDelta > 180) lngDelta -= 360
+      if (lngDelta < -180) lngDelta += 360
+      const latDelta = target.latitude - fromLat
+      const distance = Math.hypot(latDelta, lngDelta)
+      const duration = Math.max(800, Math.min(1800, 850 + distance * 14))
+      const startedAt = performance.now()
+      const glide = (now: number) => {
+        const liveMap = mapRef.current
+        if (!liveMap) return
+        const t = Math.min(1, (now - startedAt) / duration)
+        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+        liveMap.setCenter({ lat: fromLat + latDelta * eased, lng: fromLng + lngDelta * eased })
+        if (t < 1) window.requestAnimationFrame(glide)
+      }
+      window.requestAnimationFrame(glide)
+      return
+    }
+
+    // If zoom also changed, use a deliberately slower eased zoom while the
+    // map glides home. This avoids the abrupt snap from very wide views.
+    const steps = Math.max(2, Math.min(11, Math.ceil(Math.abs(delta))))
+    const duration = Math.max(900, Math.min(1850, 820 + Math.abs(delta) * 125))
+    const stepMs = duration / steps
     map.panTo({ lat: target.latitude, lng: target.longitude })
-    if (Math.abs(delta) < 0.35) { map.setZoom(finalZoom); return }
     let step = 0
     const tick = () => {
       const liveMap = mapRef.current
