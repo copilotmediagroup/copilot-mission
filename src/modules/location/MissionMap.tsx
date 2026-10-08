@@ -537,7 +537,7 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /* Google-Earth-style FlyTo/bounce flight: lift, cruise, descend. */
+  /* Google-Earth-style FlyTo/bounce flight: lift first, travel high, descend last. */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
     if (!map) return
@@ -549,23 +549,35 @@ export default function MissionMap({
     if (lngDelta > 180) lngDelta -= 360
     if (lngDelta < -180) lngDelta += 360
     const latDelta = target.latitude - fromLat
-    const distance = Math.hypot(latDelta, lngDelta)
+    const rad = Math.PI / 180
+    const a = Math.sin((latDelta * rad) / 2) ** 2 + Math.cos(fromLat * rad) * Math.cos(target.latitude * rad) * Math.sin((lngDelta * rad) / 2) ** 2
+    const miles = 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    const cruiseZoom = Math.max(3, Math.min(fromZoom, finalZoom) - (distance > 30 ? 5.8 : distance > 15 ? 5.0 : distance > 7 ? 4.2 : distance > 2 ? 3.4 : distance > 0.5 ? 2.6 : 1.8))
-    const duration = Math.round(Math.max(3600, Math.min(9000, 3900 + distance * 75)))
+    const cruiseZoom = miles > 1800 ? 3.6 : miles > 1000 ? 4.2 : miles > 600 ? 4.8 : miles > 300 ? 5.5 : miles > 150 ? 6.4 : miles > 75 ? 7.4 : miles > 30 ? 8.6 : Math.max(9.5, Math.min(fromZoom, finalZoom) - 2.5)
+    const duration = Math.round(Math.max(4200, Math.min(10500, 4200 + miles * 5.2)))
     const startedAt = performance.now()
     const flightId = ++cameraFlightIdRef.current
-    startProgrammaticCamera(duration + 500)
+    startProgrammaticCamera(duration + 700)
     const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
     const animate = (now: number) => {
       if (cameraFlightIdRef.current !== flightId || !mapRef.current) return
       const t = Math.min(1, (now - startedAt) / duration)
-      const travel = smootherstep(t)
+      let travel: number
       let flightZoom: number
-      if (t < 0.24) flightZoom = fromZoom + (cruiseZoom - fromZoom) * smootherstep(t / 0.24)
-      else if (t < 0.68) flightZoom = cruiseZoom
-      else flightZoom = cruiseZoom + (finalZoom - cruiseZoom) * smootherstep((t - 0.68) / 0.32)
+      if (t < 0.26) {
+        const phase = smootherstep(t / 0.26)
+        travel = 0.04 * phase
+        flightZoom = fromZoom + (cruiseZoom - fromZoom) * phase
+      } else if (t < 0.74) {
+        const phase = smootherstep((t - 0.26) / 0.48)
+        travel = 0.04 + 0.92 * phase
+        flightZoom = cruiseZoom
+      } else {
+        const phase = smootherstep((t - 0.74) / 0.26)
+        travel = 0.96 + 0.04 * phase
+        flightZoom = cruiseZoom + (finalZoom - cruiseZoom) * phase
+      }
       mapRef.current.moveCamera({ center: { lat: fromLat + latDelta * travel, lng: fromLng + lngDelta * travel }, zoom: flightZoom })
       if (t < 1) window.requestAnimationFrame(animate)
       else mapRef.current.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
