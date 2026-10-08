@@ -450,6 +450,7 @@ export default function MissionMap({
     useRef<HTMLDivElement | null>(null)
 
   const mapRef = useRef<any>(null)
+  const [earthView, setEarthView] = useState(false)
   const googleRef = useRef<any>(null)
 
   /*
@@ -981,7 +982,7 @@ export default function MissionMap({
                 (import.meta.env.VITE_GOOGLE_MAP_ID || '').trim() || undefined,
 
               mapTypeId:
-                google.maps.MapTypeId.ROADMAP,
+                earthView ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP,
 
               mapTypeControl: false,
               streetViewControl: false,
@@ -1841,6 +1842,18 @@ export default function MissionMap({
     )
   }
 
+  const toggleEarthView = () => {
+    const map = mapRef.current
+    const google = googleRef.current
+    if (!map || !google) return
+    setEarthView(current => {
+      const next = !current
+      map.setMapTypeId(next ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP)
+      if (typeof map.setTilt === 'function') map.setTilt(next ? 45 : 0)
+      return next
+    })
+  }
+
   const recenter = () => {
     manualCameraRef.current = false
     setManualCamera(false)
@@ -1967,6 +1980,16 @@ export default function MissionMap({
       )}
 
       <div className="copilot-map-controls">
+      <button
+        type="button"
+        className={earthView ? 'copilot-earth-toggle active' : 'copilot-earth-toggle'}
+        onClick={toggleEarthView}
+        aria-label={earthView ? 'Switch to standard map' : 'Switch to Google Earth satellite view'}
+        title={earthView ? 'Standard map' : 'Google Earth'}
+      >
+        {earthView ? 'MAP' : '3D'}
+      </button>
+
 
         <button
           type="button"
