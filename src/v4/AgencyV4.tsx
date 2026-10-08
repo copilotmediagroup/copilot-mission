@@ -7,6 +7,7 @@ import { useAgencyGuardState } from '../modules/marketplace/useAgencyGuardState'
 import { getDeveloperSandboxGuardPresence, subscribeDeveloperSandbox } from '../modules/developer/developerSandbox'
 import { claimDeveloperTestJob,getDeveloperAgencyContext,getDeveloperAgencyDispatchWorkspace,getDeveloperAgencyGuards,assignDeveloperGuard } from '../modules/developer/developerLiveRepository'
 import { assignGuard, assignGuardSlot, getAgencyDispatchWorkspace, getJobStaffing, subscribeToDispatch, type AgencyDispatchWorkspace, type DispatchMission, type JobStaffing } from '../modules/dispatch/dispatchRepository'
+import { subscribeToMissionRuntime } from '../modules/mission-runtime/missionRuntimeRepository'
 import GuardsV4 from './GuardsV4'
 import ReportsV4 from './ReportsV4'
 import ScheduledV4 from './ScheduledV4'
@@ -53,6 +54,7 @@ export default function AgencyV4({preview=false,developerAgencyId}:{preview?:boo
   useEffect(()=>{void refresh()},[live,preview,developerAgencyId])
   useEffect(()=>{if(!preview)return;const sync=()=>{setSandboxGuard(getDeveloperSandboxGuardPresence());void refresh()};sync();return subscribeDeveloperSandbox(sync)},[preview,developerAgencyId])
   useEffect(()=>{if(!live&&!preview)return;const timer=window.setInterval(()=>void refresh(),5000);const stopMarket=subscribeToMarketplace(()=>void refresh());const stopDispatch=subscribeToDispatch(()=>void refresh());return()=>{window.clearInterval(timer);stopMarket();stopDispatch()}},[live,preview,developerAgencyId])
+  useEffect(()=>{if(!preview)return;const jobIds=[...new Set((dispatch?.missions??[]).map(m=>m.job_id).filter(Boolean))];if(!jobIds.length)return;const stops=jobIds.map(jobId=>subscribeToMissionRuntime(jobId,()=>void refresh()));return()=>stops.forEach(stop=>stop())},[preview,dispatch?.missions,developerAgencyId])
   const active=activeCount(dispatch)
   const guardSummary=preview?{...guards.summary,total:developerGuards.length,online:developerGuards.filter(g=>g.availability!=='offline').length,available:developerGuards.filter(g=>g.availability==='available').length,offline:developerGuards.filter(g=>g.availability==='offline').length}:guards.summary
   const visibleJobs=jobs
