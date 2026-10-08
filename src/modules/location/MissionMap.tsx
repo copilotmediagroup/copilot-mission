@@ -540,12 +540,21 @@ export default function MissionMap({
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
     const delta = finalZoom - fromZoom
-    const steps = Math.max(1, Math.min(9, Math.ceil(Math.abs(delta))))
-    const duration = Math.max(650, Math.min(1450, 620 + Math.abs(delta) * 105))
-    const stepMs = duration / steps
     startProgrammaticCamera()
+
+    // If the user only panned away, preserve their zoom and let Google panTo
+    // perform the long geographic glide back to the live location.
+    if (Math.abs(delta) < 0.75) {
+      map.panTo({ lat: target.latitude, lng: target.longitude })
+      return
+    }
+
+    // If zoom also changed, use a deliberately slower eased zoom while the
+    // map glides home. This avoids the abrupt snap from very wide views.
+    const steps = Math.max(2, Math.min(11, Math.ceil(Math.abs(delta))))
+    const duration = Math.max(900, Math.min(1850, 820 + Math.abs(delta) * 125))
+    const stepMs = duration / steps
     map.panTo({ lat: target.latitude, lng: target.longitude })
-    if (Math.abs(delta) < 0.35) { map.setZoom(finalZoom); return }
     let step = 0
     const tick = () => {
       const liveMap = mapRef.current
