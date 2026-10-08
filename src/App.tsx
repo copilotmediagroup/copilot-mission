@@ -375,10 +375,7 @@ function GuardApp({
 
   const goOnline = async () => {
     if (isDeveloperPreview) {
-      setDeveloperGuardState('waiting')
-      setDeveloperSandboxGuardPresence(true)
-      try { if(developerGuardId) await setDeveloperGuardPresence(developerGuardId,true) } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
-      try { window.sessionStorage.setItem('copilot:developer:guard-state','waiting') } catch {}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,true);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const online=workspace.guard.availability!=='offline';const next=online?'waiting':'offline';setDeveloperGuardState(next);try { window.sessionStorage.setItem('copilot:developer:guard-state',next) } catch {};if(!online)throw new Error('Guard did not enter online state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
       return
     }
     if (liveDispatch) {
@@ -389,10 +386,7 @@ function GuardApp({
   }
   const goOffline = async () => {
     if (isDeveloperPreview) {
-      setDeveloperGuardState('offline')
-      setDeveloperSandboxGuardPresence(false)
-      try { if(developerGuardId) await setDeveloperGuardPresence(developerGuardId,false) } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
-      try { window.sessionStorage.setItem('copilot:developer:guard-state','offline') } catch {}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,false);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const offline=workspace.guard.availability==='offline';const next=offline?'offline':'waiting';setDeveloperGuardState(next);try { window.sessionStorage.setItem('copilot:developer:guard-state',next) } catch {};if(!offline)throw new Error('Guard did not enter offline state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
       return
     }
     if (liveDispatch) {
