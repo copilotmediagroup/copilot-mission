@@ -1,0 +1,11 @@
+-- Production real-media evidence gate.
+-- Remote migration applied 2026-10-08 through Supabase management.
+-- Adds private mission-evidence storage, mission_evidence_media metadata,
+-- authorized Guard / Developer Guard upload+registration RPCs,
+-- report media snapshot support, and DB triggers that prevent required
+-- checkpoint completion unless a real uploaded photo record exists.
+-- See remote migration history for canonical DDL: mission_evidence_media_storage,
+-- require_real_photo_evidence_for_developer_guard, mission_evidence_production_guard_upload,
+-- mission_evidence_guard_storage_insert, mission_evidence_report_read_storage,
+-- mission_evidence_agency_read_storage, mission_evidence_storage_read_guard,
+-- guard_transition_real_photo_trigger, guard_slot_real_photo_trigger.

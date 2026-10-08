@@ -309,9 +309,14 @@ function EvidenceAction({ icon, label, level, count, detail, checkpointName, onC
 }
 
 type CaptureKind = 'photo' | 'video'
-function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: CaptureKind; existing: number; onClose: () => void; onUse: () => void; onRemove: () => void }) {
+function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: CaptureKind; existing: number; onClose: () => void; onUse: (file?: File) => void | Promise<void>; onRemove: () => void }) {
   const [captured, setCaptured] = useState(false)
-  const [cameraFacing, setCameraFacing] = useState<'rear'|'front'>('rear')
+  const [file, setFile] = useState<File|null>(null)
+  const [preview, setPreview] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const choose=(next?:File)=>{if(!next)return;setFile(next);setCaptured(true);setError('');setPreview(URL.createObjectURL(next))}
+  const use=async()=>{if(kind==='photo'&&!file){setError('Take or choose a real photo first.');return}setBusy(true);setError('');try{await onUse(file??undefined)}catch(e){setError(e instanceof Error?e.message:'Evidence upload failed.')}finally{setBusy(false)}}
   const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
   return <div className="capture-overlay" role="dialog" aria-modal="true">
     <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
@@ -320,15 +325,15 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
       <header><button type="button" onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
       <div className={`camera-preview ${captured ? 'captured' : ''}`}>
         <div className="camera-grid"/>
-        {captured ? <div className="captured-preview"><CheckCircle2/><strong>{kind === 'photo' ? 'Photo captured' : 'Video recorded'}</strong><small>Preview ready to attach</small></div> : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{cameraFacing === 'rear' ? 'Rear camera' : 'Front camera'} · Smart Capture preview</small></div>}
-        {kind === 'video' && !captured && <div className="recording-time">00:00</div>}
+        {captured ? (preview?<img src={preview} alt="Evidence preview" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div className="captured-preview"><CheckCircle2/><strong>Video selected</strong><small>Ready to attach</small></div>) : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{kind==='photo'?'Your phone camera will open when you tap Take Photo.':'Video capture is not yet enabled.'}</small></div>}
       </div>
-      {!captured ? <div className="capture-controls"><button type="button" className="gallery-button" onClick={()=>setCaptured(true)}><Image/><span>Gallery</span></button><button type="button" className={`shutter ${kind}`} onClick={()=>setCaptured(true)}><i/></button><button type="button" className="flip-button" onClick={()=>setCameraFacing(value=>value==='rear'?'front':'rear')}><RotateCcw/><span>{cameraFacing === 'rear' ? 'Flip' : 'Rear'}</span></button></div> : <div className="capture-confirm">
-        <SecondaryButton onClick={()=>setCaptured(false)}><RotateCcw/> RETAKE</SecondaryButton>
-        <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={onUse}><Check/> USE {kind.toUpperCase()}</PrimaryButton>
+      {!captured ? <div className="capture-controls">{kind==='photo'?<><span className="gallery-button"><Image/><span>Evidence</span></span><label className="shutter photo" aria-label="Take photo"><input type="file" accept="image/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/><i/></label><span className="flip-button"><Camera/><span>Camera</span></span></>:<span className="camera-instructions"><strong>Video evidence coming next</strong><small>Video cannot be marked captured until real recording/upload is connected.</small></span>}</div> : <div className="capture-confirm">
+        <SecondaryButton onClick={()=>{setCaptured(false);setFile(null);setPreview('')}}><RotateCcw/> RETAKE</SecondaryButton>
+        <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={()=>void use()} disabled={busy}><Check/> {busy?'UPLOADING…':`USE ${kind.toUpperCase()}`}</PrimaryButton>
       </div>}
-      {existing > 0 && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing {kind}</button>}
-      <p className="prototype-note">Capture attaches to the live mission record; device camera permissions power production media capture.</p>
+      {error&&<p style={{color:'#ff6b6b',fontWeight:700}}>{error}</p>}
+      {existing > 0 && kind!=='photo' && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing {kind}</button>}
+      <p className="prototype-note">Photos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
     </section>
   </div>
 }
@@ -438,7 +443,7 @@ function formatElapsed(totalSeconds: number) {
   return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':')
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null }) {
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
@@ -482,7 +487,6 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
   }
   const missing = useMemo(() => [
     current.photo === 'required' && record.photos === 0 ? 'photo' : '',
-    current.video === 'required' && record.videos === 0 ? 'video' : '',
     current.notes === 'required' && !record.note ? 'notes' : '',
   ].filter(Boolean), [current, record])
 
@@ -524,7 +528,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     <section className="mission-brief"><div className="brief-heading"><ClipboardCheck/><strong>Mission Brief</strong></div>{current.instructions.map(item => <div className="brief-item" key={item}><Circle/><span>{item}</span></div>)}<div className="checkpoint-reminder"><Lightbulb/><span><strong>Smart reminder</strong><small>{current.smartReminder}</small></span></div></section>
     <section className="evidence-section"><div className="evidence-heading"><strong>Evidence</strong><span>Capture while at this location</span></div>
       <EvidenceAction icon={<Camera/>} label="Photo" level={current.photo} count={record.photos} checkpointName={current.name} onClick={()=>setSheet('photo')}/>
-      <EvidenceAction icon={<Video/>} label="Video" level={current.video} count={record.videos} checkpointName={current.name} onClick={()=>setSheet('video')}/>
+      <EvidenceAction icon={<Video/>} label="Video" level="optional" count={record.videos} checkpointName={current.name} onClick={()=>setSheet('video')}/>
       <EvidenceAction icon={<FileText/>} label="Notes" level={current.notes} count={0} detail={record.note ? 'Note saved' : ''} checkpointName={current.name} onClick={()=>setSheet('notes')}/>
     </section>
     <button className={`incident-action ${checkpointIncidents.length ? 'reported' : ''}`} onClick={()=>setSheet('incident')}><span><AlertTriangle/></span><div><strong>{checkpointIncidents.length ? `${checkpointIncidents.length} Incident${checkpointIncidents.length>1?'s':''} Reported` : 'Report Incident'}</strong><small>{checkpointIncidents.length ? 'Attached to this patrol location' : 'Document an issue without leaving patrol'}</small></div><ChevronRight/></button>
@@ -534,8 +538,8 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     {smartAlert && <div className={`mission-smart-alert ${highSeverity ? 'critical' : ''}`}><AlertTriangle/><span><strong>{highSeverity ? 'Mission attention required' : 'Smart checkpoint alert'}</strong><small>{smartAlert}</small></span></div>}
     <PrimaryButton tone="orange" onClick={complete} disabled={!completionReady}><Check/> {completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
   </main><BottomNav/>
-    {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={()=>{update({photos:record.photos+1});setSheet(null)}} onRemove={()=>{update({photos:0});setSheet(null)}}/>}
-    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={()=>{update({videos:record.videos+1});setSheet(null)}} onRemove={()=>{update({videos:0});setSheet(null)}}/>}
+    {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
+    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async()=>{throw new Error('Real video evidence capture is not enabled yet.')}} onRemove={()=>{update({videos:0});setSheet(null)}}/>}
     {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{update({note});setSheet(null)}} onRemove={()=>{update({note:''});setSheet(null)}}/>}
     {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onSave={(incident)=>{onIncidentsChange([...incidents,incident]);setSheet('workspace')}}/>}
     {sheet === 'workspace' && <EvidenceWorkspace records={records} incidents={incidents} onClose={()=>setSheet(null)} onIncidentsChange={onIncidentsChange}/>}
@@ -557,7 +561,7 @@ function Completed({ next, incidents, records, missionStartedAt, runtime }: { ne
   return <PhoneShell><AppHeader title="MISSION COMPLETE"/><main className="screen-content completed-screen command-complete"><div className="completion-kicker"><ShieldCheck/> MISSION SECURED</div><h2 className="property-title">{runtime?.property.name??"Property"}</h2><p>The professional mission report is ready for agency review and client delivery.</p><div className="success-orbit"><Check/></div><div className="completion-processing report-ready"><span><CheckCircle2/> Evidence synchronized</span><span><CheckCircle2/> Timeline secured</span><span><CheckCircle2/> Report ready</span></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton tone="purple" onClick={()=>setReportOpen(true)}><Eye/> VIEW MISSION REPORT</PrimaryButton><SecondaryButton onClick={next}><RefreshCw/> RETURN ONLINE</SecondaryButton></main><BottomNav/>{reportOpen&&<MissionReport records={records} incidents={incidents} missionStartedAt={missionStartedAt} onClose={()=>setReportOpen(false)}/>}</PhoneShell>
 }
 
-export default function GuardDashboard(props: GuardDashboardProps) {
+export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>}) {
   const dashboardMetrics = props.metrics ?? {
     jobsToday: 0,
     onDutySeconds: 0,
@@ -569,7 +573,7 @@ export default function GuardDashboard(props: GuardDashboardProps) {
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
-  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt} runtime={runtime}/>
+  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt} runtime={runtime} onPhotoCapture={props.onPhotoCapture}/>
   if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)} incidents={incidents} records={patrolEvidence} missionStartedAt={missionStartedAt} runtime={runtime}/>
 }
