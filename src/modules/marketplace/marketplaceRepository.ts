@@ -51,12 +51,22 @@ export async function getAgencyWorkspace(): Promise<AgencyWorkspace> {
   const agencyId = payload.agency?.id
   if (!agencyId) throw new Error('AGENCY_NOT_FOUND: No Agency workspace was returned.')
   const rows = Array.isArray(payload.jobs) ? payload.jobs : []
+  // Regression guard: the workspace RPC is the primary source, but property imagery is
+  // presentation-critical across Marketplace/Agency/Guard. Hydrate it from the property
+  // record when an older/stale RPC response omits photo_url instead of silently dropping it.
+  const missingPhotoNames = [...new Set(rows.filter(job => job.property && !job.property.photo_url && job.property.name).map(job => String(job.property!.name)))]
+  let photosByName = new Map<string,string>()
+  if (missingPhotoNames.length) {
+    const { data: properties } = await db.from('properties').select('name,photo_url').in('name', missingPhotoNames).not('photo_url','is',null)
+    photosByName = new Map((properties ?? []).filter(row => row.photo_url).map(row => [String(row.name),String(row.photo_url)]))
+  }
+  const hydratedRows = rows.map(job => job.property ? {...job,property:{...job.property,photo_url:job.property.photo_url || photosByName.get(String(job.property.name ?? '')) || null}} : job)
   return {
     agencyId,
     name: payload.agency?.name ?? 'Your Agency',
     status: payload.agency?.status ?? 'pending',
-    open: rows.filter(job => job.status === 'open'),
-    claimed: rows.filter(job => job.accepted_agency_id === agencyId && !['open','completed','cancelled'].includes(job.status)),
+    open: hydratedRows.filter(job => job.status === 'open'),
+    claimed: hydratedRows.filter(job => job.accepted_agency_id === agencyId && !['open','completed','cancelled'].includes(job.status)),
   }
 }
 
