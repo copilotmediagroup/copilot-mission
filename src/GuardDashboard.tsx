@@ -8,6 +8,7 @@ import type { ActiveMissionRoute, MissionRouteResult } from './modules/location/
 import { toMissionRuntimeRouteInput } from './modules/mission-runtime/missionRuntimeState'
 import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGuardMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
+import GuardSettingsPage from './GuardSettings'
 import type { GuardNavTarget } from './ui'
 
 
@@ -114,6 +115,7 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
     setMessages(current=>[message,...current])
     form.reset()
   }
+  if(section==='settings')return <GuardSettingsPage/>
   if(section==='messages')return <>
     <ProfileBlock online={online}/>
     <section className="guard-message-center">
@@ -133,7 +135,8 @@ function GuardSectionView({ section, online, metrics }: { section: GuardNavTarge
     home: { kicker:'HOME', title:'Guard Home', body:'Current duty status and availability.', detail:online?'Online and ready for assignment.':'Offline until you go online.', icon:<ShieldCheck/> },
     jobs: { kicker:'JOBS', title:'Assignments', body:online?'No active assignment is waiting right now. New jobs will appear here when the agency sends one.':'Go online to receive assignments from the agency.', detail:String(metrics.jobsToday)+' jobs today', icon:<BriefcaseBusiness/> },
     messages: { kicker:'MESSAGES', title:'Messages', body:'No unread agency messages right now.', detail:'Agency broadcasts and mission updates appear here.', icon:<MessageCircle/> },
-    profile: { kicker:'PROFILE', title:'David Martinez', body:'Guard profile, duty status, GPS permission, and roster identity are managed by the assigned agency.', detail:online?'Status: Online':'Status: Offline', icon:<UserRound/> },
+    profile: { kicker:'PROFILE', title:'Guard Profile', body:'Your guard identity, duty status and agency relationship.', detail:online?'Status: Online':'Status: Offline', icon:<UserRound/> },
+    settings: { kicker:'SETTINGS', title:'Guard Settings', body:'Manage your field profile and preferences.', detail:'Profile, notifications and work preferences', icon:<UserRound/> },
   }
   const selected = copy[section]
 

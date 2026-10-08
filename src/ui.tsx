@@ -1,5 +1,5 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { Bell, BriefcaseBusiness, Home, LoaderCircle, Menu, MessageSquare, ShieldCheck, UserRound } from 'lucide-react'
+import { Bell, BriefcaseBusiness, Home, LoaderCircle, Menu, MessageSquare, Settings, ShieldCheck, UserRound } from 'lucide-react'
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return <div className={`brand ${compact ? 'compact' : ''}`}>
@@ -59,7 +59,7 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
   </div>
 }
 
-export type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile'
+export type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile' | 'settings'
 
 export function AppHeader({ light = false, title }: { light?: boolean; title?: string }) {
   return <div className={`app-header ${light ? 'light' : ''}`}>
@@ -78,6 +78,7 @@ export function BottomNav({ light = false, active = 'home', onSelect }: { light?
     ['jobs', BriefcaseBusiness, 'Jobs'],
     ['messages', MessageSquare, 'Messages'],
     ['profile', UserRound, 'Profile'],
+    ['settings', Settings, 'Settings'],
   ] as const
 
   return <nav className={`bottom-nav ${light ? 'light' : ''}`} aria-label="Primary navigation">
