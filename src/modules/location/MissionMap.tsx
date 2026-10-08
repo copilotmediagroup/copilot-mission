@@ -563,9 +563,9 @@ export default function MissionMap({
     if (meaningfulPan && zoomedIn) {
       const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
       const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
-      const pullDuration = 1100
-      const travelDuration = Math.max(1500, Math.min(3000, 1350 + distance * 20))
-      const settleDuration = 1200
+      const pullDuration = 430
+      const travelDuration = Math.max(700, Math.min(1500, 620 + distance * 11))
+      const settleDuration = 620
       const total = pullDuration + travelDuration + settleDuration
       const startedAt = performance.now()
       const animate = (now: number) => {
@@ -595,7 +595,7 @@ export default function MissionMap({
 
     // Already zoomed out: glide home while smoothly restoring default zoom.
     const zoomDelta = finalZoom - fromZoom
-    const duration = Math.max(1800, Math.min(3200, 1650 + Math.abs(zoomDelta) * 180))
+    const duration = Math.max(950, Math.min(1900, 900 + Math.abs(zoomDelta) * 120))
     const startedAt = performance.now()
     const animate = (now: number) => {
       const liveMap = mapRef.current
@@ -653,7 +653,8 @@ export default function MissionMap({
           const bounds = new google.maps.LatLngBounds()
           valid.forEach(marker => bounds.extend({lat:marker.latitude,lng:marker.longitude}))
           if (valid.length === 1) {
-            smoothLocateCamera({latitude:valid[0].latitude,longitude:valid[0].longitude},Math.min(15,zoom))
+            map.panTo({lat:valid[0].latitude,lng:valid[0].longitude})
+            map.setZoom(Math.min(15,zoom))
           } else {
             map.fitBounds(bounds,100)
           }
@@ -677,7 +678,12 @@ export default function MissionMap({
       ) {
         startProgrammaticCamera()
 
-        smoothLocateCamera({ latitude: activeDestination.latitude, longitude: activeDestination.longitude }, 19)
+        map.panTo({
+          lat: activeDestination.latitude,
+          lng: activeDestination.longitude,
+        })
+
+        map.setZoom(19)
 
         return
       }
@@ -757,7 +763,12 @@ export default function MissionMap({
       if (viewerLocation) {
         startProgrammaticCamera()
 
-        smoothLocateCamera(viewerLocation, zoom)
+        map.panTo({
+          lat: viewerLocation.latitude,
+          lng: viewerLocation.longitude,
+        })
+
+        map.setZoom(zoom)
 
         return
       }
@@ -787,7 +798,12 @@ export default function MissionMap({
         if (valid.length === 1) {
           const marker = valid[0]
 
-          smoothLocateCamera({ latitude: marker.latitude, longitude: marker.longitude }, zoom)
+          map.panTo({
+            lat: marker.latitude,
+            lng: marker.longitude,
+          })
+
+          map.setZoom(zoom)
 
           return
         }
@@ -799,7 +815,12 @@ export default function MissionMap({
 
       startProgrammaticCamera()
 
-      smoothLocateCamera(center, zoom)
+      map.setCenter({
+        lat: center.latitude,
+        lng: center.longitude,
+      })
+
+      map.setZoom(zoom)
     },
     [
       viewerLocation,
@@ -813,7 +834,6 @@ export default function MissionMap({
       markers,
       showViewerLocation,
       startProgrammaticCamera,
-      smoothLocateCamera,
       center.latitude,
       center.longitude,
       zoom,
