@@ -477,6 +477,7 @@ export default function MissionMap({
   const routeRendererRef = useRef<any>(null)
   const routeGlowPolylineRef = useRef<any>(null)
   const routeRequestIdRef = useRef(0)
+  const cameraFlightIdRef = useRef(0)
   const manualCameraRef = useRef(false)
   const programmaticCameraRef = useRef(false)
 
@@ -563,12 +564,13 @@ export default function MissionMap({
     const pullback = Math.max(0.8, distancePullback - existingPullback * 0.55)
     const duration = Math.max(3200, Math.min(7200, 3300 + distance * 55))
     const startedAt = performance.now()
+    const flightId = ++cameraFlightIdRef.current
     startProgrammaticCamera(duration + 300)
 
     const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
     const animate = (now: number) => {
       const liveMap = mapRef.current
-      if (!liveMap) return
+      if (!liveMap || cameraFlightIdRef.current !== flightId) return
       const raw = Math.min(1, (now - startedAt) / duration)
       const travel = smootherstep(raw)
 
@@ -1455,7 +1457,7 @@ export default function MissionMap({
    * manual control.
    */
   useEffect(() => {
-    if (!mapRef.current) return
+    if (!mapRef.current || cinematicTarget) return
 
     applySmartCamera()
   }, [
@@ -1465,6 +1467,8 @@ export default function MissionMap({
     theme,
     visualTheme,
     overviewMode,
+    cinematicTarget?.latitude,
+    cinematicTarget?.longitude,
   ])
 
   /*
