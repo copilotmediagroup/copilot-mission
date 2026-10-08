@@ -1,0 +1,3 @@
+-- Live Account Test client report archive reads the same mission_reports records as production.
+-- Remote migration defines get_developer_client_reports_rc1(p_client_id uuid), platform-admin restricted,
+-- returning only published/archived reports for the selected real client identity.

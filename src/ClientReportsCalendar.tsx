@@ -2,12 +2,13 @@ import {useEffect,useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,FileText,RefreshCw,Search,ShieldCheck,X} from 'lucide-react'
 import {getClientReports,subscribeToReports,type MissionReportRecord} from './modules/reporting/reportingRepository'
 import {PublishedClientReport} from './ClientReports'
+import {getDeveloperClientReports} from './modules/developer/developerLiveRepository'
 const key=(v:string|Date)=>{const d=new Date(v);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 const label=(d:Date)=>d.toLocaleDateString(undefined,{month:'long',year:'numeric'})
-export default function ClientReportsCalendar({preview=false}:{preview?:boolean}){
- const[reports,setReports]=useState<MissionReportRecord[]>([]),[loading,setLoading]=useState(!preview),[month,setMonth]=useState(()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1)}),[day,setDay]=useState<string|null>(null),[all,setAll]=useState(false),[query,setQuery]=useState(''),[selected,setSelected]=useState<MissionReportRecord|null>(null)
- const load=async()=>{if(preview){setLoading(false);return}try{setReports((await getClientReports()).filter(r=>r.status==='published'))}finally{setLoading(false)}}
- useEffect(()=>{void load();if(preview)return;return subscribeToReports(()=>void load())},[preview])
+export default function ClientReportsCalendar({preview=false,developerClientId}:{preview?:boolean;developerClientId?:string}){
+ const[reports,setReports]=useState<MissionReportRecord[]>([]),[loading,setLoading]=useState(!preview||!!developerClientId),[month,setMonth]=useState(()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1)}),[day,setDay]=useState<string|null>(null),[all,setAll]=useState(false),[query,setQuery]=useState(''),[selected,setSelected]=useState<MissionReportRecord|null>(null)
+ const load=async()=>{if(preview&&!developerClientId){setReports([]);setLoading(false);return}try{const rows=preview&&developerClientId?await getDeveloperClientReports(developerClientId):await getClientReports();setReports(rows.filter(r=>r.status==='published'))}finally{setLoading(false)}}
+ useEffect(()=>{void load();if(preview){if(!developerClientId)return;const timer=window.setInterval(()=>void load(),3000);return()=>window.clearInterval(timer)}return subscribeToReports(()=>void load())},[preview,developerClientId])
  const byDay=useMemo(()=>reports.reduce<Record<string,MissionReportRecord[]>>((a,r)=>{(a[key(r.published_at||r.created_at)]??=[]).push(r);return a},{}),[reports])
  const cells=useMemo(()=>{const f=new Date(month.getFullYear(),month.getMonth(),1),s=new Date(f);s.setDate(1-f.getDay());return Array.from({length:42},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return d})},[month])
  const recent=useMemo(()=>reports.filter(r=>Date.now()-new Date(r.published_at||r.created_at).getTime()<30*86400000),[reports])

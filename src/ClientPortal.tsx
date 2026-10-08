@@ -113,7 +113,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
           {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
-          {section === 'reports' && <ClientReports preview={isPreview}/>}
+          {section === 'reports' && <ClientReports preview={isPreview} developerClientId={isPreview?developerClientId:undefined}/>}
           {section === 'billing' && <BillingView preview={isPreview} paymentProfile={paymentProfile} onSaved={load}/>}
           {section === 'settings' && <ClientSettings preview={isPreview} onNotice={setNotice} onPublished={()=>void auth.refreshProfile()} onDeactivated={()=>void auth.signOut()}/>}
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
