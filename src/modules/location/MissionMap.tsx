@@ -41,6 +41,8 @@ export type MissionMapMarker = {
    * Guard + Client will use this after assignment/acceptance.
    */
   active?: boolean
+  vehicle?: boolean
+  heading?: number | null
 }
 
 type MissionMapProps = {
@@ -138,6 +140,7 @@ function markerGlyph(marker: MissionMapMarker) {
   if (marker.type === 'viewer') return '▲'
 
   if (marker.type === 'guard') {
+    if (marker.vehicle) return '▰'
     return (
       marker.initials?.slice(0, 2).toUpperCase() ||
       'G'
@@ -1145,6 +1148,13 @@ export default function MissionMap({
             shell.classList.add(
               'active-destination'
             )
+          }
+
+          if (marker.vehicle) {
+            shell.classList.add('mission-vehicle')
+            if (typeof marker.heading === 'number' && Number.isFinite(marker.heading)) {
+              shell.style.setProperty('--vehicle-heading', `${marker.heading}deg`)
+            }
           }
 
           shell.setAttribute(
