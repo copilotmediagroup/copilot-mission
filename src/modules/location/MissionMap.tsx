@@ -537,15 +537,14 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /* Global locate-camera motion shared by every MissionMap. */
+  /* Google-Earth-style FlyTo/bounce flight: lift, cruise, descend. */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
     if (!map) return
-
     const startCenter = map.getCenter()
-    if (!startCenter) { map.setCenter({ lat: target.latitude, lng: target.longitude }); map.setZoom(targetZoom); return }
-
-    const fromLat = startCenter.lat(), fromLng = startCenter.lng()
+    if (!startCenter) return
+    const fromLat = startCenter.lat()
+    const fromLng = startCenter.lng()
     let lngDelta = target.longitude - fromLng
     if (lngDelta > 180) lngDelta -= 360
     if (lngDelta < -180) lngDelta += 360
@@ -553,59 +552,23 @@ export default function MissionMap({
     const distance = Math.hypot(latDelta, lngDelta)
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    startProgrammaticCamera()
-
-    // Cinematic locate: when panned a meaningful distance while zoomed in,
-    // pull back just enough to establish geography, travel, then settle into
-    // the app's default location zoom. The pullback scales with distance.
-    const meaningfulPan = distance > 0.35
-    const zoomedIn = fromZoom >= finalZoom - 0.75
-    if (meaningfulPan && zoomedIn) {
-      const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
-      const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
-      const pullDuration = 430
-      const travelDuration = Math.max(700, Math.min(1500, 620 + distance * 11))
-      const settleDuration = 620
-      const total = pullDuration + travelDuration + settleDuration
-      const startedAt = performance.now()
-      const animate = (now: number) => {
-        const liveMap = mapRef.current
-        if (!liveMap) return
-        const elapsed = now - startedAt
-        if (elapsed < pullDuration) {
-          const t = Math.min(1, elapsed / pullDuration), eased = 1 - Math.pow(1 - t, 3)
-          liveMap.setZoom(fromZoom + (travelZoom - fromZoom) * eased)
-        } else if (elapsed < pullDuration + travelDuration) {
-          const t = Math.min(1, (elapsed - pullDuration) / travelDuration)
-          const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
-          liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
-          liveMap.setZoom(travelZoom)
-        } else {
-          liveMap.setCenter({lat:target.latitude,lng:target.longitude})
-          const t = Math.min(1, (elapsed - pullDuration - travelDuration) / settleDuration)
-          const eased = 1 - Math.pow(1 - t, 3)
-          liveMap.setZoom(travelZoom + (finalZoom - travelZoom) * eased)
-        }
-        if (elapsed < total) window.requestAnimationFrame(animate)
-        else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
-      }
-      window.requestAnimationFrame(animate)
-      return
-    }
-
-    // Already zoomed out: glide home while smoothly restoring default zoom.
-    const zoomDelta = finalZoom - fromZoom
-    const duration = Math.max(950, Math.min(1900, 900 + Math.abs(zoomDelta) * 120))
+    const cruiseZoom = Math.max(3, Math.min(fromZoom, finalZoom) - (distance > 30 ? 5.8 : distance > 15 ? 5.0 : distance > 7 ? 4.2 : distance > 2 ? 3.4 : distance > 0.5 ? 2.6 : 1.8))
+    const duration = Math.round(Math.max(3600, Math.min(9000, 3900 + distance * 75)))
     const startedAt = performance.now()
+    const flightId = ++cameraFlightIdRef.current
+    startProgrammaticCamera(duration + 500)
+    const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
     const animate = (now: number) => {
-      const liveMap = mapRef.current
-      if (!liveMap) return
+      if (cameraFlightIdRef.current !== flightId || !mapRef.current) return
       const t = Math.min(1, (now - startedAt) / duration)
-      const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
-      liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
-      liveMap.setZoom(fromZoom + zoomDelta * (1 - Math.pow(1-t,3)))
+      const travel = smootherstep(t)
+      let flightZoom: number
+      if (t < 0.24) flightZoom = fromZoom + (cruiseZoom - fromZoom) * smootherstep(t / 0.24)
+      else if (t < 0.68) flightZoom = cruiseZoom
+      else flightZoom = cruiseZoom + (finalZoom - cruiseZoom) * smootherstep((t - 0.68) / 0.32)
+      mapRef.current.moveCamera({ center: { lat: fromLat + latDelta * travel, lng: fromLng + lngDelta * travel }, zoom: flightZoom })
       if (t < 1) window.requestAnimationFrame(animate)
-      else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
+      else mapRef.current.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
     }
     window.requestAnimationFrame(animate)
   }, [startProgrammaticCamera])
