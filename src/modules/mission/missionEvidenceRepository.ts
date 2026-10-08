@@ -19,7 +19,7 @@ export async function uploadMissionPhoto(input:UploadInput){
  const {error:uploadError}=await db().storage.from(BUCKET).upload(path,input.file,{contentType:type,upsert:false});if(uploadError)throw uploadError
  const registerRpc=input.developerTest?'register_developer_guard_evidence_rc1':'register_guard_evidence_rc1'
  const registerArgs=input.developerTest?{p_guard_id:input.guardId,p_job_id:input.jobId,p_checkpoint:input.checkpoint,p_storage_path:path,p_mime_type:type,p_file_size:input.file.size,p_latitude:input.latitude??null,p_longitude:input.longitude??null}:{p_job_id:input.jobId,p_checkpoint:input.checkpoint,p_storage_path:path,p_mime_type:type,p_file_size:input.file.size,p_latitude:input.latitude??null,p_longitude:input.longitude??null}
- const {data,error}=await db().rpc(registerRpc,registerArgs as any);if(error){await db().storage.from(BUCKET).remove([path]);throw error}
+ const {data,error}=await db().rpc(registerRpc,registerArgs as any);if(error)throw error
  return data as MissionEvidenceMedia
 }
 export async function getMissionEvidence(jobId:string){const{data,error}=await db().rpc('get_mission_evidence_for_report_rc1',{p_job_id:jobId});if(error)throw error;return(data??[]) as MissionEvidenceMedia[]}

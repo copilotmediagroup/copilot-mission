@@ -315,8 +315,8 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
   const [preview, setPreview] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const choose=(next?:File)=>{if(!next)return;setFile(next);setCaptured(true);setError('');setPreview(URL.createObjectURL(next))}
-  const use=async()=>{if(kind==='photo'&&!file){setError('Take or choose a real photo first.');return}setBusy(true);setError('');try{await onUse(file??undefined)}catch(e){setError(e instanceof Error?e.message:'Evidence upload failed.')}finally{setBusy(false)}}
+  const choose=(next?:File)=>{if(!next)return;if(!next.type.startsWith('image/')){setError('A real image is required.');return}setFile(next);setCaptured(true);setError('');setPreview(URL.createObjectURL(next))}
+  const use=async()=>{if(kind==='photo'&&!file){setError('Take a real photo first.');return}setBusy(true);setError('');try{await onUse(file??undefined)}catch(e){setError(e instanceof Error?e.message:'Evidence upload failed.')}finally{setBusy(false)}}
   const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
   return <div className="capture-overlay" role="dialog" aria-modal="true">
     <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close capture" />
@@ -327,12 +327,12 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
         <div className="camera-grid"/>
         {captured ? (preview?<img src={preview} alt="Evidence preview" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div className="captured-preview"><CheckCircle2/><strong>Video selected</strong><small>Ready to attach</small></div>) : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{kind==='photo'?'Your phone camera will open when you tap Take Photo.':'Video capture is not yet enabled.'}</small></div>}
       </div>
-      {!captured ? <div className="capture-controls">{kind==='photo'?<><span className="gallery-button"><Image/><span>Evidence</span></span><label className="shutter photo" aria-label="Take photo"><input type="file" accept="image/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/><i/></label><span className="flip-button"><Camera/><span>Camera</span></span></>:<span className="camera-instructions"><strong>Video evidence coming next</strong><small>Video cannot be marked captured until real recording/upload is connected.</small></span>}</div> : <div className="capture-confirm">
+      {!captured ? <div className="capture-controls">{kind==='photo'?<label className="shutter photo" style={{position:'relative'}} aria-label="Take photo" title="Take Photo"><input type="file" accept="image/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/><i/><b style={{position:'absolute',top:'calc(100% + 8px)',whiteSpace:'nowrap',fontSize:10,left:'50%',transform:'translateX(-50%)'}}>TAKE PHOTO</b></label>:<span className="camera-instructions"><strong>Video evidence coming next</strong><small>Video cannot be marked captured until real recording/upload is connected.</small></span>}</div> : <div className="capture-confirm">
         <SecondaryButton onClick={()=>{setCaptured(false);setFile(null);setPreview('')}}><RotateCcw/> RETAKE</SecondaryButton>
         <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={()=>void use()} disabled={busy}><Check/> {busy?'UPLOADING…':`USE ${kind.toUpperCase()}`}</PrimaryButton>
       </div>}
       {error&&<p style={{color:'#ff6b6b',fontWeight:700}}>{error}</p>}
-      {existing > 0 && kind!=='photo' && <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing {kind}</button>}
+      {existing > 0 && kind==='video' ? <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing video</button> : null}
       <p className="prototype-note">Photos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
     </section>
   </div>
