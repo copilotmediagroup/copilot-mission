@@ -452,8 +452,6 @@ export default function MissionMap({
     useRef<HTMLDivElement | null>(null)
 
   const mapRef = useRef<any>(null)
-  const earthFlightLayerRef = useRef<HTMLDivElement | null>(null)
-  const earthFlightMapRef = useRef<any>(null)
   const [earthView, setEarthView] = useState(false)
   const googleRef = useRef<any>(null)
 
@@ -539,113 +537,30 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /*
-   * Google-native Earth flight.
-   *
-   * Do not simulate long-distance travel by tweening a 2D Map. Google Maps 3D
-   * exposes flyCameraTo(), which owns the parabolic rise/travel/descent path and
-   * terrain/satellite rendering. The production 2D map stays underneath so all
-   * existing markers, routes, cards and mission controls remain intact.
-   */
+  /* Global locate-camera motion shared by every MissionMap. */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
-    const google = googleRef.current
-    if (!map || !google) return
-    const startCenter = map.getCenter()
-    if (!startCenter) return
-
-    const fromLat = startCenter.lat()
-    const fromLng = startCenter.lng()
-    const latDelta = target.latitude - fromLat
-    let lngDelta = target.longitude - fromLng
-    if (lngDelta > 180) lngDelta -= 360
-    if (lngDelta < -180) lngDelta += 360
-    const distance = Math.hypot(latDelta, lngDelta)
+    if (!map) return
+    const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    const flightId = ++cameraFlightIdRef.current
-
-    // Nearby camera changes remain on the normal map. Earth flight is reserved
-    // for the cross-city / cross-state / cross-country Locate experience.
-    if (distance < 0.12 || !earthFlightLayerRef.current) {
-      startProgrammaticCamera(1200)
-      map.panTo({ lat: target.latitude, lng: target.longitude })
-      window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 450)
-      return
+    const delta = finalZoom - fromZoom
+    const steps = Math.max(1, Math.min(9, Math.ceil(Math.abs(delta))))
+    const duration = Math.max(650, Math.min(1450, 620 + Math.abs(delta) * 105))
+    const stepMs = duration / steps
+    startProgrammaticCamera()
+    map.panTo({ lat: target.latitude, lng: target.longitude })
+    if (Math.abs(delta) < 0.35) { map.setZoom(finalZoom); return }
+    let step = 0
+    const tick = () => {
+      const liveMap = mapRef.current
+      if (!liveMap) return
+      step += 1
+      const t = step / steps
+      const eased = 1 - Math.pow(1 - t, 3)
+      liveMap.setZoom(fromZoom + delta * eased)
+      if (step < steps) window.setTimeout(tick, stepMs)
     }
-
-    const layer = earthFlightLayerRef.current
-    layer.replaceChildren()
-    layer.classList.add('active')
-    startProgrammaticCamera(12000)
-
-    void (async () => {
-      try {
-        const maps3d = await google.maps.importLibrary('maps3d')
-        if (cameraFlightIdRef.current !== flightId) return
-        const Map3DElement = maps3d.Map3DElement
-        if (!Map3DElement) throw new Error('Google Maps 3D is unavailable')
-
-        // Range is the 3D camera-to-target distance in meters. This conversion
-        // gives a familiar close-up equivalent to the requested 2D zoom.
-        const targetRange = Math.max(80, Math.min(22000000, 36000000 / Math.pow(2, finalZoom - 1)))
-        const startZoom = map.getZoom() ?? finalZoom
-        const startRange = Math.max(120, Math.min(22000000, 36000000 / Math.pow(2, startZoom - 1)))
-        const durationMillis = Math.round(Math.max(4200, Math.min(11000, 4800 + distance * 95)))
-
-        const earthMap = new Map3DElement({
-          center: { lat: fromLat, lng: fromLng, altitude: 0 },
-          range: startRange,
-          tilt: 0,
-          heading: 0,
-          mode: 'SATELLITE',
-          defaultUIDisabled: true,
-        })
-        earthFlightMapRef.current = earthMap
-        earthMap.style.width = '100%'
-        earthMap.style.height = '100%'
-        layer.append(earthMap)
-
-        const finish = () => {
-          if (cameraFlightIdRef.current !== flightId) return
-          mapRef.current?.moveCamera({
-            center: { lat: target.latitude, lng: target.longitude },
-            zoom: finalZoom,
-          })
-          window.setTimeout(() => {
-            if (cameraFlightIdRef.current !== flightId) return
-            layer.classList.remove('active')
-            layer.replaceChildren()
-            earthFlightMapRef.current = null
-          }, 180)
-        }
-
-        earthMap.addEventListener('gmp-animationend', finish, { once: true })
-
-        // This is Google's native 3D camera flight. Google calculates the
-        // parabolic altitude path instead of us faking it with pan/zoom frames.
-        await Promise.resolve(earthMap.flyCameraTo({
-          endCamera: {
-            center: { lat: target.latitude, lng: target.longitude, altitude: 0 },
-            range: targetRange,
-            tilt: 52,
-            heading: 0,
-          },
-          durationMillis,
-        }))
-
-        // Defensive completion only; normal completion comes from Google's event.
-        window.setTimeout(finish, durationMillis + 1400)
-      } catch (error) {
-        if (cameraFlightIdRef.current !== flightId) return
-        layer.classList.remove('active')
-        layer.replaceChildren()
-        earthFlightMapRef.current = null
-        startProgrammaticCamera(1600)
-        map.panTo({ lat: target.latitude, lng: target.longitude })
-        window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 550)
-        console.warn('Google Earth camera flight unavailable; used map fallback.', error)
-      }
-    })()
+    window.setTimeout(tick, Math.min(90, stepMs))
   }, [startProgrammaticCamera])
 
   const applySmartCamera = useCallback(
@@ -1948,12 +1863,6 @@ export default function MissionMap({
       <div
         ref={containerRef}
         className="mission-google-map"
-      />
-
-      <div
-        ref={earthFlightLayerRef}
-        className="mission-google-earth-flight"
-        aria-hidden="true"
       />
 
       {(error || mapBlocked) && (
