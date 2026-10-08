@@ -541,10 +541,8 @@ export default function MissionMap({
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
     if (!map) return
-
     const startCenter = map.getCenter()
     if (!startCenter) return
-
     const fromLat = startCenter.lat()
     const fromLng = startCenter.lng()
     let lngDelta = target.longitude - fromLng
@@ -554,45 +552,38 @@ export default function MissionMap({
     const distance = Math.hypot(latDelta, lngDelta)
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-
-    // Earth-style flight: position and altitude are one continuous camera move,
-    // not three separate animations. A smootherstep time curve gives zero
-    // velocity at both ends; a bell-shaped zoom envelope pulls the camera back
-    // through the middle of the flight and naturally descends at destination.
-    const distancePullback = distance > 35 ? 5.0 : distance > 20 ? 4.4 : distance > 10 ? 3.7 : distance > 4 ? 3.0 : distance > 1 ? 2.2 : 1.3
-    const existingPullback = Math.max(0, finalZoom - fromZoom)
-    const pullback = Math.max(0.8, distancePullback - existingPullback * 0.55)
-    const duration = Math.max(3200, Math.min(7200, 3300 + distance * 55))
-    const startedAt = performance.now()
     const flightId = ++cameraFlightIdRef.current
-    startProgrammaticCamera(duration + 300)
 
+    // Far travel must rise before crossing geography. Moving center and altitude
+    // together can outrun Google's high-detail tile renderer and look like a teleport.
+    const longFlight = distance > 1.25
+    const travelZoom = longFlight
+      ? Math.max(4, Math.min(8.5, finalZoom - (distance > 35 ? 7 : distance > 15 ? 6 : distance > 6 ? 5 : distance > 2 ? 4 : 3)))
+      : Math.max(3, Math.min(fromZoom, finalZoom) - 1.1)
+    const riseDuration = longFlight ? 1450 : 650
+    const travelDuration = longFlight ? Math.max(2200, Math.min(5200, 1900 + distance * 65)) : 1100
+    const descendDuration = longFlight ? 1650 : 850
+    const totalDuration = riseDuration + travelDuration + descendDuration
+    const startedAt = performance.now()
+    startProgrammaticCamera(totalDuration + 400)
     const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10)
     const animate = (now: number) => {
       const liveMap = mapRef.current
       if (!liveMap || cameraFlightIdRef.current !== flightId) return
-      const raw = Math.min(1, (now - startedAt) / duration)
-      const travel = smootherstep(raw)
-
-      // The base zoom blends start -> default while the altitude envelope rises
-      // and falls. Using the same eased clock keeps lat/lng/zoom synchronized,
-      // which is what removes the staged, jerky feeling.
-      const baseZoom = fromZoom + (finalZoom - fromZoom) * travel
-      const altitudeEnvelope = Math.sin(Math.PI * travel)
-      const flightZoom = Math.max(3, baseZoom - pullback * altitudeEnvelope)
-
-      liveMap.moveCamera({
-        center: {
-          lat: fromLat + latDelta * travel,
-          lng: fromLng + lngDelta * travel,
-        },
-        zoom: flightZoom,
-      })
-
-      if (raw < 1) window.requestAnimationFrame(animate)
-      else liveMap.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
+      const elapsed = now - startedAt
+      if (elapsed < riseDuration) {
+        const t = smootherstep(Math.min(1, elapsed / riseDuration))
+        liveMap.moveCamera({center:{lat:fromLat,lng:fromLng},zoom:fromZoom+(travelZoom-fromZoom)*t})
+      } else if (elapsed < riseDuration + travelDuration) {
+        const t = smootherstep(Math.min(1,(elapsed-riseDuration)/travelDuration))
+        liveMap.moveCamera({center:{lat:fromLat+latDelta*t,lng:fromLng+lngDelta*t},zoom:travelZoom})
+      } else {
+        const t = smootherstep(Math.min(1,(elapsed-riseDuration-travelDuration)/descendDuration))
+        liveMap.moveCamera({center:{lat:target.latitude,lng:target.longitude},zoom:travelZoom+(finalZoom-travelZoom)*t})
+      }
+      if (elapsed < totalDuration) window.requestAnimationFrame(animate)
+      else liveMap.moveCamera({center:{lat:target.latitude,lng:target.longitude},zoom:finalZoom})
     }
-
     window.requestAnimationFrame(animate)
   }, [startProgrammaticCamera])
 
