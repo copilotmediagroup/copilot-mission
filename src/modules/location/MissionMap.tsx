@@ -71,6 +71,8 @@ type MissionMapProps = {
   onRouteUpdate?: (
     result: MissionRouteResult | null
   ) => void
+  /* Agency/Platform command mode: no route lock; frame all mission markers. */
+  overviewMode?: boolean
 }
 
 type LatLngPoint = {
@@ -442,6 +444,7 @@ export default function MissionMap({
   routeCameraMode = 'agency',
   visualTheme,
   onRouteUpdate,
+  overviewMode = false,
 }: MissionMapProps) {
   const containerRef =
     useRef<HTMLDivElement | null>(null)
@@ -522,13 +525,13 @@ export default function MissionMap({
     setSelectedMarker(null)
   }, [])
 
-  const startProgrammaticCamera = () => {
+  const startProgrammaticCamera = useCallback(() => {
     programmaticCameraRef.current = true
 
     window.setTimeout(() => {
       programmaticCameraRef.current = false
     }, 600)
-  }
+  }, [])
 
   const applySmartCamera = useCallback(
     (force = false) => {
@@ -551,11 +554,35 @@ export default function MissionMap({
        * owns the camera so the default stays guard-to-destination.
        */
       if (
+        !overviewMode &&
         activeMissionRoute &&
         isValidRoutePoint(activeMissionRoute.assignedGuard) &&
         isValidRoutePoint(activeMissionRoute.destination)
       ) {
         return
+      }
+
+      /*
+       * COMMAND OVERVIEW
+       * When Agency explicitly stops following, frame all mission
+       * markers instead of allowing the active property to force a
+       * route/follow camera. This makes Stop -> Follow -> Stop a real
+       * reversible command state.
+       */
+      if (overviewMode) {
+        const valid = markers.filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude))
+        if (valid.length) {
+          startProgrammaticCamera()
+          const bounds = new google.maps.LatLngBounds()
+          valid.forEach(marker => bounds.extend({lat:marker.latitude,lng:marker.longitude}))
+          if (valid.length === 1) {
+            map.panTo({lat:valid[0].latitude,lng:valid[0].longitude})
+            map.setZoom(Math.min(15,zoom))
+          } else {
+            map.fitBounds(bounds,100)
+          }
+          return
+        }
       }
 
       /*
@@ -726,7 +753,10 @@ export default function MissionMap({
       activeMissionRoute?.assignedGuard.longitude,
       activeMissionRoute?.destination.latitude,
       activeMissionRoute?.destination.longitude,
+      overviewMode,
       markers,
+      showViewerLocation,
+      startProgrammaticCamera,
       center.latitude,
       center.longitude,
       zoom,
@@ -1362,6 +1392,7 @@ export default function MissionMap({
     viewerLocation,
     locationStatus,
     theme,
+    visualTheme,
     mapReadyGeneration,
   ])
 
@@ -1379,6 +1410,8 @@ export default function MissionMap({
     activeDestination?.id,
     applySmartCamera,
     theme,
+    visualTheme,
+    overviewMode,
   ])
 
   /*
@@ -1415,6 +1448,7 @@ export default function MissionMap({
     }
 
     if (
+      overviewMode ||
       !activeMissionRoute ||
       !isValidRoutePoint(
         activeMissionRoute.assignedGuard
@@ -1423,7 +1457,13 @@ export default function MissionMap({
         activeMissionRoute.destination
       )
     ) {
+      if (overviewMode) routeRequestIdRef.current += 1
       clearRoute()
+      if (overviewMode) {
+        manualCameraRef.current = false
+        setManualCamera(false)
+        window.requestAnimationFrame(() => applySmartCamera(true))
+      }
       return
     }
 
@@ -1706,6 +1746,8 @@ export default function MissionMap({
 
     mapReadyGeneration,
     routeCameraMode,
+    overviewMode,
+    applySmartCamera,
     onRouteUpdate,
   ])
 
