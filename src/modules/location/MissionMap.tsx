@@ -452,8 +452,6 @@ export default function MissionMap({
     useRef<HTMLDivElement | null>(null)
 
   const mapRef = useRef<any>(null)
-  const earthFlightLayerRef = useRef<HTMLDivElement | null>(null)
-  const earthFlightMapRef = useRef<any>(null)
   const [earthView, setEarthView] = useState(false)
   const googleRef = useRef<any>(null)
 
@@ -539,113 +537,77 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /*
-   * Google-native Earth flight.
-   *
-   * Do not simulate long-distance travel by tweening a 2D Map. Google Maps 3D
-   * exposes flyCameraTo(), which owns the parabolic rise/travel/descent path and
-   * terrain/satellite rendering. The production 2D map stays underneath so all
-   * existing markers, routes, cards and mission controls remain intact.
-   */
+  /* Global locate-camera motion shared by every MissionMap. */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
-    const google = googleRef.current
-    if (!map || !google) return
-    const startCenter = map.getCenter()
-    if (!startCenter) return
+    if (!map) return
 
-    const fromLat = startCenter.lat()
-    const fromLng = startCenter.lng()
-    const latDelta = target.latitude - fromLat
+    const startCenter = map.getCenter()
+    if (!startCenter) { map.setCenter({ lat: target.latitude, lng: target.longitude }); map.setZoom(targetZoom); return }
+
+    const fromLat = startCenter.lat(), fromLng = startCenter.lng()
     let lngDelta = target.longitude - fromLng
     if (lngDelta > 180) lngDelta -= 360
     if (lngDelta < -180) lngDelta += 360
+    const latDelta = target.latitude - fromLat
     const distance = Math.hypot(latDelta, lngDelta)
+    const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    const flightId = ++cameraFlightIdRef.current
+    startProgrammaticCamera()
 
-    // Nearby camera changes remain on the normal map. Earth flight is reserved
-    // for the cross-city / cross-state / cross-country Locate experience.
-    if (distance < 0.12 || !earthFlightLayerRef.current) {
-      startProgrammaticCamera(1200)
-      map.panTo({ lat: target.latitude, lng: target.longitude })
-      window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 450)
+    // Cinematic locate: when panned a meaningful distance while zoomed in,
+    // pull back just enough to establish geography, travel, then settle into
+    // the app's default location zoom. The pullback scales with distance.
+    const meaningfulPan = distance > 0.35
+    const zoomedIn = fromZoom >= finalZoom - 0.75
+    if (meaningfulPan && zoomedIn) {
+      const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
+      const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
+      const pullDuration = 430
+      const travelDuration = Math.max(700, Math.min(1500, 620 + distance * 11))
+      const settleDuration = 620
+      const total = pullDuration + travelDuration + settleDuration
+      const startedAt = performance.now()
+      const animate = (now: number) => {
+        const liveMap = mapRef.current
+        if (!liveMap) return
+        const elapsed = now - startedAt
+        if (elapsed < pullDuration) {
+          const t = Math.min(1, elapsed / pullDuration), eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(fromZoom + (travelZoom - fromZoom) * eased)
+        } else if (elapsed < pullDuration + travelDuration) {
+          const t = Math.min(1, (elapsed - pullDuration) / travelDuration)
+          const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+          liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+          liveMap.setZoom(travelZoom)
+        } else {
+          liveMap.setCenter({lat:target.latitude,lng:target.longitude})
+          const t = Math.min(1, (elapsed - pullDuration - travelDuration) / settleDuration)
+          const eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(travelZoom + (finalZoom - travelZoom) * eased)
+        }
+        if (elapsed < total) window.requestAnimationFrame(animate)
+        else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
+      }
+      window.requestAnimationFrame(animate)
       return
     }
 
-    const layer = earthFlightLayerRef.current
-    layer.replaceChildren()
-    layer.classList.add('active')
-    startProgrammaticCamera(12000)
-
-    void (async () => {
-      try {
-        const maps3d = await google.maps.importLibrary('maps3d')
-        if (cameraFlightIdRef.current !== flightId) return
-        const Map3DElement = maps3d.Map3DElement
-        if (!Map3DElement) throw new Error('Google Maps 3D is unavailable')
-
-        // Range is the 3D camera-to-target distance in meters. This conversion
-        // gives a familiar close-up equivalent to the requested 2D zoom.
-        const targetRange = Math.max(80, Math.min(22000000, 36000000 / Math.pow(2, finalZoom - 1)))
-        const startZoom = map.getZoom() ?? finalZoom
-        const startRange = Math.max(120, Math.min(22000000, 36000000 / Math.pow(2, startZoom - 1)))
-        const durationMillis = Math.round(Math.max(4200, Math.min(11000, 4800 + distance * 95)))
-
-        const earthMap = new Map3DElement({
-          center: { lat: fromLat, lng: fromLng, altitude: 0 },
-          range: startRange,
-          tilt: 0,
-          heading: 0,
-          mode: 'SATELLITE',
-          defaultUIDisabled: true,
-        })
-        earthFlightMapRef.current = earthMap
-        earthMap.style.width = '100%'
-        earthMap.style.height = '100%'
-        layer.append(earthMap)
-
-        const finish = () => {
-          if (cameraFlightIdRef.current !== flightId) return
-          mapRef.current?.moveCamera({
-            center: { lat: target.latitude, lng: target.longitude },
-            zoom: finalZoom,
-          })
-          window.setTimeout(() => {
-            if (cameraFlightIdRef.current !== flightId) return
-            layer.classList.remove('active')
-            layer.replaceChildren()
-            earthFlightMapRef.current = null
-          }, 180)
-        }
-
-        earthMap.addEventListener('gmp-animationend', finish, { once: true })
-
-        // This is Google's native 3D camera flight. Google calculates the
-        // parabolic altitude path instead of us faking it with pan/zoom frames.
-        await Promise.resolve(earthMap.flyCameraTo({
-          endCamera: {
-            center: { lat: target.latitude, lng: target.longitude, altitude: 0 },
-            range: targetRange,
-            tilt: 52,
-            heading: 0,
-          },
-          durationMillis,
-        }))
-
-        // Defensive completion only; normal completion comes from Google's event.
-        window.setTimeout(finish, durationMillis + 1400)
-      } catch (error) {
-        if (cameraFlightIdRef.current !== flightId) return
-        layer.classList.remove('active')
-        layer.replaceChildren()
-        earthFlightMapRef.current = null
-        startProgrammaticCamera(1600)
-        map.panTo({ lat: target.latitude, lng: target.longitude })
-        window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 550)
-        console.warn('Google Earth camera flight unavailable; used map fallback.', error)
-      }
-    })()
+    // Already zoomed out: glide home while smoothly restoring default zoom.
+    const zoomDelta = finalZoom - fromZoom
+    const duration = Math.max(950, Math.min(1900, 900 + Math.abs(zoomDelta) * 120))
+    const startedAt = performance.now()
+    const animate = (now: number) => {
+      const liveMap = mapRef.current
+      if (!liveMap) return
+      const t = Math.min(1, (now - startedAt) / duration)
+      const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+      liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+      liveMap.setZoom(fromZoom + zoomDelta * (1 - Math.pow(1-t,3)))
+      if (t < 1) window.requestAnimationFrame(animate)
+      else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
+    }
+    window.requestAnimationFrame(animate)
   }, [startProgrammaticCamera])
 
   const applySmartCamera = useCallback(
@@ -1968,12 +1930,6 @@ export default function MissionMap({
       <div
         ref={containerRef}
         className="mission-google-map"
-      />
-
-      <div
-        ref={earthFlightLayerRef}
-        className="mission-google-earth-flight"
-        aria-hidden="true"
       />
 
       {(error || mapBlocked) && (

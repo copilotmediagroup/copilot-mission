@@ -5196,6 +5196,3 @@ input:disabled, select:disabled{
 
 /* Shared MissionMap regression guard: every product map gets the Earth/satellite control. */
 .copilot-map-controls .copilot-earth-toggle{font-size:9px;font-weight:900;letter-spacing:.04em;color:#fff}.copilot-map-controls .copilot-earth-toggle.active{background:#fff;color:#111}
-
-/* Google-native 3D flight overlay used only during Locate Guard travel. */
-.mission-google-earth-flight{position:absolute;inset:0;z-index:4;width:100%;height:100%;opacity:0;pointer-events:none;visibility:hidden;background:#07111b;transition:opacity .18s ease}.mission-google-earth-flight.active{opacity:1;visibility:visible}
