@@ -537,54 +537,73 @@ export default function MissionMap({
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
     if (!map) return
+
+    const startCenter = map.getCenter()
+    if (!startCenter) { map.setCenter({ lat: target.latitude, lng: target.longitude }); map.setZoom(targetZoom); return }
+
+    const fromLat = startCenter.lat(), fromLng = startCenter.lng()
+    let lngDelta = target.longitude - fromLng
+    if (lngDelta > 180) lngDelta -= 360
+    if (lngDelta < -180) lngDelta += 360
+    const latDelta = target.latitude - fromLat
+    const distance = Math.hypot(latDelta, lngDelta)
     const fromZoom = map.getZoom() ?? targetZoom
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
-    const delta = finalZoom - fromZoom
     startProgrammaticCamera()
 
-    // If the user only panned away, preserve zoom and animate the center
-    // ourselves. Google panTo can snap on long distances (for example CA -> FL),
-    // so interpolate the geographic center for a guaranteed visible glide.
-    if (Math.abs(delta) < 0.75) {
-      const start = map.getCenter()
-      if (!start) { map.setCenter({ lat: target.latitude, lng: target.longitude }); return }
-      const fromLat = start.lat(), fromLng = start.lng()
-      let lngDelta = target.longitude - fromLng
-      if (lngDelta > 180) lngDelta -= 360
-      if (lngDelta < -180) lngDelta += 360
-      const latDelta = target.latitude - fromLat
-      const distance = Math.hypot(latDelta, lngDelta)
-      const duration = Math.max(800, Math.min(1800, 850 + distance * 14))
+    // Cinematic locate: when panned a meaningful distance while zoomed in,
+    // pull back just enough to establish geography, travel, then settle into
+    // the app's default location zoom. The pullback scales with distance.
+    const meaningfulPan = distance > 0.35
+    const zoomedIn = fromZoom >= finalZoom - 0.75
+    if (meaningfulPan && zoomedIn) {
+      const pullback = distance > 35 ? 4.2 : distance > 15 ? 3.4 : distance > 6 ? 2.7 : distance > 2 ? 2.0 : 1.25
+      const travelZoom = Math.max(4, Math.min(finalZoom - 0.75, fromZoom - pullback))
+      const pullDuration = 430
+      const travelDuration = Math.max(700, Math.min(1500, 620 + distance * 11))
+      const settleDuration = 620
+      const total = pullDuration + travelDuration + settleDuration
       const startedAt = performance.now()
-      const glide = (now: number) => {
+      const animate = (now: number) => {
         const liveMap = mapRef.current
         if (!liveMap) return
-        const t = Math.min(1, (now - startedAt) / duration)
-        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-        liveMap.setCenter({ lat: fromLat + latDelta * eased, lng: fromLng + lngDelta * eased })
-        if (t < 1) window.requestAnimationFrame(glide)
+        const elapsed = now - startedAt
+        if (elapsed < pullDuration) {
+          const t = Math.min(1, elapsed / pullDuration), eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(fromZoom + (travelZoom - fromZoom) * eased)
+        } else if (elapsed < pullDuration + travelDuration) {
+          const t = Math.min(1, (elapsed - pullDuration) / travelDuration)
+          const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+          liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+          liveMap.setZoom(travelZoom)
+        } else {
+          liveMap.setCenter({lat:target.latitude,lng:target.longitude})
+          const t = Math.min(1, (elapsed - pullDuration - travelDuration) / settleDuration)
+          const eased = 1 - Math.pow(1 - t, 3)
+          liveMap.setZoom(travelZoom + (finalZoom - travelZoom) * eased)
+        }
+        if (elapsed < total) window.requestAnimationFrame(animate)
+        else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
       }
-      window.requestAnimationFrame(glide)
+      window.requestAnimationFrame(animate)
       return
     }
 
-    // If zoom also changed, use a deliberately slower eased zoom while the
-    // map glides home. This avoids the abrupt snap from very wide views.
-    const steps = Math.max(2, Math.min(11, Math.ceil(Math.abs(delta))))
-    const duration = Math.max(900, Math.min(1850, 820 + Math.abs(delta) * 125))
-    const stepMs = duration / steps
-    map.panTo({ lat: target.latitude, lng: target.longitude })
-    let step = 0
-    const tick = () => {
+    // Already zoomed out: glide home while smoothly restoring default zoom.
+    const zoomDelta = finalZoom - fromZoom
+    const duration = Math.max(950, Math.min(1900, 900 + Math.abs(zoomDelta) * 120))
+    const startedAt = performance.now()
+    const animate = (now: number) => {
       const liveMap = mapRef.current
       if (!liveMap) return
-      step += 1
-      const t = step / steps
-      const eased = 1 - Math.pow(1 - t, 3)
-      liveMap.setZoom(fromZoom + delta * eased)
-      if (step < steps) window.setTimeout(tick, stepMs)
+      const t = Math.min(1, (now - startedAt) / duration)
+      const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2
+      liveMap.setCenter({lat:fromLat + latDelta*eased,lng:fromLng + lngDelta*eased})
+      liveMap.setZoom(fromZoom + zoomDelta * (1 - Math.pow(1-t,3)))
+      if (t < 1) window.requestAnimationFrame(animate)
+      else { liveMap.setCenter({lat:target.latitude,lng:target.longitude}); liveMap.setZoom(finalZoom) }
     }
-    window.setTimeout(tick, Math.min(90, stepMs))
+    window.requestAnimationFrame(animate)
   }, [startProgrammaticCamera])
 
   const applySmartCamera = useCallback(
