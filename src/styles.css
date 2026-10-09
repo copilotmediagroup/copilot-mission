@@ -5330,3 +5330,11 @@ input:disabled, select:disabled{
 .client-shell button.active:not(:disabled),.client-shell button[aria-pressed="true"]:not(:disabled),.client-shell .client-sidebar nav button.active:not(:disabled){background:#fff;color:#111;border-color:#111}
 .client-shell input[type="search"],.client-shell input[type="text"],.client-shell input[type="email"],.client-shell input[type="tel"],.client-shell input[type="number"],.client-shell textarea,.client-shell select{background:#fff!important;color:#111!important}
 .client-shell input::placeholder,.client-shell textarea::placeholder{color:#777}
+
+/* Client sidebar only: black navigation buttons with true-white copy; selected is white/black. */
+.client-shell .client-sidebar nav button:not(:disabled){background:#111;color:#fff;border-color:#111}
+.client-shell .client-sidebar nav button:not(:disabled) *{color:#fff!important}
+.client-shell .client-sidebar nav button.active:not(:disabled){background:#fff;color:#111;border:1px solid #111}
+.client-shell .client-sidebar nav button.active:not(:disabled) *{color:#111!important}
+/* Undo the previous over-broad client button rule outside the sidebar. */
+.client-shell .client-main button:not(:disabled){background:revert-layer;color:revert-layer;border-color:revert-layer}
