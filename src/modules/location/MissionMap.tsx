@@ -539,37 +539,28 @@ export default function MissionMap({
     }, duration)
   }, [])
 
-  /* Native Google 3D locate flight for long-distance travel. */
+  /*
+   * LOCATE GUARD CAMERA
+   * One movement engine only: Google's native 3D parabolic flyCameraTo.
+   * Do not add panTo/setZoom/moveCamera interpolation or distance branches here.
+   */
   const smoothLocateCamera = useCallback((target: LatLngPoint, targetZoom: number) => {
     const map = mapRef.current
     const google = googleRef.current
-    if (!map || !google) return
+    const layer = earthLayerRef.current
+    if (!map || !google || !layer) return
     const startCenter = map.getCenter()
     if (!startCenter) return
 
     const fromLat = startCenter.lat()
     const fromLng = startCenter.lng()
-    let lngDelta = target.longitude - fromLng
-    if (lngDelta > 180) lngDelta -= 360
-    if (lngDelta < -180) lngDelta += 360
-    const latDelta = target.latitude - fromLat
-    const rad = Math.PI / 180
-    const hav = Math.sin((latDelta * rad) / 2) ** 2 + Math.cos(fromLat * rad) * Math.cos(target.latitude * rad) * Math.sin((lngDelta * rad) / 2) ** 2
-    const miles = 3958.8 * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav))
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
     const flightId = ++cameraFlightIdRef.current
 
-    // Keep the proven local behavior for short moves. Interstate/cross-country
-    // movement is handed to Google's native parabolic 3D camera.
-    if (miles < 90 || !earthLayerRef.current) {
-      startProgrammaticCamera(2200)
-      map.panTo({ lat: target.latitude, lng: target.longitude })
-      window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 700)
-      return
-    }
-
-    const layer = earthLayerRef.current
     layer.classList.add('active')
+    // Locate owns the camera until Google's animation-end event. This timeout is
+    // only a safety ceiling; it does not drive or interpolate the camera.
+    startProgrammaticCamera(45000)
 
     void (async () => {
       try {
@@ -578,23 +569,15 @@ export default function MissionMap({
         const Map3DElement = maps3d.Map3DElement
         if (!Map3DElement) throw new Error('Google Maps 3D unavailable')
 
-        const startZoom = map.getZoom() ?? finalZoom
         const zoomToRange = (z: number) => Math.max(350, Math.min(12000000, 40075016.686 / Math.pow(2, Math.max(0, z - 1))))
-
-        // Keep perceived geographic speed consistent as distance grows.
-        // The previous 14s ceiling compressed every long flight into nearly
-        // the same duration, making interstate/cross-country moves look like
-        // a teleport. Google's own SF -> Hawaii example uses a 30s flight.
-        const durationMillis = Math.round(Math.max(8000, Math.min(38000, 7000 + miles * 12)))
-        const cameraHoldMillis = durationMillis + 2500
-        startProgrammaticCamera(cameraHoldMillis)
+        const startZoom = map.getZoom() ?? finalZoom
 
         let earthMap = earthMapRef.current
         if (!earthMap) {
           earthMap = new Map3DElement({
             center: { lat: fromLat, lng: fromLng, altitude: 0 },
             range: zoomToRange(startZoom),
-            tilt: 35,
+            tilt: 45,
             heading: 0,
             mode: 'SATELLITE',
             defaultUIHidden: true,
@@ -605,19 +588,27 @@ export default function MissionMap({
           layer.replaceChildren(earthMap)
           earthMapRef.current = earthMap
         } else {
+          await Promise.resolve(earthMap.stopCameraAnimation?.())
           earthMap.center = { lat: fromLat, lng: fromLng, altitude: 0 }
           earthMap.range = zoomToRange(startZoom)
-          earthMap.tilt = 35
+          earthMap.tilt = 45
           earthMap.heading = 0
         }
 
+        let finished = false
         const finish = () => {
-          if (cameraFlightIdRef.current !== flightId) return
-          mapRef.current?.moveCamera({ center: { lat: target.latitude, lng: target.longitude }, zoom: finalZoom })
-          window.setTimeout(() => {
-            if (cameraFlightIdRef.current === flightId) layer.classList.remove('active')
-          }, 250)
+          if (finished || cameraFlightIdRef.current !== flightId) return
+          finished = true
+          // The 2D map is synchronized only after the native Earth flight ends.
+          // It never participates in the animation itself.
+          map.setCenter({ lat: target.latitude, lng: target.longitude })
+          map.setZoom(finalZoom)
+          layer.classList.remove('active')
+          programmaticCameraRef.current = false
+          manualCameraRef.current = false
+          setManualCamera(false)
         }
+
         earthMap.addEventListener('gmp-animationend', finish, { once: true })
         await Promise.resolve(earthMap.flyCameraTo({
           endCamera: {
@@ -626,16 +617,21 @@ export default function MissionMap({
             tilt: 52,
             heading: 0,
           },
-          durationMillis,
+          // Google's documented long-distance sample uses a 30 second native
+          // parabolic flight. One duration keeps the movement model identical
+          // whether the guard is nearby or several states away.
+          durationMillis: 30000,
         }))
-        window.setTimeout(finish, cameraHoldMillis)
+        // If this browser/API build fails to emit animationend, release the
+        // overlay after the documented flight duration rather than leaving it stuck.
+        window.setTimeout(finish, 32000)
       } catch (error) {
         if (cameraFlightIdRef.current !== flightId) return
         layer.classList.remove('active')
-        console.warn('Native 3D locate flight unavailable.', error)
-        startProgrammaticCamera(2200)
-        map.panTo({ lat: target.latitude, lng: target.longitude })
-        window.setTimeout(() => mapRef.current?.setZoom(finalZoom), 700)
+        programmaticCameraRef.current = false
+        manualCameraRef.current = false
+        setManualCamera(false)
+        console.error('Google Earth locate flight unavailable.', error)
       }
     })()
   }, [startProgrammaticCamera])
@@ -1514,14 +1510,9 @@ export default function MissionMap({
     setManualCamera(true)
     closeCard()
     smoothLocateCamera(cinematicTarget, zoom)
-    // smoothLocateCamera owns the camera for the full distance-aware flight.
-    // Keep manual ownership long enough that no normal smart-camera effect can
-    // steal the view during a 20–38 second interstate/cross-country flight.
-    const release = window.setTimeout(() => {
-      manualCameraRef.current = false
-      setManualCamera(false)
-    }, 42000)
-    return () => window.clearTimeout(release)
+    // Google's native gmp-animationend event releases camera ownership.
+    // No competing timer is allowed to take the camera back mid-flight.
+    return undefined
   }, [cinematicTarget?.latitude, cinematicTarget?.longitude, zoom, mapReadyGeneration, smoothLocateCamera, closeCard])
 
   /*
@@ -1929,15 +1920,8 @@ export default function MissionMap({
     manualCameraRef.current = false
     setManualCamera(false)
     closeCard()
-    if (viewerLocation && !activeDestination) {
-      smoothLocateCamera(viewerLocation, zoom)
-      return
-    }
-    const valid = markers.filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude))
-    if (!viewerLocation && valid.length === 1) {
-      smoothLocateCamera({ latitude: valid[0].latitude, longitude: valid[0].longitude }, Math.min(15, zoom))
-      return
-    }
+    // Recenter uses the normal map camera. Native Earth flight is reserved
+    // exclusively for the explicit Locate Guard cinematicTarget path.
     applySmartCamera(true)
   }
 
