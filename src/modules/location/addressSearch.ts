@@ -177,6 +177,20 @@ export async function resolveAddressSuggestion(suggestion: AddressSuggestion): P
 }
 
 
+export async function geocodeMapSearch(query: string): Promise<{formattedAddress:string;latitude:number;longitude:number}> {
+  const cleaned=query.trim()
+  if(!cleaned) throw new Error('Enter an address, city, ZIP code, or place.')
+  const { google }=await services()
+  const geocoder=new google.maps.Geocoder()
+  return new Promise((resolve,reject)=>{
+    geocoder.geocode({address:cleaned,componentRestrictions:{country:'US'}},(results:any[]|null,status:string)=>{
+      if(status!==google.maps.GeocoderStatus.OK||!results?.[0]?.geometry?.location)return reject(new Error('Location not found. Try a more specific address, city, or ZIP code.'))
+      const result=results[0],location=result.geometry.location
+      resolve({formattedAddress:result.formatted_address||cleaned,latitude:location.lat(),longitude:location.lng()})
+    })
+  })
+}
+
 export async function reverseGeocodeCoordinates(
   latitude: number,
   longitude: number,

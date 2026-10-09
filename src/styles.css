@@ -5267,3 +5267,12 @@ input:disabled, select:disabled{
 .platform-earth-controls button:hover{background:#fff!important;color:#000!important;border-color:#000!important;transform:scale(1.05)}
 .platform-earth-controls button:focus-visible{outline:4px solid #fff!important;outline-offset:3px}
 .platform-earth-controls .platform-earth-reset{font-size:25px!important}
+
+/* Global map search is an action, not a passive filter. */
+.owner-v4-search{position:relative;flex:1;max-width:560px}
+.owner-v4-search form{display:flex;align-items:stretch;gap:7px}
+.owner-v4-search form input{flex:1;min-width:0}
+.owner-v4-search form button{min-width:105px;border:1px solid #111;border-radius:12px;background:#111;color:#fff;padding:0 14px;font-weight:850;cursor:pointer}
+.owner-v4-search form button:disabled{opacity:.45;cursor:not-allowed}
+.owner-v4-search-error{position:absolute;left:4px;top:44px;z-index:120;background:#111;color:#fff;border:1px solid #fff;border-radius:8px;padding:6px 9px;font-size:10px;box-shadow:0 5px 18px rgba(0,0,0,.35)}
+@media(max-width:700px){.owner-v4-search form{width:100%}.owner-v4-search form button{min-width:88px;padding:0 10px}}
