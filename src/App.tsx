@@ -20,10 +20,14 @@ import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAcces
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
+import EarthFlightLab from './EarthFlightLab'
 
-const developerPath = window.location.pathname.replace(/\/+$/, '') === '/developer'
+const cleanPath = window.location.pathname.replace(/\/+$/, '')
+const developerPath = cleanPath === '/developer'
+const earthFlightLabPath = cleanPath === '/earth-flight-lab'
 
 export default function App() {
+  if (earthFlightLabPath) return <EarthFlightLab />
   return <AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider>
 }
 
