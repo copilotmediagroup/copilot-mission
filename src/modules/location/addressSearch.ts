@@ -180,11 +180,26 @@ export async function resolveAddressSuggestion(suggestion: AddressSuggestion): P
 export async function geocodeMapSearch(query: string): Promise<{formattedAddress:string;latitude:number;longitude:number}> {
   const cleaned=query.trim()
   if(!cleaned) throw new Error('Enter an address, city, ZIP code, or place.')
-  const { google }=await services()
+  const { google, placesService }=await services()
+
+  // Global Map search is place search, not address verification. Places Text Search
+  // handles cities, ZIPs, landmarks and street addresses with the same Maps key.
+  const placeResult=await new Promise<any|null>((resolve)=>{
+    placesService.textSearch({query:cleaned},(results:any[]|null,status:string)=>{
+      if(status===google.maps.places.PlacesServiceStatus.OK&&results?.[0]?.geometry?.location) resolve(results[0])
+      else resolve(null)
+    })
+  })
+  if(placeResult){
+    const location=placeResult.geometry.location
+    return {formattedAddress:placeResult.formatted_address||placeResult.name||cleaned,latitude:location.lat(),longitude:location.lng()}
+  }
+
+  // Keep Geocoder as a fallback for accounts where Geocoding API is enabled.
   const geocoder=new google.maps.Geocoder()
   return new Promise((resolve,reject)=>{
     geocoder.geocode({address:cleaned,componentRestrictions:{country:'US'}},(results:any[]|null,status:string)=>{
-      if(status!==google.maps.GeocoderStatus.OK||!results?.[0]?.geometry?.location)return reject(new Error('Location not found. Try a more specific address, city, or ZIP code.'))
+      if(status!==google.maps.GeocoderStatus.OK||!results?.[0]?.geometry?.location)return reject(new Error('Location not found. Try a city + state, ZIP code, landmark, or full street address.'))
       const result=results[0],location=result.geometry.location
       resolve({formattedAddress:result.formatted_address||cleaned,latitude:location.lat(),longitude:location.lng()})
     })
