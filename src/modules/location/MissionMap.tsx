@@ -557,10 +557,12 @@ export default function MissionMap({
     const finalZoom = Math.max(3, Math.min(21, targetZoom))
     const flightId = ++cameraFlightIdRef.current
 
-    layer.classList.add('active')
-    // Locate owns the camera until Google's animation-end event. This timeout is
-    // only a safety ceiling; it does not drive or interpolate the camera.
-    startProgrammaticCamera(45000)
+    // Keep the ordinary map visible while Google's 3D renderer prepares the
+    // exact origin. The Earth layer becomes visible only after steadystate.
+    layer.classList.remove('active')
+    // Locate owns the camera through 3D preparation + the 30s native flight.
+    // This timeout is only a safety ceiling; it does not drive the animation.
+    startProgrammaticCamera(52000)
 
     void (async () => {
       try {
@@ -603,11 +605,48 @@ export default function MissionMap({
           // It never participates in the animation itself.
           map.setCenter({ lat: target.latitude, lng: target.longitude })
           map.setZoom(finalZoom)
-          layer.classList.remove('active')
+          layer.classList.remove('active', 'preparing')
           programmaticCameraRef.current = false
           manualCameraRef.current = false
           setManualCamera(false)
         }
+
+        // The 3D custom element must participate in layout/rendering while Google
+        // prepares it. Keep it visually transparent (CSS .preparing) rather than
+        // visibility:hidden; hidden Maps 3D elements may never become steady.
+        layer.classList.add('preparing')
+
+        // Do not expose or fly the 3D map until Google reports that its initial
+        // camera/terrain state is stable. Starting a long flight before this event
+        // can hide the travel while remote tiles are still preparing.
+        const waitForSteadyState = () => new Promise<void>((resolve) => {
+          let settled = false
+          let timeoutId = 0
+          const ready = () => {
+            if (settled) return
+            settled = true
+            if (timeoutId) window.clearTimeout(timeoutId)
+            earthMap.removeEventListener('gmp-steadystate', ready)
+            resolve()
+          }
+          earthMap.addEventListener('gmp-steadystate', ready, { once: true })
+          // Safety only: don't strand Locate if a browser omits the event.
+          timeoutId = window.setTimeout(ready, 12000)
+        })
+
+        // Keep the ordinary map visible while Earth prepares at the exact current
+        // viewpoint. The user should first see Earth only when it is ready to move.
+        await waitForSteadyState()
+        if (cameraFlightIdRef.current !== flightId) return
+
+        layer.classList.remove('preparing')
+        layer.classList.add('active')
+        // Give the compositor one painted frame at the origin before starting the
+        // native parabolic flight; otherwise a remote flight can appear as a cut.
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))
+        })
+        if (cameraFlightIdRef.current !== flightId) return
 
         earthMap.addEventListener('gmp-animationend', finish, { once: true })
         await Promise.resolve(earthMap.flyCameraTo({
@@ -617,17 +656,13 @@ export default function MissionMap({
             tilt: 52,
             heading: 0,
           },
-          // Google's documented long-distance sample uses a 30 second native
-          // parabolic flight. One duration keeps the movement model identical
-          // whether the guard is nearby or several states away.
           durationMillis: 30000,
         }))
-        // If this browser/API build fails to emit animationend, release the
-        // overlay after the documented flight duration rather than leaving it stuck.
+        // Safety only. Normal completion is exclusively gmp-animationend.
         window.setTimeout(finish, 32000)
       } catch (error) {
         if (cameraFlightIdRef.current !== flightId) return
-        layer.classList.remove('active')
+        layer.classList.remove('active', 'preparing')
         programmaticCameraRef.current = false
         manualCameraRef.current = false
         setManualCamera(false)

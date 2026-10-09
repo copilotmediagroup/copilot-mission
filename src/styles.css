@@ -1167,6 +1167,10 @@ body{overflow-x:hidden;}
   visibility:hidden;
   background:#000;
 }
+.mission-google-earth-flight.preparing{
+  opacity:0;
+  visibility:visible;
+}
 .mission-google-earth-flight.active{
   opacity:1;
   visibility:visible;
