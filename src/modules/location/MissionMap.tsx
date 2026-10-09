@@ -570,7 +570,6 @@ export default function MissionMap({
 
     const layer = earthLayerRef.current
     layer.classList.add('active')
-    startProgrammaticCamera(16000)
 
     void (async () => {
       try {
@@ -581,7 +580,14 @@ export default function MissionMap({
 
         const startZoom = map.getZoom() ?? finalZoom
         const zoomToRange = (z: number) => Math.max(350, Math.min(12000000, 40075016.686 / Math.pow(2, Math.max(0, z - 1))))
-        const durationMillis = Math.round(Math.max(6500, Math.min(14000, 6500 + miles * 4)))
+
+        // Keep perceived geographic speed consistent as distance grows.
+        // The previous 14s ceiling compressed every long flight into nearly
+        // the same duration, making interstate/cross-country moves look like
+        // a teleport. Google's own SF -> Hawaii example uses a 30s flight.
+        const durationMillis = Math.round(Math.max(8000, Math.min(38000, 7000 + miles * 12)))
+        const cameraHoldMillis = durationMillis + 2500
+        startProgrammaticCamera(cameraHoldMillis)
 
         let earthMap = earthMapRef.current
         if (!earthMap) {
@@ -622,7 +628,7 @@ export default function MissionMap({
           },
           durationMillis,
         }))
-        window.setTimeout(finish, durationMillis + 1800)
+        window.setTimeout(finish, cameraHoldMillis)
       } catch (error) {
         if (cameraFlightIdRef.current !== flightId) return
         layer.classList.remove('active')
@@ -1508,10 +1514,13 @@ export default function MissionMap({
     setManualCamera(true)
     closeCard()
     smoothLocateCamera(cinematicTarget, zoom)
+    // smoothLocateCamera owns the camera for the full distance-aware flight.
+    // Keep manual ownership long enough that no normal smart-camera effect can
+    // steal the view during a 20–38 second interstate/cross-country flight.
     const release = window.setTimeout(() => {
       manualCameraRef.current = false
       setManualCamera(false)
-    }, 7600)
+    }, 42000)
     return () => window.clearTimeout(release)
   }, [cinematicTarget?.latitude, cinematicTarget?.longitude, zoom, mapReadyGeneration, smoothLocateCamera, closeCard])
 
