@@ -92,7 +92,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
         <NavButton active={section==='overview'} icon={<Home/>} label="Overview" onClick={()=>navigate('overview')}/>
         <NavButton active={section==='properties'} icon={<Building2/>} label="Properties" count={properties.length} onClick={()=>navigate('properties')}/>
         <NavButton active={section==='request'} icon={<ShieldAlert/>} label="Request Security" onClick={()=>{navigate('request'); openRequest()}}/>
-        <NavButton active={section==='activity'} icon={<Radio/>} label="Active Requests" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/><NavButton active={section==='billing'} icon={<Shield/>} label="Billing" onClick={()=>navigate('billing')}/><NavButton active={section==='settings'} icon={<Settings/>} label="Settings" onClick={()=>navigate('settings')}/>
+        <NavButton active={section==='activity'} icon={<Radio/>} label="Active" count={activeJobs.length} onClick={()=>navigate('activity')}/><NavButton active={section==='reports'} icon={<FileText/>} label="Reports" onClick={()=>navigate('reports')}/><NavButton active={section==='billing'} icon={<Shield/>} label="Billing" onClick={()=>navigate('billing')}/><NavButton active={section==='settings'} icon={<Settings/>} label="Settings" onClick={()=>navigate('settings')}/>
       </nav>
       <div className="client-sidebar-bottom">
         <div className="client-secure"><Shield/><span><b>Secure workspace</b><small>Session protected</small></span></div>

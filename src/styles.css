@@ -5324,3 +5324,9 @@ input:disabled, select:disabled{
 .v4-scope .owner-live-toolbar label{border:1px solid #d7d7d7;box-shadow:none}
 .v4-scope .owner-live-toolbar label:focus-within{border-color:#111;box-shadow:0 0 0 1px #111}
 .v4-scope .owner-live-toolbar label input{background:#fff!important;border:0!important;box-shadow:none!important}
+
+/* Client interaction doctrine: black actions, white selected state, clean white search fields. */
+.client-shell button:not(:disabled){background:#111;color:#fff;border-color:#111}
+.client-shell button.active:not(:disabled),.client-shell button[aria-pressed="true"]:not(:disabled),.client-shell .client-sidebar nav button.active:not(:disabled){background:#fff;color:#111;border-color:#111}
+.client-shell input[type="search"],.client-shell input[type="text"],.client-shell input[type="email"],.client-shell input[type="tel"],.client-shell input[type="number"],.client-shell textarea,.client-shell select{background:#fff!important;color:#111!important}
+.client-shell input::placeholder,.client-shell textarea::placeholder{color:#777}
