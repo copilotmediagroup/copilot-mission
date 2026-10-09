@@ -21,7 +21,6 @@ import { startGuardLocationPublisher } from './modules/location/liveLocationRepo
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
-import RouteProbe from './RouteProbe'
 
 const cleanPath = window.location.pathname.replace(/\/+$/, '')
 const developerPath = cleanPath === '/developer'
@@ -30,7 +29,7 @@ const earthFlightLabPath = cleanPath === '/earth-flight-lab'
 export default function App() {
   console.info('[ROUTE-PROBE] App build route-probe-20261009-0320', window.location.pathname)
   if (earthFlightLabPath) return <EarthFlightLab />
-  return <><RouteProbe/><AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider></>
+  return <AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider>
 }
 
 function AppShell() {

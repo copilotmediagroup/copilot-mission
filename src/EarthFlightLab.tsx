@@ -65,7 +65,7 @@ export default function EarthFlightLab(){
     map.flyCameraTo({endCamera:{center:{lat:target.lat,lng:target.lng,altitude:80},range:target.range,tilt:target.tilt,heading:0},durationMillis:30000})
   }
 
-  return <main className="earth-flight-lab"><div data-earth-lab-probe="EXACT-EARTH-LAB-20261009-0320" style={{position:'absolute',top:8,left:8,zIndex:2147483646,background:'#ffea00',color:'#000',fontWeight:900,fontSize:18,padding:'10px 14px',border:'4px solid #000'}}>EXACT EARTH LAB COMPONENT</div>
+  return <main className="earth-flight-lab">
     <header><div><b>CO PILOT</b><span>GOOGLE EARTH FLIGHT LAB</span></div><strong>{status}</strong></header>
     <section ref={hostRef} className="earth-flight-stage" />
     <nav>
