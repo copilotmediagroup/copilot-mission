@@ -182,8 +182,20 @@ export async function geocodeMapSearch(query: string): Promise<{formattedAddress
   if(!cleaned) throw new Error('Enter an address, city, ZIP code, or place.')
   const { google, placesService }=await services()
 
-  // Global Map search is place search, not address verification. Places Text Search
-  // handles cities, ZIPs, landmarks and street addresses with the same Maps key.
+  // Prefer Places Find Place for an immediate exact candidate. This handles full
+  // street addresses as well as cities/ZIPs without waiting on a broad text search.
+  const exactPlace=await new Promise<any|null>((resolve)=>{
+    placesService.findPlaceFromQuery({query:cleaned,fields:['formatted_address','name','geometry','place_id']},(results:any[]|null,status:string)=>{
+      if(status===google.maps.places.PlacesServiceStatus.OK&&results?.[0]?.geometry?.location) resolve(results[0])
+      else resolve(null)
+    })
+  })
+  if(exactPlace){
+    const location=exactPlace.geometry.location
+    return {formattedAddress:exactPlace.formatted_address||exactPlace.name||cleaned,latitude:location.lat(),longitude:location.lng()}
+  }
+
+  // Fallback to Text Search for landmarks and broader place phrases.
   const placeResult=await new Promise<any|null>((resolve)=>{
     placesService.textSearch({query:cleaned},(results:any[]|null,status:string)=>{
       if(status===google.maps.places.PlacesServiceStatus.OK&&results?.[0]?.geometry?.location) resolve(results[0])
@@ -195,7 +207,7 @@ export async function geocodeMapSearch(query: string): Promise<{formattedAddress
     return {formattedAddress:placeResult.formatted_address||placeResult.name||cleaned,latitude:location.lat(),longitude:location.lng()}
   }
 
-  // Keep Geocoder as a fallback for accounts where Geocoding API is enabled.
+  // Keep Geocoder as a final fallback for accounts where Geocoding API is enabled.
   const geocoder=new google.maps.Geocoder()
   return new Promise((resolve,reject)=>{
     geocoder.geocode({address:cleaned,componentRestrictions:{country:'US'}},(results:any[]|null,status:string)=>{
