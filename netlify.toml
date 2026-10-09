@@ -20,6 +20,21 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+    X-Co-Pilot-Build = "route-probe-20261009-0320"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Co-Pilot-Route-Probe = "route-probe-20261009-0320"
 
 [[redirects]]
   from = "/*"

@@ -21,14 +21,16 @@ import { startGuardLocationPublisher } from './modules/location/liveLocationRepo
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
+import RouteProbe from './RouteProbe'
 
 const cleanPath = window.location.pathname.replace(/\/+$/, '')
 const developerPath = cleanPath === '/developer'
 const earthFlightLabPath = cleanPath === '/earth-flight-lab'
 
 export default function App() {
+  console.info('[ROUTE-PROBE] App build route-probe-20261009-0320', window.location.pathname)
   if (earthFlightLabPath) return <EarthFlightLab />
-  return <AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider>
+  return <><RouteProbe/><AuthProvider><AuthGateway><AppShell /></AuthGateway></AuthProvider></>
 }
 
 function AppShell() {
@@ -69,7 +71,7 @@ function AppShell() {
   const portalKey = `${developerAccessMode}:${activeRole}:${activeDeveloperTarget}:${auth.user?.id ?? 'anonymous'}`
   const showDeveloperDock = auth.role === 'platform_admin'
 
-  return <div className={adminDeveloperMode ? 'developer-preview-active' : ''}>
+  return <div className={adminDeveloperMode ? 'developer-preview-active' : ''} data-route-probe="APP-SHELL-20261009-0320">
     {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} accounts={developerAccounts} targets={developerTargets} onTargetChange={changeDeveloperTarget} />}
     <div key={portalKey} className="portal-runtime-boundary">
       {activeRole === 'guard_lab' ? <ExperienceLab /> :

@@ -1,0 +1,1 @@
+export default function RouteProbe(){return <div data-build-probe="BUILD-PROBE-20261009-0320" style={{position:'fixed',bottom:12,right:12,zIndex:2147483647,background:'#ff00ff',color:'#000',borderWidth:5,borderStyle:'solid',borderColor:'#000',padding:'12px 16px',fontWeight:900,fontSize:16}}>BUILD PROBE · 20261009-0320</div>}
