@@ -37,7 +37,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
   const publishClientIdentity=useCallback((identity:{full_name:string|null;avatar_url:string|null})=>{clientIdentityRef.current=identity;setClientIdentity(identity)},[])
 
   const load = useCallback(async () => {
-    if (isPreview) { if(!developerClientId){setClientId(null);setProperties([]);setJobs([]);setPaymentProfile(null);setLoading(false);return} setLoading(true);setError('');try{const workspace=await getDeveloperClientWorkspace(developerClientId);setClientId(workspace.clientId);setProperties(workspace.properties);setJobs(workspace.jobs);setPaymentProfile(workspace.paymentProfile)}catch(cause){setError(workspaceErrorMessage(cause))}finally{setLoading(false)};return }
+    if (isPreview) { if(!developerClientId){setClientId(null);setProperties([]);setJobs([]);setPaymentProfile(null);publishClientIdentity({full_name:null,avatar_url:null});setLoading(false);return} setLoading(true);setError('');try{const [workspace,identity]=await Promise.all([getDeveloperClientWorkspace(developerClientId),import('./modules/client/clientRepository').then(r=>r.getClientAccountForPlatform(developerClientId))]);setClientId(workspace.clientId);setProperties(workspace.properties);setJobs(workspace.jobs);setPaymentProfile(workspace.paymentProfile);publishClientIdentity({full_name:identity.full_name,avatar_url:identity.avatar_url})}catch(cause){setError(workspaceErrorMessage(cause))}finally{setLoading(false)};return }
     if (!auth.user) return
     setLoading(true); setError('')
     try {
