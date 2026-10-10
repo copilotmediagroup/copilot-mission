@@ -82,3 +82,4 @@ export async function getOperationsCopilotRouteIntelligence(): Promise<Operation
  const {data,error}=await requireSupabase().rpc('get_operations_copilot_route_intelligence'); if(error) throw new Error(error.message); return (data??[]) as OperationsRouteIntelligence[]
 }
 export async function startMissionRescue(jobId:string,reason:string,severity:'WATCH'|'ACTION REQUIRED'|'CRITICAL',recommendedAgencyId?:string|null){const{data,error}=await requireSupabase().rpc('start_mission_rescue',{p_job_id:jobId,p_reason:reason,p_severity:severity,p_recommended_agency_id:recommendedAgencyId??null});if(error)throw new Error(error.message);return data}
+export async function offerMissionRescueToBackup(jobId:string,agencyId:string){const{data,error}=await requireSupabase().rpc('offer_mission_rescue_to_backup',{p_job_id:jobId,p_agency_id:agencyId});if(error)throw new Error(error.message);return data}
