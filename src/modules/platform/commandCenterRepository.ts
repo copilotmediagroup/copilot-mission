@@ -93,3 +93,6 @@ export async function flagMissionForOwner(jobId:string,note?:string|null){const{
 export async function sendOwnerMissionMessage(jobId:string,target:'agency'|'guard',body:string){const{data,error}=await requireSupabase().rpc('send_owner_mission_message',{p_job_id:jobId,p_body:body,p_target:target});if(error)throw new Error(error.message);return data}
 export type OperationsEvidenceStatus={job_id:string;evidence_count:number;last_evidence_at:string|null;last_checkpoint:number|null}
 export async function getOperationsCopilotEvidenceStatus():Promise<OperationsEvidenceStatus[]>{const{data,error}=await requireSupabase().rpc('get_operations_copilot_evidence_status');if(error)throw new Error(error.message);return(data??[]) as OperationsEvidenceStatus[]}
+
+export type OperationsIncidentStatus={job_id:string;incident_count:number;open_incident_count:number;severe_incident_count:number;latest_incident_at:string|null}
+export async function getOperationsCopilotIncidentStatus(){const{data,error}=await requireSupabase().rpc('get_operations_copilot_incident_status');if(error)throw new Error(error.message);return(data??[]) as OperationsIncidentStatus[]}
