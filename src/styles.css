@@ -5365,3 +5365,27 @@ input:disabled, select:disabled{
 .market-client-identity img,.owner-client-identity img{width:32px;height:32px;border-radius:50%;object-fit:cover;float:left;margin-right:8px}
 /* Current Client sidebar tab is borderless white; other sidebar tabs stay borderless black. */
 .client-shell .client-sidebar nav button,.client-shell .client-sidebar nav button.active{border:0!important;box-shadow:none!important}
+
+/* Client portal premium black/white cleanup — scoped to client only */
+.client-shell .property-primary-action button{background:#111!important;color:#fff!important;border:0!important;border-radius:999px!important;padding:10px 14px!important;min-height:38px;box-shadow:0 8px 20px #00000014}
+.client-shell .property-primary-action button svg{color:#fff!important;stroke:#fff!important}
+.client-shell .property-management-actions button{background:#111!important;color:#fff!important;border:0!important;border-radius:10px!important;min-height:38px}
+.client-shell .property-management-actions button svg{color:#fff!important;stroke:#fff!important}
+.client-shell .property-management-actions button.danger{background:#111!important;color:#fff!important;border:0!important}
+.client-shell .billing-delete-card{background:#111!important;color:#fff!important;border:0!important;border-radius:999px!important;padding:9px 13px!important}
+.client-shell .billing-delete-card svg{color:#fff!important;stroke:#fff!important}
+.client-shell .billing-card-entry button.primary{background:#111!important;color:#fff!important;border:0!important}
+.client-shell .client-report-calendar-system .v4-report-summary>button{background:#111!important;color:#fff!important;border:0!important}
+.client-shell .client-report-calendar-system .v4-report-summary>button span,.client-shell .client-report-calendar-system .v4-report-summary>button strong{color:#fff!important}
+.client-shell .client-report-calendar-system .v4-report-summary>button small{color:#b8b8b8!important}
+.client-shell .client-report-calendar-system .v4-calendar-controls .v4-button{background:#111!important;color:#fff!important;border:0!important;border-radius:999px!important}
+.client-shell .client-report-calendar-system .v4-calendar-controls .v4-button svg{color:#fff!important;stroke:#fff!important}
+.client-shell .client-report-calendar-system .v4-calendar-grid>button.has-reports{background:#111!important;color:#fff!important}
+.client-shell .client-report-calendar-system .v4-calendar-grid>button.has-reports:hover{background:#202020!important}
+.client-shell .client-report-calendar-system .v4-calendar-grid>button.has-reports div strong{color:#fff!important}
+.client-shell .client-report-calendar-system .v4-calendar-grid>button.has-reports div small{color:#b8b8b8!important}
+.client-shell .client-report-calendar-system .v4-calendar-grid>button.has-reports.today>b{background:#fff!important;color:#111!important}
+.client-shell .client-report-center .v4-report-results>button{background:#111!important;color:#fff!important;border:0!important}
+.client-shell .client-report-center .v4-report-results>button strong{color:#fff!important}
+.client-shell .client-report-center .v4-report-results>button small,.client-shell .client-report-center .v4-report-results>button time{color:#b8b8b8!important}
+.client-shell .client-report-center .v4-report-results>button .v4-badge{background:#fff!important;color:#111!important;border-color:#fff!important}
