@@ -39,6 +39,11 @@ export type CommandCenterEvent = {
   id: number; job_id: string; event_type: string; payload: Record<string, unknown>; created_at: string
   mission_title: string; actor_name: string | null
 }
+export type OperationsRouteIntelligence = {
+  job_id:string; guard_id:string; mission_state:string; guard_latitude:number|null; guard_longitude:number|null
+  property_latitude:number|null; property_longitude:number|null; last_location_at:string|null; distance_miles:number|null
+  eta_minutes:number|null; minutes_to_start:number|null; movement:'unknown'|'stationary'|'moving'; moved_miles_10m:number|null; location_points_10m:number
+}
 export type CommandCenterSnapshot = {
   generated_at: string
   summary: CommandCenterSummary
@@ -71,4 +76,8 @@ export function subscribeToCommandCenter(onChange: () => void) {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_events' }, onChange)
     .subscribe()
   return () => { void db.removeChannel(channel) }
+}
+
+export async function getOperationsCopilotRouteIntelligence(): Promise<OperationsRouteIntelligence[]> {
+ const {data,error}=await requireSupabase().rpc('get_operations_copilot_route_intelligence'); if(error) throw new Error(error.message); return (data??[]) as OperationsRouteIntelligence[]
 }
