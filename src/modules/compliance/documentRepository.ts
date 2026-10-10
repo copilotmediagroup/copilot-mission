@@ -28,7 +28,9 @@ export async function uploadAgencyDocument(input:{file:File;documentType:string;
   if(upload.error) throw new Error(upload.error.message)
   const rpc=input.developerAgencyId?'submit_developer_agency_document_rc1':'submit_agency_document'; const args:any={p_document_type:input.documentType,p_operating_state:input.operatingState,p_service_category:input.serviceCategory,p_file_path:path,p_file_name:input.file.name,p_mime_type:input.file.type || null,p_file_size:input.file.size,p_expires_on:input.expiresOn || null,p_note:input.note || null}; if(input.developerAgencyId)args.p_agency_id=input.developerAgencyId; const {data,error}=await client.rpc(rpc,args)
   if(error) throw new Error(error.message)
-  return data as AgencyDocumentRecord
+  const document=data as AgencyDocumentRecord
+  try{await client.functions.invoke('ai-compliance-underwriter',{body:{document_id:document.id}})}catch(e){console.warn('Automatic AI compliance review could not start',e)}
+  return document
 }
 export async function submitAgencyApplication(input:AgencyApplicationInput & {developerAgencyId?:string}){
   const rpc=input.developerAgencyId?'submit_developer_agency_application_rc1':'submit_agency_application'; const args:any={p_owner_contact_name:input.ownerContactName,p_operating_states:input.operatingStates,p_service_categories:input.serviceCategories,p_license_number:input.licenseNumber || null,p_note:input.note || null}; if(input.developerAgencyId)args.p_agency_id=input.developerAgencyId; const {data,error}=await db().rpc(rpc,args)
