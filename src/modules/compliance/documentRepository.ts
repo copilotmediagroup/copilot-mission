@@ -55,3 +55,7 @@ export function subscribeToDocuments(onChange:()=>void){
   const ch=supabase.channel(`agency-documents-${crypto.randomUUID()}`).on('postgres_changes',{event:'*',schema:'public',table:'agency_documents'},onChange).on('postgres_changes',{event:'INSERT',schema:'public',table:'document_reviews'},onChange).subscribe()
   return()=>{void supabase?.removeChannel(ch)}
 }
+
+export type DocumentAiReview={id:string;document_id:string;agency_id:string;provider:string;model:string|null;status:'queued'|'processing'|'completed'|'failed';decision:'approved'|'action_required'|'manual_review'|null;confidence:number|null;extracted_fields:Record<string,unknown>;rule_results:{rule:string;passed:boolean;expected?:unknown;observed?:unknown}[];flags:string[];summary:string|null;error_message:string|null;auto_applied:boolean;created_at:string;completed_at:string|null}
+export async function getDocumentAiReview(documentId:string):Promise<DocumentAiReview|null>{const{data,error}=await db().rpc('get_document_ai_review',{p_document_id:documentId});if(error)throw new Error(error.message);return data as DocumentAiReview|null}
+export async function runDocumentAiReview(documentId:string):Promise<DocumentAiReview>{const{data,error}=await db().functions.invoke('ai-compliance-underwriter',{body:{document_id:documentId}});if(error)throw new Error(error.message);if(data?.error)throw new Error(data.error);return data.review as DocumentAiReview}
