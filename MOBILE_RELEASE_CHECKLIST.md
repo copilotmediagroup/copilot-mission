@@ -24,7 +24,9 @@
 - [x] Native push registration token capture.
 - [x] Authenticated server-side push token persistence registry/RPC.
 - [ ] APNs/FCM server delivery.
-- [ ] True background location implementation and disclosure review.
+- [x] Native background location source implementation.
+- [x] Guard Android background bridge + native HTTP transport configured.
+- [ ] Background-location permission/disclosure review and physical-device verification.
 - [ ] Physical-device dispatch, GPS, evidence, messaging and completion test.
 
 ## Release rule
