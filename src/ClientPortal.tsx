@@ -32,6 +32,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
   const [requestOpen, setRequestOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [liveTracking,setLiveTracking]=useState<ClientTrackingExperience>(null)
+  const [clientIdentity,setClientIdentity]=useState<{full_name:string|null;avatar_url:string|null}|null>(null)
 
   const load = useCallback(async () => {
     if (isPreview) { if(!developerClientId){setClientId(null);setProperties([]);setJobs([]);setPaymentProfile(null);setLoading(false);return} setLoading(true);setError('');try{const workspace=await getDeveloperClientWorkspace(developerClientId);setClientId(workspace.clientId);setProperties(workspace.properties);setJobs(workspace.jobs);setPaymentProfile(workspace.paymentProfile)}catch(cause){setError(workspaceErrorMessage(cause))}finally{setLoading(false)};return }
@@ -43,12 +44,15 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
       setProperties(workspace.properties)
       setJobs(workspace.jobs)
       setPaymentProfile(workspace.paymentProfile)
+      const identity=await import('./modules/client/clientRepository').then(r=>r.getClientAccountSettings()).catch(()=>null)
+      if(identity)setClientIdentity({full_name:identity.full_name,avatar_url:identity.avatar_url})
     } catch (cause) {
       setError(workspaceErrorMessage(cause))
     } finally { setLoading(false) }
   }, [auth.user, isPreview, developerClientId])
 
   useEffect(() => { void load() }, [load])
+  useEffect(()=>{if(isPreview||!auth.user)return;const dbPromise=import('./lib/supabase').then(m=>m.supabase);let channel:any;void dbPromise.then(db=>{if(!db)return;channel=db.channel(`client-profile-${auth.user!.id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${auth.user!.id}`},(payload:any)=>{const row=payload.new as any;setClientIdentity({full_name:row.full_name??null,avatar_url:row.avatar_url??null})}).subscribe()});return()=>{void dbPromise.then(db=>{if(db&&channel)void db.removeChannel(channel)})}},[isPreview,auth.user])
   useEffect(() => {
     if (!clientId) return
     return subscribeToClientWorkspace(clientId, () => void load())
@@ -83,11 +87,14 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
     setRequestOpen(true)
   }
 
+  const identityPhoto=clientIdentity?.avatar_url ?? auth.profile?.avatar_url ?? null
+  const identityName=clientIdentity?.full_name ?? auth.profile?.full_name ?? null
+
   return <div className="client-shell">
     {developerMode && <div className={`client-environment-banner ${isPreview?'preview':'live'}`}><strong>{isPreview?'ADMIN LIVE-ACCOUNT TEST — NO REAL CHARGES':'LIVE PRODUCTION ACCESS'}</strong><span>{isPreview?'Real account + real V4 data · payment processor and payout disabled':'Authenticated production workspace · real actions possible'}</span></div>}
     {notice && <div className="client-toast"><CheckCircle2/>{notice}</div>}
     <aside className={`client-sidebar ${mobileNav ? 'open' : ''}`}>
-      <div className="client-brand"><div className={auth.profile?.avatar_url ? 'has-brand-image' : ''}>{auth.profile?.avatar_url ? <img src={auth.profile.avatar_url} alt="Client branding"/> : <Shield/>}</div><span><b>CO PILOT</b><small>CLIENT COMMAND</small></span></div>
+      <div className="client-brand"><div className={identityPhoto ? 'has-brand-image' : ''}>{identityPhoto ? <img src={identityPhoto} alt="Client branding"/> : <Shield/>}</div><span><b>CO PILOT</b><small>CLIENT COMMAND</small></span></div>
       <nav>
         <NavButton active={section==='overview'} icon={<Home/>} label="Overview" onClick={()=>navigate('overview')}/>
         <NavButton active={section==='properties'} icon={<Building2/>} label="Properties" count={properties.length} onClick={()=>navigate('properties')}/>
@@ -105,17 +112,17 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
       <header className="client-topbar">
         <button className="client-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
         <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : section === 'billing' ? 'Billing & payment' : section === 'settings' ? 'Account settings' : 'Request security'}</h1></div>
-        <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>{setSection('activity');setNotice('Active requests and alerts opened.')}} aria-label="Open client alerts"><Bell/></button><div className="client-user"><span className={auth.profile?.avatar_url ? 'has-brand-image' : ''}>{auth.profile?.avatar_url ? <img src={auth.profile.avatar_url} alt="Client branding"/> : initials(auth.profile?.full_name)}</span><div><b>{auth.profile?.full_name || 'Client'}</b><small>Approved account</small></div></div></div>
+        <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>{setSection('activity');setNotice('Active requests and alerts opened.')}} aria-label="Open client alerts"><Bell/></button><div className="client-user"><span className={identityPhoto ? 'has-brand-image' : ''}>{identityPhoto ? <img src={identityPhoto} alt="Client branding"/> : initials(identityName)}</span><div><b>{identityName || 'Client'}</b><small>Approved account</small></div></div></div>
       </header>
 
       <div className="client-content">
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
-          {section === 'overview' && <Overview name={auth.profile?.full_name || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
+          {section === 'overview' && <Overview name={identityName || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
           {section === 'reports' && <ClientReports preview={isPreview} developerClientId={isPreview?developerClientId:undefined}/>}
           {section === 'billing' && <BillingView preview={isPreview} paymentProfile={paymentProfile} onSaved={load}/>}
-          {section === 'settings' && <ClientSettings preview={isPreview} onNotice={setNotice} onPublished={()=>void auth.refreshProfile()} onDeactivated={()=>void auth.signOut()}/>}
+          {section === 'settings' && <ClientSettings preview={isPreview} onNotice={setNotice} onPublished={async()=>{await auth.refreshProfile();const identity=await import('./modules/client/clientRepository').then(r=>r.getClientAccountSettings());setClientIdentity({full_name:identity.full_name,avatar_url:identity.avatar_url})}} onDeactivated={()=>void auth.signOut()}/>}
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
         </>}
       </div>
