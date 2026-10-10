@@ -5338,3 +5338,11 @@ input:disabled, select:disabled{
 .client-shell .client-sidebar nav button.active:not(:disabled) *{color:#111!important}
 /* Undo the previous over-broad client button rule outside the sidebar. */
 .client-shell .client-main button:not(:disabled){background:revert-layer;color:revert-layer;border-color:revert-layer}
+
+/* Client service chooser: premium black cards with white icon tiles. */
+.client-v3-services button,.client-v3-services button.urgent{background:#111!important;color:#fff!important;border-color:#111!important}
+.client-v3-services button:hover,.client-v3-services button.urgent:hover{background:#111!important;color:#fff!important}
+.client-v3-services button>span,.client-v3-services button.urgent>span{background:#fff!important;color:#111!important}
+.client-v3-services button>span svg,.client-v3-services button.urgent>span svg{color:#111!important;stroke:#111!important}
+.client-v3-services button>b,.client-v3-services button>svg{color:#fff!important;stroke:#fff!important}
+.client-v3-services button>small,.client-v3-services button.urgent>small{color:#bfc2c5!important}

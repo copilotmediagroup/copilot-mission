@@ -150,7 +150,7 @@ function Overview({ name, properties, activeJobs, completed, onAddProperty, onRe
     <ClientCityMap properties={properties}/>
     <section className="client-v3-sheet">
 
-      <div className="client-v3-handle"/><div className="client-v3-welcome"><div><small>GOOD {new Date().getHours()<12?'MORNING':new Date().getHours()<18?'AFTERNOON':'EVENING'}</small><h2>What do you need protected, {name.split(' ')[0]}?</h2></div><div className="client-v3-avatar">{name.split(/\s+/).map(v=>v[0]).join('').slice(0,2).toUpperCase()}</div></div>
+      <div className="client-v3-handle"/><div className="client-v3-welcome"><div><small>GOOD {new Date().getHours()<12?'MORNING':new Date().getHours()<18?'AFTERNOON':'EVENING'}</small><h2>How can we protect you today?</h2></div><div className="client-v3-avatar">{name.split(/\s+/).map(v=>v[0]).join('').slice(0,2).toUpperCase()}</div></div>
       <div className="client-v3-services">
         <button className="urgent" onClick={onRequest}><span><ShieldAlert/></span><b>Guard now</b><small>On-demand coverage</small><ChevronRight/></button>
         <button onClick={onRequest}><span><CalendarClock/></span><b>Schedule</b><small>Plan coverage ahead</small><ChevronRight/></button>
