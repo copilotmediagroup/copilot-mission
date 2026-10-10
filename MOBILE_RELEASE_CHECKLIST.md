@@ -13,7 +13,8 @@
 - [x] Client-only native target.
 - [x] Shared production Supabase backend.
 - [ ] Physical-device authentication/session test.
-- [ ] Native push token persistence + APNs/FCM delivery.
+- [x] Authenticated native push token persistence registry/RPC.
+- [ ] APNs/FCM server delivery.
 - [ ] Request-security/payment/live-tracking device test.
 
 ## Guard app — CO PILOT GUARD
@@ -21,7 +22,8 @@
 - [x] Native mission camera uses existing secured evidence upload contract.
 - [x] Native photo can include foreground GPS metadata.
 - [x] Native push registration token capture.
-- [ ] Server-side push token persistence + APNs/FCM delivery.
+- [x] Authenticated server-side push token persistence registry/RPC.
+- [ ] APNs/FCM server delivery.
 - [ ] True background location implementation and disclosure review.
 - [ ] Physical-device dispatch, GPS, evidence, messaging and completion test.
 

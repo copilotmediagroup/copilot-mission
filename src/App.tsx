@@ -20,6 +20,7 @@ import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAcces
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import {currentNativeCoordinates,registerNativePush} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
+import {persistNativePushToken} from './mobile/pushTokenRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
@@ -127,7 +128,7 @@ function GuardApp({
     canReadLiveDispatch &&
     !isDeveloperPreview
 
-  useEffect(()=>{if(!liveDispatch)return;void registerNativePush().catch(()=>undefined)},[liveDispatch])
+  useEffect(()=>{if(!liveDispatch)return;let cleanup:(()=>Promise<void>)|null=null;void registerNativePush(registration=>{void persistNativePushToken(registration,mobileTarget()).catch(()=>undefined)}).then(fn=>{cleanup=fn}).catch(()=>undefined);return()=>{if(cleanup)void cleanup()}},[liveDispatch])
 
   useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState);try{window.sessionStorage.setItem('copilot:developer:guard-state',hydratedState)}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
