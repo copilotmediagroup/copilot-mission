@@ -119,7 +119,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
 
       <div className="client-content">
         {loading ? <LoadingState/> : error ? <ErrorState message={error} retry={load}/> : <>
-          {section === 'overview' && <Overview name={identityName || 'there'} properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
+          {section === 'overview' && <Overview properties={properties} activeJobs={activeJobs} completed={completedJobs.length} onAddProperty={()=>setPropertyOpen(true)} onRequest={openRequest}/>}
           {section === 'properties' && <PropertiesView properties={properties} onAdd={()=>{setEditingProperty(null);setPropertyOpen(true)}} onRequest={openRequest} onEdit={property=>{setEditingProperty(property);setPropertyOpen(true)}} onArchive={property=>setConfirmAction({type:'archive',property})} onDelete={property=>setConfirmAction({type:'delete',property})}/>}
           {section === 'activity' && <ActivityView jobs={jobs} properties={properties} onRequest={openRequest} tracking={liveTracking} onViewReport={()=>setSection('reports')}/>}
           {section === 'reports' && <ClientReports preview={isPreview} developerClientId={isPreview?developerClientId:undefined}/>}
@@ -153,13 +153,13 @@ function ClientSettings({preview,developerClientId,onNotice,onPublished,onDeacti
 type ClientCommand={tone:string;icon:React.ReactNode;eyebrow:string;title:string;copy:string;action:string;secondary:string;onAction:()=>void;onSecondary:()=>void}
 function ClientCommandStrip({command}:{command:ClientCommand}){return <section className={`client-command-strip ${command.tone}`}><div className="client-command-icon">{command.icon}</div><div className="client-command-copy"><small>{command.eyebrow}</small><strong>{command.title}</strong><span>{command.copy}</span></div><div className="client-command-actions"><button type="button" className="primary" onClick={command.onAction}>{command.action}<ChevronRight/></button><button type="button" onClick={command.onSecondary}>{command.secondary}</button></div></section>}
 
-function Overview({ name, properties, activeJobs, completed, onAddProperty, onRequest }: { name:string; properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void }) {
+function Overview({ properties, activeJobs, completed, onAddProperty, onRequest }: { properties:ClientProperty[]; activeJobs:ClientJob[]; completed:number; onAddProperty:()=>void; onRequest:()=>void }) {
   const latest=activeJobs[0]
   return <div className="client-v3-home">
     <ClientCityMap properties={properties}/>
     <section className="client-v3-sheet">
 
-      <div className="client-v3-handle"/><div className="client-v3-welcome"><div><small>GOOD {new Date().getHours()<12?'MORNING':new Date().getHours()<18?'AFTERNOON':'EVENING'}</small><h2>How can we protect you today?</h2></div><div className="client-v3-avatar">{name.split(/\s+/).map(v=>v[0]).join('').slice(0,2).toUpperCase()}</div></div>
+      <div className="client-v3-handle"/><div className="client-v3-welcome"><div><small>GOOD {new Date().getHours()<12?'MORNING':new Date().getHours()<18?'AFTERNOON':'EVENING'}</small><h2>How can we protect you today?</h2></div></div>
       <div className="client-v3-services">
         <button className="urgent" onClick={onRequest}><span><ShieldAlert/></span><b>Guard now</b><small>On-demand coverage</small><ChevronRight/></button>
         <button onClick={onRequest}><span><CalendarClock/></span><b>Schedule</b><small>Plan coverage ahead</small><ChevronRight/></button>
