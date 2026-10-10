@@ -42,7 +42,7 @@ export type CommandCenterEvent = {
 export type OperationsRouteIntelligence = {
   job_id:string; guard_id:string; mission_state:string; guard_latitude:number|null; guard_longitude:number|null
   property_latitude:number|null; property_longitude:number|null; last_location_at:string|null; distance_miles:number|null
-  eta_minutes:number|null; minutes_to_start:number|null; movement:'unknown'|'stationary'|'moving'; moved_miles_10m:number|null; location_points_10m:number
+  eta_minutes:number|null; minutes_to_start:number|null; movement:'unknown'|'stationary'|'moving'; moved_miles_10m:number|null; location_points_10m:number;distance_change_miles:number|null;progress:'approaching'|'moving_away'|'not_approaching'|'stationary'|'unknown'
 }
 export type CommandCenterSnapshot = {
   generated_at: string
