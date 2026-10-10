@@ -18,6 +18,7 @@ import ClientPortal from './ClientPortal'
 import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
+import {currentNativeCoordinates,registerNativePush} from './mobile/nativePlatform'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
@@ -122,6 +123,8 @@ function GuardApp({
   const liveDispatch =
     canReadLiveDispatch &&
     !isDeveloperPreview
+
+  useEffect(()=>{if(!liveDispatch)return;void registerNativePush().catch(()=>undefined)},[liveDispatch])
 
   useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState);try{window.sessionStorage.setItem('copilot:developer:guard-state',hydratedState)}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
@@ -565,7 +568,7 @@ function GuardApp({
         checkpoint={effectiveCheckpoint}
         patrolEvidence={effectiveEvidence}
         onEvidenceChange={(records) => void updateEvidence(records)}
-        onPhotoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');await uploadMissionPhoto({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview})}}
+        onPhotoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionPhoto({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         incidents={effectiveIncidents}
         missionStartedAt={mission.missionStartedAt}
         onIncidentsChange={(records) => void updateIncidents(records)}

@@ -7,9 +7,20 @@
     "dev": "vite --host 0.0.0.0",
     "build": "npm run validate:schema && tsc && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "validate:schema": "node scripts/validate-schema-contract.mjs"
+    "validate:schema": "node scripts/validate-schema-contract.mjs",
+    "mobile:sync": "npm run build && cap sync",
+    "mobile:doctor": "cap doctor",
+    "mobile:client:config": "node scripts/write-mobile-config.mjs client",
+    "mobile:guard:config": "node scripts/write-mobile-config.mjs guard",
+    "mobile:client:sync": "npm run mobile:client:config && npm run build && cap sync",
+    "mobile:guard:sync": "npm run mobile:guard:config && npm run build && cap sync"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/camera": "^7.0.2",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/geolocation": "^7.1.5",
+    "@capacitor/push-notifications": "^7.0.3",
     "@nmipayments/nmi-pay-react": "^1.0.2",
     "@supabase/supabase-js": "2.52.1",
     "lucide-react": "0.468.0",
@@ -17,6 +28,7 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@vitejs/plugin-react": "4.3.4",
