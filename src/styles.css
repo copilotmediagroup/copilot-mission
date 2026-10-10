@@ -5346,3 +5346,13 @@ input:disabled, select:disabled{
 .client-v3-services button>span svg,.client-v3-services button.urgent>span svg{color:#111!important;stroke:#111!important}
 .client-v3-services button>b,.client-v3-services button>svg{color:#fff!important;stroke:#fff!important}
 .client-v3-services button>small,.client-v3-services button.urgent>small{color:#bfc2c5!important}
+
+/* Client sidebar selected/current tab: invert to white with black content. */
+.client-shell .client-sidebar nav button.active,
+.client-shell .client-sidebar nav button.active:hover,
+.client-shell .client-sidebar nav button.active:focus,
+.client-shell .client-sidebar nav button.active:active{background:#fff!important;color:#111!important;border:1px solid #111!important}
+.client-shell .client-sidebar nav button.active svg,
+.client-shell .client-sidebar nav button.active span,
+.client-shell .client-sidebar nav button.active b{color:#111!important;stroke:#111!important}
+.client-shell .client-sidebar nav button.active small{background:#111!important;color:#fff!important;border-color:#111!important}
