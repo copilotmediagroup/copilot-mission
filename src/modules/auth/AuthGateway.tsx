@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from './AuthProvider'
+import {mobileProductName,mobileTarget} from '../../mobile/mobileTarget'
 
 type View = 'login' | 'signup' | 'forgot'
 
@@ -17,13 +18,13 @@ export function AuthGateway({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function AuthSplash({ label }: { label: string }) { return <div className="auth-splash"><div className="auth-mark"><ShieldCheck/></div><h1>CO PILOT</h1><p>Security Marketplace</p><div className="auth-loader"><span/></div><small>{label}</small></div> }
+function AuthSplash({ label }: { label: string }) { const product=mobileProductName(); return <div className="auth-splash"><div className="auth-mark"><ShieldCheck/></div><h1>{product}</h1><p>{mobileTarget()==='guard'?'Guard Operations':'Security Marketplace'}</p><div className="auth-loader"><span/></div><small>{label}</small></div> }
 
 function StateScreen({ icon, title, body, action }: { icon: ReactNode; title: string; body: string; action: ReactNode }) { return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon">{icon}</div><h1>{title}</h1><p>{body}</p>{action}</div></div> }
 
 function AuthScreen() {
   const { signIn, signUp, activateGuard } = useAuth()
-  const inviteToken=new URLSearchParams(window.location.search).get('guard-invite'); const inviteEmail=new URLSearchParams(window.location.search).get('email')??'';
+  const target=mobileTarget(); const inviteToken=new URLSearchParams(window.location.search).get('guard-invite'); const inviteEmail=new URLSearchParams(window.location.search).get('email')??'';
   const [view,setView] = useState<View>('login'); const [showPassword,setShowPassword]=useState(false); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(''); const [accountType,setAccountType]=useState<'client'|'agency_admin'>('client')
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setBusy(true); setMessage(''); const form = new FormData(event.currentTarget)
@@ -53,7 +54,7 @@ function AuthScreen() {
         {message && <div className="auth-message"><CheckCircle2/>{message}</div>}
         <button className="auth-submit" disabled={busy}>{busy?<LoaderCircle className="spin"/>:null}{inviteToken?'Activate Guard account':view==='login'?'Sign in':view==='signup'?'Create account':'Continue'}</button>
       </form>
-      {!inviteToken && view === 'login' && <div className="auth-create"><span>New to Co Pilot?</span><button onClick={()=>{setView('signup');setMessage('')}}>Create an account</button></div>}
+      {!target && !inviteToken && view === 'login' && <div className="auth-create"><span>New to Co Pilot?</span><button onClick={()=>{setView('signup');setMessage('')}}>Create an account</button></div>}
       <div className="auth-security"><ShieldCheck/>Protected by encrypted session management</div>
     </div></section>
   </div>
