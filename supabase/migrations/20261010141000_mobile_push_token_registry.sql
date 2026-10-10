@@ -10,7 +10,7 @@ create table if not exists public.mobile_push_tokens (
 );
 
 alter table public.mobile_push_tokens enable row level security;
-revoke all on public.mobile_push_tokens from anon, authenticated;
+revoke all on public.mobile_push_tokens from public, anon, authenticated;
 
 create or replace function public.register_mobile_push_token(p_token text,p_platform text,p_app_target text)
 returns void language plpgsql security definer set search_path=public set row_security=off as $$
@@ -33,6 +33,9 @@ begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
   delete from public.mobile_push_tokens where token=btrim(p_token) and user_id=auth.uid();
 end $$;
+
+revoke execute on function public.register_mobile_push_token(text,text,text) from public, anon;
+revoke execute on function public.unregister_mobile_push_token(text) from public, anon;
 
 grant execute on function public.register_mobile_push_token(text,text,text) to authenticated;
 grant execute on function public.unregister_mobile_push_token(text) to authenticated;

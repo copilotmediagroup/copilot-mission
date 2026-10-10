@@ -38,6 +38,12 @@ export default function App() {
 function AppShell() {
   const auth = useAuth()
   const nativeTarget=mobileTarget()
+  useEffect(()=>{
+    if(!nativeTarget||auth.phase!=='ready'||!auth.user||!roleAllowedForMobile(auth.role))return
+    let cleanup:(()=>Promise<void>)|null=null
+    void registerNativePush(registration=>{void persistNativePushToken(registration,nativeTarget).catch(()=>undefined)}).then(fn=>{cleanup=fn}).catch(()=>undefined)
+    return()=>{if(cleanup)void cleanup()}
+  },[nativeTarget,auth.phase,auth.user?.id,auth.role])
   if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
   const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
@@ -127,8 +133,6 @@ function GuardApp({
   const liveDispatch =
     canReadLiveDispatch &&
     !isDeveloperPreview
-
-  useEffect(()=>{if(!liveDispatch)return;let cleanup:(()=>Promise<void>)|null=null;void registerNativePush(registration=>{void persistNativePushToken(registration,mobileTarget()).catch(()=>undefined)}).then(fn=>{cleanup=fn}).catch(()=>undefined);return()=>{if(cleanup)void cleanup()}},[liveDispatch])
 
   useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState);try{window.sessionStorage.setItem('copilot:developer:guard-state',hydratedState)}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
