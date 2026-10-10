@@ -10,6 +10,7 @@ import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrac
 import ClientLiveTracking from './ClientLiveTracking'
 import { createDeveloperTestJob,getDeveloperClientWorkspace,getDeveloperJobEstimate } from './modules/developer/developerLiveRepository'
 import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
+import {getMyNotificationUnreadCount,subscribeToMyNotifications} from './modules/notifications/notificationRepository'
 import { NotificationCenter } from './components/NotificationCenter'
 
 type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing' | 'settings'
@@ -22,6 +23,8 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
   const [section, setSection] = useState<Section>('overview')
   const [mobileNav, setMobileNav] = useState(false)
   const [notificationsOpen,setNotificationsOpen]=useState(false)
+  const [notificationUnreadCount,setNotificationUnreadCount]=useState(0)
+  useEffect(()=>{const load=()=>void getMyNotificationUnreadCount().then(setNotificationUnreadCount).catch(()=>undefined);load();return subscribeToMyNotifications(load)},[])
   const [properties, setProperties] = useState<ClientProperty[]>([])
   const [jobs, setJobs] = useState<ClientJob[]>([])
   const [clientId, setClientId] = useState<string | null>(null)
@@ -116,7 +119,7 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
       <header className="client-topbar">
         <button className="client-menu" onClick={()=>setMobileNav(true)}><Menu/></button>
         <div><span>CLIENT PORTAL</span><h1>{section === 'overview' ? 'Security overview' : section === 'properties' ? 'Your properties' : section === 'activity' ? 'Request activity' : section === 'reports' ? 'Mission reports' : section === 'billing' ? 'Billing & payment' : section === 'settings' ? 'Account settings' : 'Request security'}</h1></div>
-        <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>setNotificationsOpen(true)} aria-label="Open client notifications"><Bell/></button><div className="client-user"><span className={identityPhoto ? 'has-brand-image' : ''}>{identityPhoto ? <img src={identityPhoto} alt="Client branding"/> : initials(identityName)}</span><div><b>{identityName || 'Client'}</b><small>Approved account</small></div></div></div>
+        <div className="client-top-actions"><button className="client-icon-button" type="button" onClick={()=>setNotificationsOpen(true)} aria-label="Open client notifications"><Bell/>{notificationUnreadCount>0&&<i>{notificationUnreadCount}</i>}</button><div className="client-user"><span className={identityPhoto ? 'has-brand-image' : ''}>{identityPhoto ? <img src={identityPhoto} alt="Client branding"/> : initials(identityName)}</span><div><b>{identityName || 'Client'}</b><small>Approved account</small></div></div></div>
       </header>
 
       <div className="client-content">
@@ -130,16 +133,15 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
           {section === 'request' && <RequestLanding property={selectedProperty} onRequest={openRequest} onAddProperty={()=>setPropertyOpen(true)}/>}
         </>}
       </div>
-      <div className="build-badge">CLIENT LIVE TRACKING · ACCEPTANCE BUILD</div>
+
     </main>
 
-    <NotificationCenter open={notificationsOpen} onClose={()=>setNotificationsOpen(false)}/>
+    <NotificationCenter open={notificationsOpen} onClose={()=>setNotificationsOpen(false)} onOpenJob={()=>{setNotificationsOpen(false);setSection('activity')}}/>
     {propertyOpen && <PropertyModal preview={isPreview} clientId={clientId} property={editingProperty} onClose={()=>{setPropertyOpen(false);setEditingProperty(null)}} onSaved={async(mode)=>{setPropertyOpen(false);setEditingProperty(null);setNotice(mode==='created'?'Property added successfully.':'Property updated everywhere.');await load()}}/>}
     {confirmAction && <ConfirmPropertyAction action={confirmAction} onClose={()=>setConfirmAction(null)} onConfirmed={async()=>{const action=confirmAction;setConfirmAction(null);try{if(!isPreview){if(action.type==='archive')await archiveClientProperty(action.property.id);else await deleteClientProperty(action.property.id)}setNotice(isPreview?'Preview simulation complete.':action.type==='archive'?'Property archived.':'Property permanently deleted.');await load()}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update property.')}}}/>}
     {requestOpen && clientId && <RequestModal preview={isPreview} clientId={clientId} properties={properties} paymentProfile={paymentProfile} onClose={()=>setRequestOpen(false)} onCreated={async()=>{setRequestOpen(false);setSection('activity');setNotice('Security request submitted.');await load()}}/>}
   </div>
 }
-
 
 function ClientSettings({preview,developerClientId,onNotice,onPublished,onDeactivated}:{preview:boolean;developerClientId?:string|null;onNotice:(s:string)=>void;onPublished:(identity:{full_name:string|null;avatar_url:string|null})=>void|Promise<void>;onDeactivated:()=>void}){
   const [account,setAccount]=useState<import('./modules/client/clientRepository').ClientAccountSettings|null>(null),[name,setName]=useState(''),[phone,setPhone]=useState(''),[image,setImage]=useState<string|null>(null),[saved,setSaved]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false)
