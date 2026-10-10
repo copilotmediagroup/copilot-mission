@@ -5389,3 +5389,15 @@ input:disabled, select:disabled{
 .client-shell .client-report-center .v4-report-results>button strong{color:#fff!important}
 .client-shell .client-report-center .v4-report-results>button small,.client-shell .client-report-center .v4-report-results>button time{color:#b8b8b8!important}
 .client-shell .client-report-center .v4-report-results>button .v4-badge{background:#fff!important;color:#111!important;border-color:#fff!important}
+
+/* Client cleanup pass 2: disabled actions stay on-brand; report center is a portal overlay. */
+.client-settings-save,.client-settings-save:disabled{background:#111!important;color:#fff!important;border:0!important;opacity:1!important}
+.client-settings-save:disabled{color:#9d9d9d!important;cursor:default!important}
+.client-shell .billing-card-entry button.primary,.client-shell .billing-card-entry button.primary:disabled{background:#111!important;color:#fff!important;border:0!important;opacity:1!important}
+.client-shell .billing-card-entry button.primary:disabled{color:#9d9d9d!important;cursor:not-allowed!important}
+.client-report-center .v4-report-results>button{background:#111!important;color:#fff!important;border:0!important}
+.client-report-center .v4-report-results>button:hover,.client-report-center .v4-report-results>button.active{background:#242424!important;color:#fff!important}
+.client-report-center .v4-report-results>button strong{color:#fff!important}
+.client-report-center .v4-report-results>button small,.client-report-center .v4-report-results>button time{color:#b8b8b8!important}
+.client-report-center .v4-report-results>button .v4-badge{background:#fff!important;color:#111!important;border-color:#fff!important}
+.client-report-center>header .v4-button{background:#fff!important;color:#111!important;border:0!important}
