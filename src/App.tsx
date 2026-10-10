@@ -18,6 +18,7 @@ import ClientPortal from './ClientPortal'
 import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
+import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocation'
 import {currentNativeCoordinates,registerNativePush} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
 import {persistNativePushToken} from './mobile/pushTokenRepository'
@@ -353,16 +354,27 @@ function GuardApp({
       mission.state !== 'offline' &&
       mission.state !== 'completed'
 
-    return startGuardLocationPublisher({
-      enabled: locationEnabled,
-      jobId: dispatchMission?.job_id ?? null,
-      onError: message =>
-        setNotice(
-          message.includes('denied')
-            ? 'Location permission is required for live operations.'
-            : message
-        ),
-    })
+    const input={
+      enabled:Boolean(locationEnabled),
+      jobId:dispatchMission?.job_id??null,
+      onError:(message:string)=>setNotice(
+        message.toLowerCase().includes('denied')
+          ? 'Location permission is required for live operations.'
+          : message
+      ),
+    }
+
+    if(mobileTarget()==='guard'){
+      let cleanup:(()=>void)|null=null
+      let cancelled=false
+      void startNativeGuardBackgroundLocation(input).then(fn=>{
+        if(cancelled)fn()
+        else cleanup=fn
+      }).catch(error=>input.onError(error instanceof Error?error.message:'Unable to start background location'))
+      return()=>{cancelled=true;cleanup?.()}
+    }
+
+    return startGuardLocationPublisher(input)
   }, [liveDispatch, mission.state, dispatchMission?.job_id])
 
   useEffect(() => {
