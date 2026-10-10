@@ -81,3 +81,4 @@ export function subscribeToCommandCenter(onChange: () => void) {
 export async function getOperationsCopilotRouteIntelligence(): Promise<OperationsRouteIntelligence[]> {
  const {data,error}=await requireSupabase().rpc('get_operations_copilot_route_intelligence'); if(error) throw new Error(error.message); return (data??[]) as OperationsRouteIntelligence[]
 }
+export async function startMissionRescue(jobId:string,reason:string,severity:'WATCH'|'ACTION REQUIRED'|'CRITICAL',recommendedAgencyId?:string|null){const{data,error}=await requireSupabase().rpc('start_mission_rescue',{p_job_id:jobId,p_reason:reason,p_severity:severity,p_recommended_agency_id:recommendedAgencyId??null});if(error)throw new Error(error.message);return data}
