@@ -5356,3 +5356,12 @@ input:disabled, select:disabled{
 .client-shell .client-sidebar nav button.active span,
 .client-shell .client-sidebar nav button.active b{color:#111!important;stroke:#111!important}
 .client-shell .client-sidebar nav button.active small{background:#111!important;color:#fff!important;border-color:#111!important}
+
+/* Client identity image is sourced from profiles.avatar_url everywhere client identity is shown. */
+.client-list-identity,.client-profile-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.client-list-identity>img,.client-list-identity>span,.client-profile-identity>img,.client-profile-identity>span{width:38px;height:38px;border-radius:50%;object-fit:cover;display:grid;place-items:center;flex:0 0 auto;background:#111;color:#fff;font-weight:900}
+.client-profile-identity>img,.client-profile-identity>span{width:54px;height:54px}
+.client-list-identity>div,.client-profile-identity>div{display:flex;flex-direction:column;min-width:0}
+.market-client-identity img,.owner-client-identity img{width:32px;height:32px;border-radius:50%;object-fit:cover;float:left;margin-right:8px}
+/* Current Client sidebar tab is borderless white; other sidebar tabs stay borderless black. */
+.client-shell .client-sidebar nav button,.client-shell .client-sidebar nav button.active{border:0!important;box-shadow:none!important}

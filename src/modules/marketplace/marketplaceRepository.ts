@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import {getVisibleClientIdentities,clientIdentityByName} from '../client/clientIdentityRepository'
 
 export type MarketplaceJobRow = {
   id: string
@@ -25,7 +26,7 @@ export type MarketplaceJobRow = {
   created_at: string
   updated_at: string
   property?: { name?: string; address?: string; latitude?: number | null; longitude?: number | null; photo_url?: string | null } | null
-  client?: { display_name?: string } | null
+  client?: { display_name?: string; avatar_url?: string | null } | null
 }
 
 export type MissionEventRow = {
@@ -60,7 +61,8 @@ export async function getAgencyWorkspace(): Promise<AgencyWorkspace> {
     const { data: properties } = await db.from('properties').select('name,photo_url').in('name', missingPhotoNames).not('photo_url','is',null)
     photosByName = new Map((properties ?? []).filter(row => row.photo_url).map(row => [String(row.name),String(row.photo_url)]))
   }
-  const hydratedRows = rows.map(job => job.property ? {...job,property:{...job.property,photo_url:job.property.photo_url || photosByName.get(String(job.property.name ?? '')) || null}} : job)
+  const identities=clientIdentityByName(await getVisibleClientIdentities())
+  const hydratedRows = rows.map(job => {const identity=job.client?.display_name?identities.get(job.client.display_name.trim().toLowerCase()):undefined;const withClient={...job,client:job.client?{...job.client,avatar_url:identity?.avatar_url??job.client.avatar_url??null}:job.client};return withClient.property?{...withClient,property:{...withClient.property,photo_url:withClient.property.photo_url || photosByName.get(String(withClient.property.name ?? '')) || null}}:withClient})
   return {
     agencyId,
     name: payload.agency?.name ?? 'Your Agency',

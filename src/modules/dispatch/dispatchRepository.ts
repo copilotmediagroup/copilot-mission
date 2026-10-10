@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import {getVisibleClientIdentities,clientIdentityByName} from '../client/clientIdentityRepository'
 
 export type DispatchStatus = 'awaiting_guard'|'offered'|'accepted'|'en_route'|'arrived'|'active'|'completed'|'cancelled'
 export type DispatchGuard = { id:string; user_id:string; name:string; badge_number:string|null; availability:'offline'|'available'|'reserved'|'on_mission'; avatar_url:string|null }
@@ -7,7 +8,7 @@ export type DispatchMission = {
   assigned_at:string; offered_at:string|null; accepted_at:string|null; declined_at:string|null; locked_at:string|null;
   title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; scheduled_for:string|null; duration_minutes:number;
   property:{name:string;address:string;latitude:number|null;longitude:number|null;photo_url:string|null};
-  client:{display_name:string}; guard:DispatchGuard|null; slot_number?:number; required_guards?:number; multi_guard_slot?:boolean
+  client:{display_name:string;avatar_url?:string|null}; guard:DispatchGuard|null; slot_number?:number; required_guards?:number; multi_guard_slot?:boolean
 }
 export type DispatchEvent = { id:number; job_id:string; event_type:string; payload:Record<string,unknown>; created_at:string }
 export type AgencyDispatchWorkspace = { agency:{id:string;name:string}; guards:DispatchGuard[]; missions:DispatchMission[]; events:DispatchEvent[] }
@@ -22,7 +23,7 @@ export type GuardDispatchWorkspace = { guard:DispatchGuard; assignment:DispatchM
 
 function db(){ if(!supabase) throw new Error('Supabase is not configured.'); return supabase }
 export async function getAgencyDispatchWorkspace():Promise<AgencyDispatchWorkspace>{
-  const {data,error}=await db().rpc('get_agency_dispatch_workspace_rc2'); if(error) throw new Error(error.message); return data as AgencyDispatchWorkspace
+  const {data,error}=await db().rpc('get_agency_dispatch_workspace_rc2'); if(error) throw new Error(error.message); const workspace=data as AgencyDispatchWorkspace;const identities=clientIdentityByName(await getVisibleClientIdentities());return {...workspace,missions:(workspace.missions??[]).map(m=>({...m,client:{...m.client,avatar_url:identities.get(m.client.display_name.trim().toLowerCase())?.avatar_url??null}}))}
 }
 export async function assignGuard(jobId:string,guardId:string){
   const {data,error}=await db().rpc('assign_guard_rc2',{p_job_id:jobId,p_guard_id:guardId}); if(error) throw new Error(error.message); return data as {success:boolean;job_id:string;guard_id:string;status:DispatchStatus}

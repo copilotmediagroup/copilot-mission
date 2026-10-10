@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import {getVisibleClientIdentities,clientIdentityByName} from '../client/clientIdentityRepository'
 
 export type CommandCenterSummary = {
   agencies_total: number
@@ -21,7 +22,7 @@ export type CommandCenterAgency = {
 }
 export type CommandCenterProperty = {
   id: string; name: string; address: string; latitude: number | null; longitude: number | null
-  photo_url: string | null; created_at: string; client_id: string; client_name: string
+  photo_url: string | null; created_at: string; client_id: string; client_name: string; client_avatar_url?: string | null
 }
 export type CommandCenterGuard = {
   id: string; name: string; badge_number: string | null; availability: 'offline'|'available'|'reserved'|'on_mission'
@@ -30,7 +31,7 @@ export type CommandCenterGuard = {
 }
 export type CommandCenterMission = {
   id: string; title: string; status: string; priority: string; scheduled_for: string | null
-  created_at: string; updated_at: string; property_name: string; property_address: string; client_name: string
+  created_at: string; updated_at: string; property_name: string; property_address: string; client_name: string; client_avatar_url?: string | null
   agency_id: string | null; agency_name: string | null; guard_id: string | null; guard_name: string | null
   assignment_status: string | null; engine_state: string | null; checkpoint_index: number | null; engine_version: number | null
 }
@@ -53,7 +54,7 @@ function requireSupabase() { if (!supabase) throw new Error('Supabase is not con
 export async function getPlatformCommandCenter(): Promise<CommandCenterSnapshot> {
   const { data, error } = await requireSupabase().rpc('get_platform_command_center')
   if (error) throw new Error(error.message)
-  return data as CommandCenterSnapshot
+  const snapshot=data as CommandCenterSnapshot;const identities=clientIdentityByName(await getVisibleClientIdentities());return {...snapshot,properties:(snapshot.properties??[]).map(x=>({...x,client_avatar_url:identities.get(x.client_name.trim().toLowerCase())?.avatar_url??null})),missions:(snapshot.missions??[]).map(x=>({...x,client_avatar_url:identities.get(x.client_name.trim().toLowerCase())?.avatar_url??null}))}
 }
 
 export function subscribeToCommandCenter(onChange: () => void) {
@@ -66,6 +67,7 @@ export function subscribeToCommandCenter(onChange: () => void) {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_jobs' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'job_assignments' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'mission_engine_state' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onChange)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_events' }, onChange)
     .subscribe()
   return () => { void db.removeChannel(channel) }
