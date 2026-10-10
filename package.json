@@ -14,7 +14,8 @@
     "mobile:guard:config": "node scripts/write-mobile-config.mjs guard",
     "mobile:client:sync": "npm run mobile:client:config && npm run build:mobile && cap sync",
     "mobile:guard:sync": "npm run mobile:guard:config && npm run build:mobile && cap sync",
-    "build:mobile": "npm run validate:schema && tsc && vite build --mode mobile"
+    "build:mobile": "npm run validate:schema && tsc && vite build --mode mobile",
+    "mobile:audit": "node scripts/mobile-release-audit.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.0",
