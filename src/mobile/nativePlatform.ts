@@ -32,6 +32,18 @@ export function nativePushAction(action:ActionPerformed,target:MobileTarget):Nat
   }
 }
 
+export function consumeStoredNativePushAction(target:MobileTarget){
+  if(!target)return null
+  try{
+    const raw=sessionStorage.getItem('co-pilot-native-push-action')
+    if(!raw)return null
+    const parsed=JSON.parse(raw) as NativePushAction
+    if(parsed.target!==target)return null
+    sessionStorage.removeItem('co-pilot-native-push-action')
+    return parsed
+  }catch{return null}
+}
+
 export function storeNativePushAction(action:ActionPerformed,target:MobileTarget){
   if(!target)return
   const parsed=nativePushAction(action,target)

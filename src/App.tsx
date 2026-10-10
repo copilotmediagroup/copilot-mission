@@ -19,7 +19,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocation'
-import {currentNativeCoordinates,registerNativePush,storeNativePushAction} from './mobile/nativePlatform'
+import {consumeStoredNativePushAction,currentNativeCoordinates,registerNativePush,storeNativePushAction,type NativePushAction} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
 import {persistNativePushToken} from './mobile/pushTokenRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
@@ -115,6 +115,15 @@ function GuardApp({
   const [notice, setNotice] = useState('')
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [dispatchMission, setDispatchMission] = useState<DispatchMission | null>(null)
+  const [nativePushJobId,setNativePushJobId]=useState<string|null>(null)
+  useEffect(()=>{
+    if(mobileTarget()!=='guard')return
+    const open=(action:NativePushAction|null)=>{if(action?.jobId)setNativePushJobId(action.jobId)}
+    open(consumeStoredNativePushAction('guard'))
+    const onAction=(event:Event)=>open((event as CustomEvent<NativePushAction>).detail)
+    window.addEventListener('co-pilot-native-push-action',onAction)
+    return()=>window.removeEventListener('co-pilot-native-push-action',onAction)
+  },[])
   const [guardMetrics, setGuardMetrics] = useState<GuardOperationalMetrics | null>(null)
   const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
   const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(()=>{
@@ -338,6 +347,12 @@ function GuardApp({
   useEffect(() => {
     if (canReadLiveDispatch) void loadDispatch()
   }, [canReadLiveDispatch, loadDispatch])
+  useEffect(()=>{
+    if(!nativePushJobId||!canReadLiveDispatch)return
+    if(nativePushJobId===dispatchMission?.job_id){void loadDispatch();setNativePushJobId(null);return}
+    void loadDispatch()
+  },[nativePushJobId,canReadLiveDispatch,dispatchMission?.job_id,loadDispatch])
+
   useEffect(() => {
     if (!canReadLiveDispatch || !dispatchMission?.job_id) return
 

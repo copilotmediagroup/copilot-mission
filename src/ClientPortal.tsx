@@ -12,6 +12,8 @@ import { createDeveloperTestJob,getDeveloperClientWorkspace,getDeveloperJobEstim
 import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 import {getMyNotificationUnreadCount,subscribeToMyNotifications} from './modules/notifications/notificationRepository'
 import { NotificationCenter } from './components/NotificationCenter'
+import {consumeStoredNativePushAction,type NativePushAction} from './mobile/nativePlatform'
+import {mobileTarget} from './mobile/mobileTarget'
 
 type Section = 'overview' | 'properties' | 'request' | 'activity' | 'reports' | 'billing' | 'settings'
 type RequestMode = 'immediate' | 'scheduled' | 'vacation'
@@ -24,6 +26,14 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
   const [mobileNav, setMobileNav] = useState(false)
   const [notificationsOpen,setNotificationsOpen]=useState(false)
   const [notificationUnreadCount,setNotificationUnreadCount]=useState(0)
+  useEffect(()=>{
+    if(mobileTarget()!=='client')return
+    const open=(action:NativePushAction|null)=>{if(action?.jobId)setSection('activity')}
+    open(consumeStoredNativePushAction('client'))
+    const onAction=(event:Event)=>open((event as CustomEvent<NativePushAction>).detail)
+    window.addEventListener('co-pilot-native-push-action',onAction)
+    return()=>window.removeEventListener('co-pilot-native-push-action',onAction)
+  },[])
   useEffect(()=>{const load=()=>void getMyNotificationUnreadCount().then(setNotificationUnreadCount).catch(()=>undefined);load();return subscribeToMyNotifications(load)},[])
   const [properties, setProperties] = useState<ClientProperty[]>([])
   const [jobs, setJobs] = useState<ClientJob[]>([])
