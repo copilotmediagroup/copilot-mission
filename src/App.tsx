@@ -19,7 +19,7 @@ import OwnerV4 from './v4/OwnerV4'
 import { DeveloperPortalSwitcher, getStoredDeveloperPreview, type DeveloperAccessMode, type DeveloperPreview } from './DeveloperPortalSwitcher'
 import { startGuardLocationPublisher } from './modules/location/liveLocationRepository'
 import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocation'
-import {currentNativeCoordinates,registerNativePush} from './mobile/nativePlatform'
+import {currentNativeCoordinates,registerNativePush,storeNativePushAction} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
 import {persistNativePushToken} from './mobile/pushTokenRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
@@ -42,7 +42,7 @@ function AppShell() {
   useEffect(()=>{
     if(!nativeTarget||auth.phase!=='ready'||!auth.user||!roleAllowedForMobile(auth.role))return
     let cleanup:(()=>Promise<void>)|null=null
-    void registerNativePush(registration=>{void persistNativePushToken(registration,nativeTarget).catch(()=>undefined)}).then(fn=>{cleanup=fn}).catch(()=>undefined)
+    void registerNativePush(registration=>{void persistNativePushToken(registration,nativeTarget).catch(()=>undefined)},action=>storeNativePushAction(action,nativeTarget)).then(fn=>{cleanup=fn}).catch(()=>undefined)
     return()=>{if(cleanup)void cleanup()}
   },[nativeTarget,auth.phase,auth.user?.id,auth.role])
   if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>

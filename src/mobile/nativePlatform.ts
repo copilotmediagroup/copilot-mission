@@ -2,6 +2,7 @@ import {Capacitor} from '@capacitor/core'
 import {Camera,CameraResultType,CameraSource} from '@capacitor/camera'
 import {Geolocation} from '@capacitor/geolocation'
 import {PushNotifications,type Token,type ActionPerformed} from '@capacitor/push-notifications'
+import type {MobileTarget} from './mobileTarget'
 
 export const isNativeMobile=()=>Capacitor.isNativePlatform()
 export const nativePlatform=()=>Capacitor.getPlatform()
@@ -19,6 +20,24 @@ export async function captureMissionPhoto(){
 }
 
 export type NativePushRegistration={token:string;platform:string}
+export type NativePushAction={jobId:string|null;type:string|null;target:MobileTarget}
+
+export function nativePushAction(action:ActionPerformed,target:MobileTarget):NativePushAction{
+  const data=(action.notification?.data??{}) as Record<string,unknown>
+  const rawJob=data.job_id??data.jobId
+  return {
+    jobId:typeof rawJob==='string'&&rawJob.trim()?rawJob:null,
+    type:typeof data.type==='string'?data.type:null,
+    target,
+  }
+}
+
+export function storeNativePushAction(action:ActionPerformed,target:MobileTarget){
+  if(!target)return
+  const parsed=nativePushAction(action,target)
+  sessionStorage.setItem('co-pilot-native-push-action',JSON.stringify(parsed))
+  window.dispatchEvent(new CustomEvent('co-pilot-native-push-action',{detail:parsed}))
+}
 
 export async function registerNativePush(onToken?:(registration:NativePushRegistration)=>void,onAction?:(action:ActionPerformed)=>void){
   if(!isNativeMobile())return null

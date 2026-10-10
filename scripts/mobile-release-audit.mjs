@@ -17,6 +17,8 @@ ok('No production remote server URL',!cfg.includes('server: { url:')&&!cfg.inclu
 ok('Native camera adapter',native.includes('Camera.getPhoto'))
 ok('Native foreground GPS adapter',native.includes('Geolocation.getCurrentPosition'))
 ok('Native push token capture',native.includes("addListener('registration'"))
+ok('Native push action capture',native.includes("pushNotificationActionPerformed")&&native.includes('co-pilot-native-push-action'))
+ok('Native push action job routing data',native.includes('job_id')&&native.includes('jobId'))
 ok('Capacitor camera dependency',Boolean(pkg.dependencies?.['@capacitor/camera']))
 ok('Capacitor geolocation dependency',Boolean(pkg.dependencies?.['@capacitor/geolocation']))
 ok('Capacitor push dependency',Boolean(pkg.dependencies?.['@capacitor/push-notifications']))
