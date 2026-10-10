@@ -15,7 +15,7 @@
 - [ ] Physical-device authentication/session test.
 - [x] Authenticated native push token persistence registry/RPC.
 - [x] Native notification tap/action capture with mission routing payload.
-- [ ] APNs/FCM server delivery.
+- [x] APNs/FCM server delivery source implementation (provider credentials/deploy still required for live delivery).
 - [ ] Request-security/payment/live-tracking device test.
 
 ## Guard app — CO PILOT GUARD
@@ -25,7 +25,7 @@
 - [x] Native push registration token capture.
 - [x] Authenticated server-side push token persistence registry/RPC.
 - [x] Native notification tap/action capture with mission routing payload.
-- [ ] APNs/FCM server delivery.
+- [x] APNs/FCM server delivery source implementation (provider credentials/deploy still required for live delivery).
 - [x] Native background location source implementation.
 - [x] Guard Android background bridge + native HTTP transport configured.
 - [ ] Background-location permission/disclosure review and physical-device verification.
