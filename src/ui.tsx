@@ -61,11 +61,11 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
 
 export type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile' | 'settings'
 
-export function AppHeader({ light = false, title }: { light?: boolean; title?: string }) {
+export function AppHeader({ light = false, title, onNotifications, notificationCount = 0 }: { light?: boolean; title?: string; onNotifications?: () => void; notificationCount?: number }) {
   return <div className={`app-header ${light ? 'light' : ''}`}>
     <button type="button" className="app-header-action" aria-label="Guard menu"><Menu size={18} /></button>
     {title ? <strong className="app-title">{title}</strong> : <span />}
-    <button type="button" className="app-header-action bell" aria-label="Guard notifications"><Bell size={17} /></button>
+    <button type="button" className="app-header-action bell" aria-label="Guard notifications" onClick={onNotifications}><Bell size={17} />{notificationCount>0&&<b className="notification-badge">{notificationCount>9?'9+':notificationCount}</b>}</button>
   </div>
 }
 
