@@ -1,0 +1,29 @@
+create or replace function public.get_my_rescue_offers()
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+set row_security=off
+as $$
+declare v_agency uuid;
+begin
+  select agency_id into v_agency
+  from public.agency_members
+  where user_id=auth.uid() and is_active=true
+  limit 1;
+  if v_agency is null then return '[]'::jsonb; end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'id',r.id,'job_id',r.job_id,'severity',r.severity,'reason',r.reason,
+      'offered_at',r.offered_at,'accepted_at',r.accepted_at,'title',j.title,
+      'scheduled_for',j.scheduled_for,'property_name',p.name,'property_address',p.address,
+      'payout_cents',coalesce(j.agency_payout_cents,j.payout_cents)
+    ) order by r.offered_at desc)
+    from public.mission_rescue_cases r
+    join public.marketplace_jobs j on j.id=r.job_id
+    join public.properties p on p.id=j.property_id
+    where r.status='open' and r.offered_agency_id=v_agency
+  ),'[]'::jsonb);
+end $$;
+revoke all on function public.get_my_rescue_offers() from public,anon;
+grant execute on function public.get_my_rescue_offers() to authenticated;
