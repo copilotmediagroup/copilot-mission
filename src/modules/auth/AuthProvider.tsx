@@ -182,7 +182,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const refreshProfile = useCallback(async () => { await loadProfile(session) }, [loadProfile, session])
+  const refreshProfile = useCallback(async () => {
+    // Refresh visible identity in place. Do not enter profile_loading here: doing so
+    // unmounts the active portal and resets local navigation (for example Client Settings
+    // jumping back to Overview immediately after saving a new profile photo).
+    if (!session?.user || !supabase || signingOut.current) return
+    const { data, error: profileError } = await supabase
+      .from('profiles')
+      .select('id,role,account_status,full_name,avatar_url')
+      .eq('id', session.user.id)
+      .maybeSingle()
+    if (!mounted.current || signingOut.current) return
+    if (profileError) throw profileError
+    if (data) setProfile(data as AppProfile)
+  }, [session])
 
   const value = useMemo<AuthState>(() => ({
     phase,
