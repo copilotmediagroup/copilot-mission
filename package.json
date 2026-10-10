@@ -15,7 +15,8 @@
     "mobile:client:sync": "npm run mobile:client:config && npm run build:mobile && cap sync",
     "mobile:guard:sync": "npm run mobile:guard:config && npm run build:mobile && cap sync",
     "build:mobile": "npm run validate:schema && tsc && vite build --mode mobile",
-    "mobile:audit": "node scripts/mobile-release-audit.mjs"
+    "mobile:audit": "node scripts/mobile-release-audit.mjs",
+    "mobile:preflight": "node scripts/mobile-release-preflight.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

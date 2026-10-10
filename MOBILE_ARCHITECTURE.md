@@ -15,12 +15,15 @@ The existing Supabase mission lifecycle, dispatch, evidence and marketplace engi
 Production native releases package the local `dist` bundle. Do not point the production Capacitor `server.url` at Netlify and do not ship an OTA mechanism that changes app features outside store review. Server APIs/data can remain remote.
 
 ## Guard background location
-Foreground location is scaffolded only. True Guard background tracking requires a purpose-built native implementation, explicit permission/disclosure, battery-aware behavior, and store-policy review before release. Do not replace the existing web GPS engine until device testing proves parity.
+Guard background tracking now has an additive native adapter that forwards native location updates into the existing `publishGuardLocation` contract. The existing web GPS engine remains unchanged. Physical-device permission/disclosure, battery behavior and store-policy verification are still required before release.
 
 ## Next native steps
 1. Create current iOS/Android projects on a supported build machine.
 2. Add app icons/splash assets and separate Client/Guard bundle identifiers or native targets.
-3. Persist native push tokens server-side and connect APNs/FCM delivery. The native adapter now captures registration tokens; backend persistence/delivery is intentionally not faked.
+3. Native push tokens now have authenticated persistence plus APNs/FCM delivery source. Provider credentials, Edge Function deployment and physical-device delivery still require release-environment verification.
 4. Native camera output is wired into the existing mission-evidence upload contract with optional native GPS metadata.
-5. Add Guard background-location adapter while keeping existing mission state transitions untouched.
+5. Verify the additive Guard background-location adapter on physical devices while keeping existing mission state transitions untouched.
 6. Test the full client-to-agency-to-guard lifecycle on physical devices before store submission.
+
+## Release preflight
+Run `npm run mobile:preflight` before native release work. It intentionally fails while native platform projects/toolchains are absent, so source readiness cannot be mistaken for App Store/Play Store readiness.
