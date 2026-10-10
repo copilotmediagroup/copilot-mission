@@ -89,7 +89,7 @@ function AppShell() {
 }
 
 function PortalPlaceholder({ title, body, onLogout }: { title: string; body: string; onLogout: () => void }) {
-  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button><div className="build-badge">LIVE LOCATION ENGINE · ACCEPTANCE BUILD</div></div></div>
+  return <div className="auth-state"><div className="auth-state-card"><div className="auth-state-icon"><ShieldCheck/></div><h1>{title}</h1><p>{body}</p><button onClick={onLogout}>Log out</button></div></div>
 }
 
 function GuardApp({

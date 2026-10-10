@@ -24,7 +24,7 @@ function StateScreen({ icon, title, body, action }: { icon: ReactNode; title: st
 
 function AuthScreen() {
   const { signIn, signUp, activateGuard } = useAuth()
-  const target=mobileTarget(); const inviteToken=new URLSearchParams(window.location.search).get('guard-invite'); const inviteEmail=new URLSearchParams(window.location.search).get('email')??'';
+  const target=mobileTarget(); const params=new URLSearchParams(window.location.search); const rawInviteToken=params.get('guard-invite'); const inviteToken=target==='client'?null:rawInviteToken; const inviteEmail=params.get('email')??'';
   const [view,setView] = useState<View>('login'); const [showPassword,setShowPassword]=useState(false); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(''); const [accountType,setAccountType]=useState<'client'|'agency_admin'>('client')
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setBusy(true); setMessage(''); const form = new FormData(event.currentTarget)
@@ -37,12 +37,12 @@ function AuthScreen() {
   return <div className="auth-page">
     <section className="auth-visual auth-visual-art" aria-label="Co Pilot Security Marketplace">
       <div className="auth-hero-media"><img className="auth-hero-art" src="/copilot-auth-hero.png" alt="Premium security vehicle in a modern city" /></div>
-      <div className="auth-hero-brand"><span className="auth-brand-shield"><ShieldCheck size={26} /></span><span><strong>CO PILOT</strong><small>SECURITY MARKETPLACE</small></span></div>
+      <div className="auth-hero-brand"><span className="auth-brand-shield"><ShieldCheck size={26} /></span><span><strong>{target==='guard'?'CO PILOT GUARD':'CO PILOT'}</strong><small>{target==='guard'?'GUARD OPERATIONS':'SECURITY MARKETPLACE'}</small></span></div>
       <div className="auth-hero-copy"><span className="auth-hero-eyebrow">SECURITY MARKETPLACE</span><h1>One secure<br/>command layer<br/>for every mission.</h1><p>Connect clients, agencies and guards through a professional,<br/>real-time operations platform.</p><div className="auth-hero-trust"><i></i><span>SECURE</span><b>/</b><span>RELIABLE</span><b>/</b><span>REAL-TIME</span></div></div>
     </section>
     <section className="auth-panel"><div className="auth-form-wrap">
       {!inviteToken && view !== 'login' && <button className="auth-back" onClick={() => {setView('login');setMessage('')}}><ArrowLeft/>Back to sign in</button>}
-      <div className="auth-mobile-brand"><ShieldCheck/><span>CO PILOT</span></div>
+      <div className="auth-mobile-brand"><ShieldCheck/><span>{target==='guard'?'CO PILOT GUARD':target==='client'?'CO PILOT SECURITY':'CO PILOT'}</span></div>
       <span className="auth-kicker">SECURE ACCESS</span><h2>{inviteToken ? 'Activate Guard account' : view === 'login' ? 'Welcome back' : view === 'signup' ? 'Create your account' : 'Reset your password'}</h2><p className="auth-subtitle">{inviteToken ? 'Your Agency invited you to join its verified Guard roster.' : view === 'login' ? 'Sign in to continue to your protected workspace.' : view === 'signup' ? 'Choose how you will use the marketplace.' : 'Enter your account email to continue.'}</p>
       {!inviteToken && view === 'signup' && <div className="auth-account-types"><button type="button" className={accountType==='client'?'active':''} onClick={()=>setAccountType('client')}><UserRound/><b>Client</b><small>Request security</small></button><button type="button" className={accountType==='agency_admin'?'active':''} onClick={()=>setAccountType('agency_admin')}><Building2/><b>Agency</b><small>Provide coverage</small></button></div>}
       <form onSubmit={submit}>
