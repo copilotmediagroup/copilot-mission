@@ -30,7 +30,7 @@ export type CommandCenterGuard = {
   last_location_at: string | null; created_at: string
 }
 export type CommandCenterMission = {
-  id: string; title: string; status: string; priority: string; scheduled_for: string | null
+  id: string; title: string; status: string; priority: string; scheduled_for: string | null; duration_minutes: number | null
   created_at: string; updated_at: string; property_name: string; property_address: string; client_name: string; client_avatar_url?: string | null
   agency_id: string | null; agency_name: string | null; guard_id: string | null; guard_name: string | null
   assignment_status: string | null; engine_state: string | null; checkpoint_index: number | null; engine_version: number | null

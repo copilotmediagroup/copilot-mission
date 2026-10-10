@@ -1,0 +1,1 @@
+-- Production command-center RPC includes marketplace_jobs.duration_minutes for mission-end intelligence.
