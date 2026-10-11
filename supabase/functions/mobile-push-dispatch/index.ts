@@ -8,41 +8,55 @@ const b64url=(input:Uint8Array)=>btoa(String.fromCharCode(...input)).replace(/\+
 const pemBytes=(pem:string)=>Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g,'').replace(/\s/g,'')),c=>c.charCodeAt(0))
 
 async function apnsJwt(){
-  const team=Deno.env.get('APNS_TEAM_ID')||'',keyId=Deno.env.get('APNS_KEY_ID')||'',pem=(Deno.env.get('APNS_PRIVATE_KEY')||'').replace(/\\n/g,'\n')
-  if(!team||!keyId||!pem)return null
-  const header=b64url(new TextEncoder().encode(JSON.stringify({alg:'ES256',kid:keyId})))
-  const payload=b64url(new TextEncoder().encode(JSON.stringify({iss:team,iat:Math.floor(Date.now()/1000)})))
-  const cryptoKey=await crypto.subtle.importKey('pkcs8',pemBytes(pem),{name:'ECDSA',namedCurve:'P-256'},false,['sign'])
-  const signature=new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},cryptoKey,new TextEncoder().encode(`${header}.${payload}`)))
-  return `${header}.${payload}.${b64url(signature)}`
+  try{
+    const team=Deno.env.get('APNS_TEAM_ID')||'',keyId=Deno.env.get('APNS_KEY_ID')||'',pem=(Deno.env.get('APNS_PRIVATE_KEY')||'').replace(/\\n/g,'\n')
+    if(!team||!keyId||!pem)return null
+    const header=b64url(new TextEncoder().encode(JSON.stringify({alg:'ES256',kid:keyId})))
+    const payload=b64url(new TextEncoder().encode(JSON.stringify({iss:team,iat:Math.floor(Date.now()/1000)})))
+    const cryptoKey=await crypto.subtle.importKey('pkcs8',pemBytes(pem),{name:'ECDSA',namedCurve:'P-256'},false,['sign'])
+    const signature=new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},cryptoKey,new TextEncoder().encode(`${header}.${payload}`)))
+    return `${header}.${payload}.${b64url(signature)}`
+  }catch{return null}
 }
 
 async function sendApns(token:string,title:string,body:string,data:Record<string,unknown>,target:string){
   const jwt=await apnsJwt(),topic=target==='guard'?(Deno.env.get('APNS_GUARD_BUNDLE_ID')||'com.copilotsecurity.guard'):(Deno.env.get('APNS_CLIENT_BUNDLE_ID')||'com.copilotsecurity.client')
   if(!jwt)return {ok:false,error:'APNS_NOT_CONFIGURED'}
   const host=(Deno.env.get('APNS_ENV')||'production')==='sandbox'?'api.sandbox.push.apple.com':'api.push.apple.com'
-  const r=await fetch(`https://${host}/3/device/${encodeURIComponent(token)}`,{method:'POST',headers:{authorization:`bearer ${jwt}`,'apns-topic':topic,'apns-push-type':'alert','apns-priority':'10','content-type':'application/json'},body:JSON.stringify({aps:{alert:{title,body},sound:'default'},...data})})
-  return {ok:r.ok,status:r.status,error:r.ok?null:await r.text()}
+  try{
+    const r=await fetch(`https://${host}/3/device/${encodeURIComponent(token)}`,{method:'POST',headers:{authorization:`bearer ${jwt}`,'apns-topic':topic,'apns-push-type':'alert','apns-priority':'10','content-type':'application/json'},body:JSON.stringify({aps:{alert:{title,body},sound:'default'},...data})})
+    if(r.ok)return {ok:true,status:r.status,error:null}
+    const provider=await r.json().catch(()=>({}))
+    const reason=typeof provider?.reason==='string'?provider.reason:''
+    return {ok:false,status:r.status,error:reason==='BadDeviceToken'||reason==='Unregistered'?'TOKEN_STALE':'APNS_DELIVERY_FAILED'}
+  }catch{return {ok:false,error:'APNS_TRANSPORT_FAILED'}}
 }
 
 async function fcmAccessToken(){
-  const projectId=Deno.env.get('FCM_PROJECT_ID')||'',clientEmail=Deno.env.get('FCM_CLIENT_EMAIL')||'',pem=(Deno.env.get('FCM_PRIVATE_KEY')||'').replace(/\\n/g,'\n')
-  if(!projectId||!clientEmail||!pem)return null
-  const now=Math.floor(Date.now()/1000),header=b64url(new TextEncoder().encode(JSON.stringify({alg:'RS256',typ:'JWT'}))),payload=b64url(new TextEncoder().encode(JSON.stringify({iss:clientEmail,scope:'https://www.googleapis.com/auth/firebase.messaging',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600})))
-  const cryptoKey=await crypto.subtle.importKey('pkcs8',pemBytes(pem),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign'])
-  const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',cryptoKey,new TextEncoder().encode(`${header}.${payload}`)))
-  const assertion=`${header}.${payload}.${b64url(signature)}`
-  const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion})})
-  if(!r.ok)return null
-  const result=await r.json().catch(()=>({}));return typeof result.access_token==='string'?result.access_token:null
+  try{
+    const projectId=Deno.env.get('FCM_PROJECT_ID')||'',clientEmail=Deno.env.get('FCM_CLIENT_EMAIL')||'',pem=(Deno.env.get('FCM_PRIVATE_KEY')||'').replace(/\\n/g,'\n')
+    if(!projectId||!clientEmail||!pem)return null
+    const now=Math.floor(Date.now()/1000),header=b64url(new TextEncoder().encode(JSON.stringify({alg:'RS256',typ:'JWT'}))),payload=b64url(new TextEncoder().encode(JSON.stringify({iss:clientEmail,scope:'https://www.googleapis.com/auth/firebase.messaging',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600})))
+    const cryptoKey=await crypto.subtle.importKey('pkcs8',pemBytes(pem),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign'])
+    const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',cryptoKey,new TextEncoder().encode(`${header}.${payload}`)))
+    const assertion=`${header}.${payload}.${b64url(signature)}`
+    const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion})})
+    if(!r.ok)return null
+    const result=await r.json().catch(()=>({}));return typeof result.access_token==='string'?result.access_token:null
+  }catch{return null}
 }
 
 async function sendFcm(token:string,title:string,body:string,data:Record<string,unknown>){
   const projectId=Deno.env.get('FCM_PROJECT_ID')||'',accessToken=await fcmAccessToken()
   if(!projectId||!accessToken)return {ok:false,error:'FCM_NOT_CONFIGURED'}
   const stringData=Object.fromEntries(Object.entries(data).map(([k,v])=>[k,v==null?'':String(v)]))
-  const r=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`,{method:'POST',headers:{authorization:`Bearer ${accessToken}`,'content-type':'application/json'},body:JSON.stringify({message:{token,notification:{title,body},data:stringData,android:{priority:'high',notification:{sound:'default'}}}})})
-  return {ok:r.ok,status:r.status,error:r.ok?null:await r.text()}
+  try{
+    const r=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`,{method:'POST',headers:{authorization:`Bearer ${accessToken}`,'content-type':'application/json'},body:JSON.stringify({message:{token,notification:{title,body},data:stringData,android:{priority:'high',notification:{sound:'default'}}}})})
+    if(r.ok)return {ok:true,status:r.status,error:null}
+    const provider=await r.json().catch(()=>({}))
+    const providerStatus=typeof provider?.error?.status==='string'?provider.error.status:''
+    return {ok:false,status:r.status,error:providerStatus==='NOT_FOUND'||providerStatus==='UNREGISTERED'?'TOKEN_STALE':'FCM_DELIVERY_FAILED'}
+  }catch{return {ok:false,error:'FCM_TRANSPORT_FAILED'}}
 }
 
 Deno.serve(async req=>{
@@ -67,6 +81,10 @@ Deno.serve(async req=>{
   const {data:tokens}=await admin.from('mobile_push_tokens').select('token,platform,app_target').in('user_id',[...userIds])
   const allowed=(tokens||[]).filter(t=>t.app_target==='client'||t.app_target==='guard'),data={job_id:n.job_id||'',type:n.type||'',notification_id:n.id}
   const results=[] as unknown[]
-  for(const t of allowed)results.push({platform:t.platform,target:t.app_target,...(t.platform==='ios'?await sendApns(t.token,n.title,n.body,data,t.app_target):await sendFcm(t.token,n.title,n.body,data))})
+  for(const t of allowed){
+    const delivery=t.platform==='ios'?await sendApns(t.token,n.title,n.body,data,t.app_target):await sendFcm(t.token,n.title,n.body,data)
+    if(delivery.error==='TOKEN_STALE')await admin.from('mobile_push_tokens').delete().eq('token',t.token).eq('platform',t.platform).eq('app_target',t.app_target)
+    results.push({platform:t.platform,target:t.app_target,...delivery})
+  }
   return json({attempted:results.length,delivered:results.filter((r:any)=>r.ok).length,results})
 })
