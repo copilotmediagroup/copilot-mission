@@ -1,4 +1,5 @@
 import {Capacitor,registerPlugin} from '@capacitor/core'
+import {LocalNotifications} from '@capacitor/local-notifications'
 import type {BackgroundGeolocationPlugin,Location,CallbackError} from '@capacitor-community/background-geolocation'
 
 const BackgroundGeolocation=registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation')
@@ -27,8 +28,18 @@ function asGeolocationPosition(location:any):GeolocationPosition{
   } as GeolocationPosition
 }
 
+async function ensureAndroidBackgroundNotificationPermission(){
+  if(Capacitor.getPlatform()!=='android')return
+  const current=await LocalNotifications.checkPermissions()
+  const permission=current.display==='prompt'||current.display==='prompt-with-rationale'
+    ?await LocalNotifications.requestPermissions()
+    :current
+  if(permission.display!=='granted')throw new Error('Notification permission is required so Android can show active mission location tracking.')
+}
+
 export async function startNativeGuardBackgroundLocation(input:NativeBackgroundLocationOptions){
   if(!input.enabled||!Capacitor.isNativePlatform()||Capacitor.getPlatform()==='web')return()=>undefined
+  await ensureAndroidBackgroundNotificationPermission()
 
   let publishing=false
   const watcherId=await BackgroundGeolocation.addWatcher({

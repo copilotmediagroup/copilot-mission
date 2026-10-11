@@ -28,6 +28,7 @@
 - [x] APNs/FCM server delivery source implementation (provider credentials/deploy still required for live delivery).
 - [x] Native background location source implementation.
 - [x] Guard Android background bridge + native HTTP transport configured.
+- [x] Android background-tracking notification permission gate implemented.
 - [ ] Background-location permission/disclosure review and physical-device verification.
 - [ ] Physical-device dispatch, GPS, evidence, messaging and completion test.
 

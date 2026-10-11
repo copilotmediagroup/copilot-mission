@@ -28,6 +28,8 @@ ok('Capacitor camera dependency',Boolean(pkg.dependencies?.['@capacitor/camera']
 ok('Capacitor geolocation dependency',Boolean(pkg.dependencies?.['@capacitor/geolocation']))
 ok('Capacitor push dependency',Boolean(pkg.dependencies?.['@capacitor/push-notifications']))
 ok('Background geolocation dependency',Boolean(pkg.dependencies?.['@capacitor-community/background-geolocation']))
+ok('Android notification permission dependency',Boolean(pkg.dependencies?.['@capacitor/local-notifications']))
+ok('Android background notification permission gate',nativeBackground.includes('LocalNotifications.checkPermissions')&&nativeBackground.includes('LocalNotifications.requestPermissions'))
 ok('Native Guard background location adapter',nativeBackground.includes('BackgroundGeolocation.addWatcher')&&nativeBackground.includes('publishGuardLocation'))
 ok('Guard app selects native background location',app.includes("mobileTarget()==='guard'")&&app.includes('startNativeGuardBackgroundLocation'))
 ok('Push token persistence RPC',pushRepo.includes('register_mobile_push_token'))
