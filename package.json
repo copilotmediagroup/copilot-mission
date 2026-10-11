@@ -43,7 +43,8 @@
     "mobile:blockers": "node scripts/mobile-release-blockers.mjs",
     "mobile:native:isolated:prepare": "node scripts/prepare-isolated-native-release.mjs",
     "mobile:native:isolated:sync": "node scripts/sync-isolated-native-release.mjs",
-    "mobile:native:isolation:audit": "node scripts/mobile-native-isolation-audit.mjs"
+    "mobile:native:isolation:audit": "node scripts/mobile-native-isolation-audit.mjs",
+    "mobile:android:ready": "node scripts/android-release-readiness.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
