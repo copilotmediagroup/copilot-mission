@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CO PILOT GUARD</string>
+    <string name="title_activity_main">CO PILOT GUARD</string>
+    <string name="package_name">com.copilotsecurity.guard</string>
+    <string name="custom_url_scheme">com.copilotsecurity.guard</string>
+</resources>
