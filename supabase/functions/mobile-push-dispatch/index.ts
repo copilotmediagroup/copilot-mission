@@ -25,11 +25,23 @@ async function sendApns(token:string,title:string,body:string,data:Record<string
   return {ok:r.ok,status:r.status,error:r.ok?null:await r.text()}
 }
 
+async function fcmAccessToken(){
+  const projectId=Deno.env.get('FCM_PROJECT_ID')||'',clientEmail=Deno.env.get('FCM_CLIENT_EMAIL')||'',pem=(Deno.env.get('FCM_PRIVATE_KEY')||'').replace(/\\n/g,'\n')
+  if(!projectId||!clientEmail||!pem)return null
+  const now=Math.floor(Date.now()/1000),header=b64url(new TextEncoder().encode(JSON.stringify({alg:'RS256',typ:'JWT'}))),payload=b64url(new TextEncoder().encode(JSON.stringify({iss:clientEmail,scope:'https://www.googleapis.com/auth/firebase.messaging',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600})))
+  const cryptoKey=await crypto.subtle.importKey('pkcs8',pemBytes(pem),{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign'])
+  const signature=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',cryptoKey,new TextEncoder().encode(`${header}.${payload}`)))
+  const assertion=`${header}.${payload}.${b64url(signature)}`
+  const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion})})
+  if(!r.ok)return null
+  const result=await r.json().catch(()=>({}));return typeof result.access_token==='string'?result.access_token:null
+}
+
 async function sendFcm(token:string,title:string,body:string,data:Record<string,unknown>){
-  const serverKey=Deno.env.get('FCM_SERVER_KEY')||''
-  if(!serverKey)return {ok:false,error:'FCM_NOT_CONFIGURED'}
+  const projectId=Deno.env.get('FCM_PROJECT_ID')||'',accessToken=await fcmAccessToken()
+  if(!projectId||!accessToken)return {ok:false,error:'FCM_NOT_CONFIGURED'}
   const stringData=Object.fromEntries(Object.entries(data).map(([k,v])=>[k,v==null?'':String(v)]))
-  const r=await fetch('https://fcm.googleapis.com/fcm/send',{method:'POST',headers:{authorization:`key=${serverKey}`,'content-type':'application/json'},body:JSON.stringify({to:token,priority:'high',notification:{title,body,sound:'default'},data:stringData})})
+  const r=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`,{method:'POST',headers:{authorization:`Bearer ${accessToken}`,'content-type':'application/json'},body:JSON.stringify({message:{token,notification:{title,body},data:stringData,android:{priority:'high',notification:{sound:'default'}}}})})
   return {ok:r.ok,status:r.status,error:r.ok?null:await r.text()}
 }
 
