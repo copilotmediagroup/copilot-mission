@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AuthError, Session, User } from '@supabase/supabase-js'
 import { backendMode, supabase } from '../../lib/supabase'
+import {mobileTarget} from '../../mobile/mobileTarget'
+import {removeAllNativePushTokens} from '../../mobile/pushTokenRepository'
 
 export type AppRole = 'platform_admin' | 'agency_admin' | 'guard' | 'client'
 export type AccountStatus = 'pending' | 'approved' | 'disabled' | 'rejected'
@@ -171,6 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       if (supabase) {
+        // Revoke this native app's registered device tokens while the authenticated
+        // session still exists. Web sessions have no mobile target and skip this.
+        const target=mobileTarget()
+        if(target) await removeAllNativePushTokens(target).catch(error=>console.warn('Native push token cleanup warning:',error))
         const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
         if (signOutError) console.warn('Supabase sign out warning:', signOutError.message)
       }
