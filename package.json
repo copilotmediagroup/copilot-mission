@@ -37,7 +37,8 @@
     "mobile:freeze": "node scripts/mobile-source-freeze.mjs",
     "mobile:summary": "node scripts/mobile-release-summary.mjs",
     "mobile:activation:plan": "node scripts/mobile-production-activation-plan.mjs",
-    "mobile:inputs:check": "node scripts/mobile-private-input-check.mjs"
+    "mobile:inputs:check": "node scripts/mobile-private-input-check.mjs",
+    "mobile:backend:contract": "node scripts/mobile-backend-contract.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

@@ -13,7 +13,9 @@ if(command==='worker'){
   const r=await fetch(`${url}/rest/v1/rpc/mobile_push_outbox_health`,{method:'POST',headers:{authorization:`Bearer ${service}`,apikey:service,'content-type':'application/json'},body:'{}'})
   const body=await r.text();console.log(body);if(!r.ok)process.exit(1)
   let health;try{health=JSON.parse(body)}catch{die('Queue health returned invalid JSON.')}
-  const maxAbandoned=Number(process.env.MOBILE_PUSH_MAX_ABANDONED||0),maxPendingMinutes=Number(process.env.MOBILE_PUSH_MAX_PENDING_MINUTES||15)
+  const maxAbandoned=Number(process.env.MOBILE_PUSH_MAX_ABANDONED??0),maxPendingMinutes=Number(process.env.MOBILE_PUSH_MAX_PENDING_MINUTES??15)
+  if(!Number.isInteger(maxAbandoned)||maxAbandoned<0)die('MOBILE_PUSH_MAX_ABANDONED must be a nonnegative integer.')
+  if(!Number.isFinite(maxPendingMinutes)||maxPendingMinutes<=0)die('MOBILE_PUSH_MAX_PENDING_MINUTES must be a positive number.')
   if(Number(health.abandoned||0)>maxAbandoned){console.error('Queue health failed: abandoned threshold exceeded.');process.exit(1)}
-  if(health.oldest_pending_at&&Date.now()-Date.parse(health.oldest_pending_at)>maxPendingMinutes*60000){console.error('Queue health failed: oldest pending notification is too old.');process.exit(1)}
+  if(health.oldest_pending_at){const oldest=Date.parse(health.oldest_pending_at);if(!Number.isFinite(oldest))die('Queue health returned an invalid oldest_pending_at timestamp.');if(Date.now()-oldest>maxPendingMinutes*60000){console.error('Queue health failed: oldest pending notification is too old.');process.exit(1)}}
 }else die('Usage: node scripts/mobile-push-ops.mjs <health|worker>')
