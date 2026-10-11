@@ -19,8 +19,7 @@ if(releaseInputs){
   check('Apple release identifiers supplied',/APPLE_TEAM_ID=\S+/.test(releaseInputs)&&/APNS_KEY_ID=\S+/.test(releaseInputs),'Fill Apple team/key identifiers in the private release input file; keep the APNs private key in secret storage.')
   check('FCM release identifiers supplied',/FCM_PROJECT_ID=\S+/.test(releaseInputs)&&/FCM_CLIENT_EMAIL=\S+@\S+/.test(releaseInputs),'Fill Firebase project/client identity in the private release input file; keep the FCM private key in secret storage.')
 }
-check('iOS native project exists',fs.existsSync('ios'),'Create on a supported current macOS/Xcode build machine.')
-check('Android native project exists',fs.existsSync('android'),'Create on a supported Android build machine.')
+for(const [target,platform] of [['client','android'],['guard','android'],['client','ios'],['guard','ios']]) check(`${target} ${platform} isolated native project`,fs.existsSync(`native/${target}/${platform}`),platform==='ios'?'Create on a supported current macOS/Xcode build machine.':'Create with the isolated native preparation command.')
 let doctor=''
 try{doctor=execFileSync('npx',['cap','doctor'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});check('Capacitor doctor',true)}catch(e){doctor=`${e.stdout||''}${e.stderr||''}`;check('Capacitor doctor',false,'Native platform projects/toolchains are not ready on this machine.')}
 console.log('CO PILOT MOBILE RELEASE PREFLIGHT\n')

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 const exists=p=>fs.existsSync(p),inputs=process.env.COPILOT_MOBILE_RELEASE_INPUTS?.trim(),privateInputs=Boolean(inputs&&exists(inputs))
-const native=(target,platform)=>exists(`native/${target}/${platform}`)||exists(platform)
+const native=(target,platform)=>exists(`native/${target}/${platform}`)
 const gates=[
  ['Source certification',true,'Run npm run mobile:audit for detailed checks.'],
  ['Client Android native project',native('client','android'),'Create the Client Android native project.'],
