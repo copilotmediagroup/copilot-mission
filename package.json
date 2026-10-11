@@ -29,7 +29,8 @@
     "mobile:status": "node scripts/mobile-release-status.mjs",
     "mobile:push:health": "node scripts/mobile-push-ops.mjs health",
     "mobile:push:worker": "node scripts/mobile-push-ops.mjs worker",
-    "mobile:evidence": "node scripts/mobile-release-evidence.mjs"
+    "mobile:evidence": "node scripts/mobile-release-evidence.mjs",
+    "mobile:manifest": "node scripts/mobile-release-manifest.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
