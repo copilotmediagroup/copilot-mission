@@ -16,7 +16,13 @@
     "mobile:guard:sync": "npm run mobile:guard:config && npm run build:mobile && cap sync",
     "build:mobile": "npm run validate:schema && tsc && vite build --mode mobile",
     "mobile:audit": "node scripts/mobile-release-audit.mjs",
-    "mobile:preflight": "node scripts/mobile-release-preflight.mjs"
+    "mobile:preflight": "node scripts/mobile-release-preflight.mjs",
+    "mobile:native:android:add": "npx cap add android",
+    "mobile:native:ios:add": "npx cap add ios",
+    "mobile:native:client:android": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:android:add",
+    "mobile:native:guard:android": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:android:add",
+    "mobile:native:client:ios": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:ios:add",
+    "mobile:native:guard:ios": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:ios:add"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
@@ -33,7 +39,9 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.6.9",
     "@capacitor/cli": "^7.6.9",
+    "@capacitor/ios": "^7.6.9",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@vitejs/plugin-react": "4.3.4",
