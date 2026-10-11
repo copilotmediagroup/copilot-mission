@@ -64,7 +64,7 @@ Deno.serve(async req=>{
   if(req.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405)
   const url=Deno.env.get('SUPABASE_URL')!,publishable=key('SUPABASE_PUBLISHABLE_KEYS','SUPABASE_ANON_KEY'),secret=key('SUPABASE_SECRET_KEYS','SUPABASE_SERVICE_ROLE_KEY'),auth=req.headers.get('Authorization')||''
   const userDb=createClient(url,publishable,{global:{headers:{Authorization:auth}}}),admin=createClient(url,secret)
-  const workerSecret=Deno.env.get('MOBILE_PUSH_WORKER_SECRET')||'',internalWorker=Boolean(workerSecret)&&req.headers.get('x-mobile-push-worker-secret')===workerSecret
+  const workerSecret=Deno.env.get('MOBILE_PUSH_WORKER_SECRET')||'',serviceAuth=Boolean(secret)&&auth===`Bearer ${secret}`&&req.headers.get('apikey')===secret,internalWorker=Boolean(workerSecret)&&serviceAuth&&req.headers.get('x-mobile-push-worker-secret')===workerSecret
   if(!internalWorker){
     const {data:me}=await userDb.auth.getUser();if(!me.user)return json({error:'UNAUTHORIZED'},401)
     const {data:role}=await userDb.rpc('current_role');if(role!=='platform_admin')return json({error:'PLATFORM_ADMIN_REQUIRED'},403)
