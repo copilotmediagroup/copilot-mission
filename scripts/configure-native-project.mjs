@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-const target=process.argv[2],platform=process.argv[3]
+const target=process.argv[2],platform=process.argv[3],projectDir=process.argv[4]||platform
 if(!['client','guard'].includes(target)||!['ios','android'].includes(platform)){console.error('Usage: node scripts/configure-native-project.mjs <client|guard> <ios|android>');process.exit(1)}
 const need=(p)=>{if(!fs.existsSync(p)){console.error(`Native project missing: ${p}`);process.exit(2)}}
 if(platform==='ios'){
