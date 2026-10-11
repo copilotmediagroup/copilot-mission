@@ -7,7 +7,8 @@
 - [x] Native document title, black theme chrome and safe-area viewport are target-aware.
 - [x] Existing Supabase mission lifecycle remains authoritative.
 - [ ] Create current iOS and Android projects on supported build machines.
-- [ ] Add production app icons, splash assets, privacy text and store metadata.
+- [x] Draft privacy/permission disclosure copy and Client/Guard store metadata.
+- [ ] Add final production app icons, splash artwork, screenshots, URLs and owner/store questionnaire details.
 - [ ] Physical-device end-to-end lifecycle certification.
 
 ## Client app — CO PILOT SECURITY
