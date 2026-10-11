@@ -18,6 +18,7 @@ declare v_role text;
 begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
   if nullif(btrim(p_token),'') is null then raise exception 'TOKEN_REQUIRED' using errcode='23514'; end if;
+  if length(btrim(p_token)) > 4096 then raise exception 'TOKEN_TOO_LONG' using errcode='23514'; end if;
   if p_platform not in ('ios','android') then raise exception 'INVALID_PLATFORM' using errcode='23514'; end if;
   if p_app_target not in ('client','guard') then raise exception 'INVALID_APP_TARGET' using errcode='23514'; end if;
   select role::text into v_role from public.profiles where id=auth.uid();
@@ -31,6 +32,7 @@ create or replace function public.unregister_mobile_push_token(p_token text)
 returns void language plpgsql security definer set search_path=public set row_security=off as $$
 begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  if nullif(btrim(p_token),'') is null then return; end if;
   delete from public.mobile_push_tokens where token=btrim(p_token) and user_id=auth.uid();
 end $$;
 

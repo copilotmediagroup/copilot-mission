@@ -56,11 +56,14 @@ export async function registerNativePush(onToken?:(registration:NativePushRegist
   const current=await PushNotifications.checkPermissions()
   const permission=current.receive==='prompt'?await PushNotifications.requestPermissions():current
   if(permission.receive!=='granted')return null
-  const registration=await PushNotifications.addListener('registration',(token:Token)=>onToken?.({token:token.value,platform:nativePlatform()}))
+  const registration=await PushNotifications.addListener('registration',(token:Token)=>{
+    const value=token.value?.trim()
+    if(value)onToken?.({token:value,platform:nativePlatform()})
+  })
   const error=await PushNotifications.addListener('registrationError',err=>console.warn('Native push registration failed',err))
   const action=onAction?await PushNotifications.addListener('pushNotificationActionPerformed',onAction):null
   await PushNotifications.register()
-  return async()=>{await registration.remove();await error.remove();if(action)await action.remove()}
+  return async()=>{await Promise.allSettled([registration.remove(),error.remove(),...(action?[action.remove()]:[])])}
 }
 
 export async function nativePhotoFile(){
