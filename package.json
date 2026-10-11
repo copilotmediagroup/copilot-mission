@@ -32,7 +32,8 @@
     "mobile:evidence": "node scripts/mobile-release-evidence.mjs",
     "mobile:manifest": "node scripts/mobile-release-manifest.mjs",
     "mobile:manifest:verify": "node scripts/verify-mobile-release-manifest.mjs",
-    "mobile:rc": "node scripts/mobile-release-candidate.mjs"
+    "mobile:rc": "node scripts/mobile-release-candidate.mjs",
+    "mobile:backend:ready": "node scripts/mobile-backend-readiness.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
