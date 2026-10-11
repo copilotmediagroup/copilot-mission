@@ -55,6 +55,8 @@ ok('Push dispatch requires platform admin',pushDispatch.includes("role!=='platfo
 ok('Push dispatch uses registered mobile tokens',pushDispatch.includes("from('mobile_push_tokens')"))
 ok('Push dispatch includes mission deep-link payload',pushDispatch.includes('job_id:n.job_id'))
 ok('Push dispatch supports APNs and FCM',pushDispatch.includes('sendApns')&&pushDispatch.includes('sendFcm'))
+ok('Push role broadcast requires explicit opt-in',pushDispatch.includes("broadcast=input.broadcast===true")&&pushDispatch.includes('ROLE_BROADCAST_REQUIRES_EXPLICIT_OPT_IN'))
+ok('Push specific recipients precede role broadcast',pushDispatch.includes("if(!userIds.size&&roleTarget&&broadcast)"))
 const failed=checks.filter(c=>!c.pass)
 for(const c of checks)console.log(`${c.pass?'PASS':'FAIL'}  ${c.name}`)
 console.log(`\n${checks.length-failed.length}/${checks.length} mobile source release checks passed.`)

@@ -40,7 +40,7 @@ Deno.serve(async req=>{
   const userDb=createClient(url,publishable,{global:{headers:{Authorization:auth}}}),admin=createClient(url,secret)
   const {data:me}=await userDb.auth.getUser();if(!me.user)return json({error:'UNAUTHORIZED'},401)
   const {data:role}=await userDb.rpc('current_role');if(role!=='platform_admin')return json({error:'PLATFORM_ADMIN_REQUIRED'},403)
-  const input=await req.json().catch(()=>({})),notificationId=String(input.notification_id||'')
+  const input=await req.json().catch(()=>({})),notificationId=String(input.notification_id||''),broadcast=input.broadcast===true
   if(!notificationId)return json({error:'NOTIFICATION_ID_REQUIRED'},400)
   const {data:n,error:ne}=await admin.from('platform_notifications').select('id,recipient_user_id,recipient_role,agency_id,client_id,guard_id,job_id,type,title,body').eq('id',notificationId).single()
   if(ne||!n)return json({error:'NOTIFICATION_NOT_FOUND'},404)
@@ -48,7 +48,9 @@ Deno.serve(async req=>{
   if(n.client_id){const {data:rows}=await admin.from('clients').select('user_id').eq('id',n.client_id);for(const r of rows||[])if(r.user_id)userIds.add(r.user_id)}
   if(n.guard_id){const {data:rows}=await admin.from('guards').select('user_id').eq('id',n.guard_id);for(const r of rows||[])if(r.user_id)userIds.add(r.user_id)}
   if(n.agency_id){const {data:rows}=await admin.from('agency_members').select('user_id').eq('agency_id',n.agency_id).eq('is_active',true);for(const r of rows||[])if(r.user_id)userIds.add(r.user_id)}
-  if(n.recipient_role==='client'||n.recipient_role==='guard'){const {data:rows}=await admin.from('profiles').select('id').eq('role',n.recipient_role);for(const r of rows||[])userIds.add(r.id)}
+  const roleTarget=n.recipient_role==='client'||n.recipient_role==='guard'?n.recipient_role:null
+  if(!userIds.size&&roleTarget&&!broadcast)return json({error:'ROLE_BROADCAST_REQUIRES_EXPLICIT_OPT_IN',recipient_role:roleTarget},409)
+  if(!userIds.size&&roleTarget&&broadcast){const {data:rows}=await admin.from('profiles').select('id').eq('role',roleTarget);for(const r of rows||[])userIds.add(r.id)}
   if(!userIds.size)return json({delivered:0,attempted:0})
   const {data:tokens}=await admin.from('mobile_push_tokens').select('token,platform,app_target').in('user_id',[...userIds])
   const allowed=(tokens||[]).filter(t=>t.app_target==='client'||t.app_target==='guard'),data={job_id:n.job_id||'',type:n.type||'',notification_id:n.id}
