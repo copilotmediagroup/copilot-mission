@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import {createClient} from 'jsr:@supabase/supabase-js@2'
 
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'}
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type, x-mobile-push-worker-secret','Access-Control-Allow-Methods':'POST, OPTIONS'}
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'content-type':'application/json'}})
 const key=(name:string,legacy:string)=>{try{const m=JSON.parse(Deno.env.get(name)||'{}');return m.default||Object.values(m)[0]||Deno.env.get(legacy)||''}catch{return Deno.env.get(legacy)||''}}
 const b64url=(input:Uint8Array)=>btoa(String.fromCharCode(...input)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')
@@ -64,8 +64,11 @@ Deno.serve(async req=>{
   if(req.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405)
   const url=Deno.env.get('SUPABASE_URL')!,publishable=key('SUPABASE_PUBLISHABLE_KEYS','SUPABASE_ANON_KEY'),secret=key('SUPABASE_SECRET_KEYS','SUPABASE_SERVICE_ROLE_KEY'),auth=req.headers.get('Authorization')||''
   const userDb=createClient(url,publishable,{global:{headers:{Authorization:auth}}}),admin=createClient(url,secret)
-  const {data:me}=await userDb.auth.getUser();if(!me.user)return json({error:'UNAUTHORIZED'},401)
-  const {data:role}=await userDb.rpc('current_role');if(role!=='platform_admin')return json({error:'PLATFORM_ADMIN_REQUIRED'},403)
+  const workerSecret=Deno.env.get('MOBILE_PUSH_WORKER_SECRET')||'',internalWorker=Boolean(workerSecret)&&req.headers.get('x-mobile-push-worker-secret')===workerSecret
+  if(!internalWorker){
+    const {data:me}=await userDb.auth.getUser();if(!me.user)return json({error:'UNAUTHORIZED'},401)
+    const {data:role}=await userDb.rpc('current_role');if(role!=='platform_admin')return json({error:'PLATFORM_ADMIN_REQUIRED'},403)
+  }
   const input=await req.json().catch(()=>({})),notificationId=String(input.notification_id||''),broadcast=input.broadcast===true
   if(!notificationId)return json({error:'NOTIFICATION_ID_REQUIRED'},400)
   const {data:n,error:ne}=await admin.from('platform_notifications').select('id,recipient_user_id,recipient_role,agency_id,client_id,guard_id,job_id,type,title,body').eq('id',notificationId).single()

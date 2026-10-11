@@ -15,7 +15,7 @@ Deno.serve(async req=>{
   for(const claim of claims||[]){
     const notificationId=String(claim.notification_id||'');let ok=false,errorCode='DELIVERY_FAILED'
     try{
-      const response=await fetch(`${url}/functions/v1/mobile-push-dispatch`,{method:'POST',headers:{authorization:`Bearer ${secret}`,apikey:secret,'content-type':'application/json'},body:JSON.stringify({notification_id:notificationId})})
+      const response=await fetch(`${url}/functions/v1/mobile-push-dispatch`,{method:'POST',headers:{authorization:`Bearer ${secret}`,apikey:secret,'content-type':'application/json','x-mobile-push-worker-secret':workerSecret},body:JSON.stringify({notification_id:notificationId})})
       const result=await response.json().catch(()=>({}))
       ok=response.ok&&Number(result?.delivered||0)>0
       errorCode=ok?'':response.status===409?'ROLE_BROADCAST_NOT_ALLOWED':response.ok?'NO_REGISTERED_DEVICE':'DISPATCH_FAILED'

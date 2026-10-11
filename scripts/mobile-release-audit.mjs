@@ -90,6 +90,8 @@ ok('Native push worker claims durable outbox',pushWorker.includes("rpc('claim_mo
 ok('Native push worker requires private worker secret',pushWorker.includes('MOBILE_PUSH_WORKER_SECRET')&&pushWorker.includes("x-mobile-push-worker-secret"))
 ok('Native push worker never enables role broadcast',pushWorker.includes('notification_id:notificationId')&&!pushWorker.includes('broadcast:true'))
 ok('Native push worker isolates delivery failures',pushWorker.includes("catch{errorCode='DISPATCH_UNAVAILABLE'}")&&pushWorker.includes("response.json().catch(()=>({}))"))
+ok('Push dispatch accepts only authenticated worker secret',pushDispatch.includes('MOBILE_PUSH_WORKER_SECRET')&&pushDispatch.includes("req.headers.get('x-mobile-push-worker-secret')===workerSecret")&&pushDispatch.includes('if(!internalWorker)'))
+ok('Push worker authenticates internal dispatch',pushWorker.includes("'x-mobile-push-worker-secret':workerSecret"))
 const failed=checks.filter(c=>!c.pass)
 for(const c of checks)console.log(`${c.pass?'PASS':'FAIL'}  ${c.name}`)
 console.log(`\n${checks.length-failed.length}/${checks.length} mobile source release checks passed.`)
