@@ -50,6 +50,8 @@ ok('Guard notification tap refreshes mission',app.includes("consumeStoredNativeP
 ok('Capacitor camera dependency',Boolean(pkg.dependencies?.['@capacitor/camera']))
 ok('Capacitor geolocation dependency',Boolean(pkg.dependencies?.['@capacitor/geolocation']))
 ok('Capacitor push dependency',Boolean(pkg.dependencies?.['@capacitor/push-notifications']))
+ok('Capacitor native platform dependencies',/^\^?7\./.test(pkg.devDependencies?.['@capacitor/android']||'')&&/^\^?7\./.test(pkg.devDependencies?.['@capacitor/ios']||''))
+ok('Separate native project creation scripts',Boolean(pkg.scripts?.['mobile:native:client:android']&&pkg.scripts?.['mobile:native:guard:android']&&pkg.scripts?.['mobile:native:client:ios']&&pkg.scripts?.['mobile:native:guard:ios']))
 ok('Background geolocation dependency',Boolean(pkg.dependencies?.['@capacitor-community/background-geolocation']))
 ok('Android notification permission dependency',Boolean(pkg.dependencies?.['@capacitor/local-notifications']))
 ok('Android background notification permission gate',nativeBackground.includes('LocalNotifications.checkPermissions')&&nativeBackground.includes('LocalNotifications.requestPermissions'))
