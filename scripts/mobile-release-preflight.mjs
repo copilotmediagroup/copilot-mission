@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import {execFileSync} from 'node:child_process'
 
 const root=process.cwd()
-const required=['MOBILE_ARCHITECTURE.md','MOBILE_RELEASE_CHECKLIST.md','src/mobile/nativePlatform.ts','src/mobile/mobileTarget.ts','supabase/functions/mobile-push-dispatch/index.ts','mobile/store/STORE_METADATA.md','mobile/store/PRIVACY_DISCLOSURES.md','mobile/store/DEVICE_CERTIFICATION.md','mobile/store/RELEASE_INPUTS.template.env']
+const required=['MOBILE_ARCHITECTURE.md','MOBILE_RELEASE_CHECKLIST.md','src/mobile/nativePlatform.ts','src/mobile/mobileTarget.ts','supabase/functions/mobile-push-dispatch/index.ts','mobile/store/STORE_METADATA.md','mobile/store/PRIVACY_DISCLOSURES.md','mobile/store/DEVICE_CERTIFICATION.md','mobile/store/RELEASE_INPUTS.template.env','mobile/store/STORE_SUBMISSION_MATRIX.md']
 const failures=[]
 const pass=[]
 const check=(name,value,detail='')=>{(value?pass:failures).push({name,detail})}

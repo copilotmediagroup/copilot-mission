@@ -25,7 +25,8 @@
     "mobile:native:guard:ios": "node scripts/prepare-native-release.mjs guard ios",
     "mobile:native:prepare": "node scripts/prepare-native-release.mjs",
     "mobile:native:client:sync": "npm run mobile:client:config && npm run build:mobile && npx cap sync",
-    "mobile:native:guard:sync": "npm run mobile:guard:config && npm run build:mobile && npx cap sync"
+    "mobile:native:guard:sync": "npm run mobile:guard:config && npm run build:mobile && npx cap sync",
+    "mobile:status": "node scripts/mobile-release-status.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
