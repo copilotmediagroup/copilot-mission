@@ -28,7 +28,8 @@
     "mobile:native:guard:sync": "npm run mobile:guard:config && npm run build:mobile && npx cap sync",
     "mobile:status": "node scripts/mobile-release-status.mjs",
     "mobile:push:health": "node scripts/mobile-push-ops.mjs health",
-    "mobile:push:worker": "node scripts/mobile-push-ops.mjs worker"
+    "mobile:push:worker": "node scripts/mobile-push-ops.mjs worker",
+    "mobile:evidence": "node scripts/mobile-release-evidence.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

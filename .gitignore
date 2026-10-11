@@ -32,3 +32,6 @@ yarn-error.log*
 
 # Local one-off Supabase scratch/manual SQL files
 supabase/manual/
+
+# Local mobile release certification evidence
+mobile/release-evidence/
