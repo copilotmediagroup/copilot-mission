@@ -1,0 +1,4 @@
+import fs from 'node:fs'
+const p=process.env.COPILOT_MOBILE_RELEASE_INPUTS?.trim();if(!p||!fs.existsSync(p)){console.error('BLOCK private release input file is not configured.');process.exit(2)}
+const s=fs.readFileSync(p,'utf8'),rules={CLIENT_SUPPORT_URL:/^CLIENT_SUPPORT_URL=https?:\/\/.+/m,GUARD_SUPPORT_URL:/^GUARD_SUPPORT_URL=https?:\/\/.+/m,PRIVACY_POLICY_URL:/^PRIVACY_POLICY_URL=https?:\/\/.+/m,LEGAL_CONTACT_EMAIL:/^LEGAL_CONTACT_EMAIL=\S+@\S+/m,APPLE_TEAM_ID:/^APPLE_TEAM_ID=\S+/m,APNS_KEY_ID:/^APNS_KEY_ID=\S+/m,FCM_PROJECT_ID:/^FCM_PROJECT_ID=\S+/m,FCM_CLIENT_EMAIL:/^FCM_CLIENT_EMAIL=\S+@\S+/m};let bad=0
+for(const [k,r] of Object.entries(rules)){const ok=r.test(s);console.log(`${ok?'READY':'BLOCK'} ${k}`);if(!ok)bad++}if(/PRIVATE_KEY\s*=\s*\S+/.test(s)){console.error('BLOCK private keys must remain in secret storage, not release input files.');bad++}if(bad)process.exitCode=2
