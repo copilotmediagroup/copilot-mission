@@ -38,7 +38,9 @@
     "mobile:summary": "node scripts/mobile-release-summary.mjs",
     "mobile:activation:plan": "node scripts/mobile-production-activation-plan.mjs",
     "mobile:inputs:check": "node scripts/mobile-private-input-check.mjs",
-    "mobile:backend:contract": "node scripts/mobile-backend-contract.mjs"
+    "mobile:backend:contract": "node scripts/mobile-backend-contract.mjs",
+    "mobile:native:plan": "node scripts/mobile-native-workspace-plan.mjs",
+    "mobile:blockers": "node scripts/mobile-release-blockers.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
