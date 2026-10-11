@@ -14,3 +14,13 @@ export function mobileProductName(){
   const target=mobileTarget()
   return target==='guard'?'CO PILOT GUARD':target==='client'?'CO PILOT SECURITY':'CO PILOT'
 }
+
+export function configureMobileDocument(){
+  const target=mobileTarget()
+  if(!target)return
+  document.title=target==='guard'?'CO PILOT GUARD':'CO PILOT SECURITY'
+  document.documentElement.dataset.mobileTarget=target
+  let theme=document.querySelector('meta[name="theme-color"]') as HTMLMetaElement|null
+  if(!theme){theme=document.createElement('meta');theme.name='theme-color';document.head.appendChild(theme)}
+  theme.content='#000000'
+}

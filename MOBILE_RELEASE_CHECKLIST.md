@@ -4,6 +4,7 @@
 - [x] Client and Guard have separate bundle identifiers and product names.
 - [x] Native bundles package local Vite assets; no production Netlify server URL.
 - [x] Native role isolation prevents Client/Guard cross-portal access.
+- [x] Native document title, black theme chrome and safe-area viewport are target-aware.
 - [x] Existing Supabase mission lifecycle remains authoritative.
 - [ ] Create current iOS and Android projects on supported build machines.
 - [ ] Add production app icons, splash assets, privacy text and store metadata.
