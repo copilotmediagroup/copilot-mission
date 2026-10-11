@@ -18,9 +18,10 @@ Deno.serve(async req=>{
       const response=await fetch(`${url}/functions/v1/mobile-push-dispatch`,{method:'POST',headers:{authorization:`Bearer ${secret}`,apikey:secret,'content-type':'application/json','x-mobile-push-worker-secret':workerSecret},body:JSON.stringify({notification_id:notificationId})})
       const result=await response.json().catch(()=>({}))
       ok=response.ok&&Number(result?.delivered||0)>0
-      errorCode=ok?'':response.status===409?'ROLE_BROADCAST_NOT_ALLOWED':response.ok?'NO_REGISTERED_DEVICE':'DISPATCH_FAILED'
+      const remoteError=typeof result?.error==='string'?result.error:''
+      errorCode=ok?'':remoteError==='ROLE_BROADCAST_REQUIRES_EXPLICIT_OPT_IN'?'ROLE_BROADCAST_REQUIRES_EXPLICIT_OPT_IN':remoteError==='NOTIFICATION_NOT_FOUND'?'NOTIFICATION_NOT_FOUND':response.ok?'NO_REGISTERED_DEVICE':'DISPATCH_FAILED'
     }catch{errorCode='DISPATCH_UNAVAILABLE'}
-    const terminal=!ok&&(errorCode==='ROLE_BROADCAST_NOT_ALLOWED'||errorCode==='NO_REGISTERED_DEVICE')
+    const terminal=!ok&&(errorCode==='ROLE_BROADCAST_REQUIRES_EXPLICIT_OPT_IN'||errorCode==='NOTIFICATION_NOT_FOUND'||errorCode==='NO_REGISTERED_DEVICE')
     await admin.rpc('finish_mobile_push_outbox',{p_notification_id:notificationId,p_claim_token:claimToken,p_delivered:ok,p_error:ok?null:errorCode,p_terminal:terminal})
     if(ok)delivered++;else failed++
   }
