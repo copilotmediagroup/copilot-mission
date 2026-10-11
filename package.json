@@ -19,10 +19,10 @@
     "mobile:preflight": "node scripts/mobile-release-preflight.mjs",
     "mobile:native:android:add": "npx cap add android",
     "mobile:native:ios:add": "npx cap add ios",
-    "mobile:native:client:android": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:android:add",
-    "mobile:native:guard:android": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:android:add",
-    "mobile:native:client:ios": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:ios:add",
-    "mobile:native:guard:ios": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:ios:add"
+    "mobile:native:client:android": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:android:add && node scripts/configure-native-project.mjs client android",
+    "mobile:native:guard:android": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:android:add && node scripts/configure-native-project.mjs guard android",
+    "mobile:native:client:ios": "npm run mobile:client:config && npm run build:mobile && npm run mobile:native:ios:add && node scripts/configure-native-project.mjs client ios",
+    "mobile:native:guard:ios": "npm run mobile:guard:config && npm run build:mobile && npm run mobile:native:ios:add && node scripts/configure-native-project.mjs guard ios"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
