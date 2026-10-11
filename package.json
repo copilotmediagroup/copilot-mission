@@ -45,7 +45,8 @@
     "mobile:native:isolated:sync": "node scripts/sync-isolated-native-release.mjs",
     "mobile:native:isolation:audit": "node scripts/mobile-native-isolation-audit.mjs",
     "mobile:android:ready": "node scripts/android-release-readiness.mjs",
-    "mobile:android:debug:evidence": "node scripts/android-debug-artifact-evidence.mjs"
+    "mobile:android:debug:evidence": "node scripts/android-debug-artifact-evidence.mjs",
+    "mobile:android:debug:verify": "node scripts/android-debug-artifact-verify.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
