@@ -46,6 +46,8 @@ ok('Background geolocation dependency',Boolean(pkg.dependencies?.['@capacitor-co
 ok('Android notification permission dependency',Boolean(pkg.dependencies?.['@capacitor/local-notifications']))
 ok('Android background notification permission gate',nativeBackground.includes('LocalNotifications.checkPermissions')&&nativeBackground.includes('LocalNotifications.requestPermissions'))
 ok('Native Guard background location adapter',nativeBackground.includes('BackgroundGeolocation.addWatcher')&&nativeBackground.includes('publishGuardLocation'))
+ok('Background location ignores late callbacks after stop',nativeBackground.includes('let stopped=false')&&nativeBackground.includes('if(stopped)return')&&nativeBackground.includes('stopped=true'))
+ok('Background watcher cleanup is rejection-safe',nativeBackground.includes('removeWatcher({id:watcherId}).catch(()=>undefined)'))
 ok('Guard app selects native background location',app.includes("mobileTarget()==='guard'")&&app.includes('startNativeGuardBackgroundLocation'))
 ok('Push token persistence RPC',pushRepo.includes('register_mobile_push_token'))
 ok('Push registry requires authenticated user',pushMigration.includes('auth.uid() is null'))
