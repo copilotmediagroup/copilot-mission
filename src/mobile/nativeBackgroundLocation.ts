@@ -42,6 +42,7 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
   await ensureAndroidBackgroundNotificationPermission()
 
   let publishing=false
+  let stopped=false
   const watcherId=await BackgroundGeolocation.addWatcher({
     backgroundMessage:'CO PILOT GUARD is sharing your location for an active security mission.',
     backgroundTitle:'Active mission location',
@@ -49,6 +50,7 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
     stale:false,
     distanceFilter:5,
   },async(location?:Location,error?:CallbackError)=>{
+    if(stopped)return
     if(error){input.onError?.(error.message||'Unable to receive background location');return}
     if(!location||publishing)return
     publishing=true
@@ -60,5 +62,5 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
     }finally{publishing=false}
   })
 
-  return()=>{void BackgroundGeolocation.removeWatcher({id:watcherId})}
+  return()=>{stopped=true;void BackgroundGeolocation.removeWatcher({id:watcherId}).catch(()=>undefined)}
 }
