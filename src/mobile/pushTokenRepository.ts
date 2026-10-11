@@ -14,3 +14,10 @@ export async function removeNativePushToken(token:string){
   const {error}=await supabase.rpc('unregister_mobile_push_token',{p_token:token})
   if(error)throw error
 }
+
+export async function removeAllNativePushTokens(target:MobileTarget){
+  if(!target||!supabase)return 0
+  const {data,error}=await supabase.rpc('unregister_all_mobile_push_tokens',{p_app_target:target})
+  if(error)throw error
+  return Number(data??0)
+}

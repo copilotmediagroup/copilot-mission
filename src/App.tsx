@@ -21,7 +21,7 @@ import { startGuardLocationPublisher } from './modules/location/liveLocationRepo
 import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocation'
 import {consumeStoredNativePushAction,currentNativeCoordinates,registerNativePush,storeNativePushAction,type NativePushAction} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
-import {persistNativePushToken} from './mobile/pushTokenRepository'
+import {persistNativePushToken,removeAllNativePushTokens} from './mobile/pushTokenRepository'
 import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
@@ -45,7 +45,8 @@ function AppShell() {
     void registerNativePush(registration=>{void persistNativePushToken(registration,nativeTarget).catch(()=>undefined)},action=>storeNativePushAction(action,nativeTarget)).then(fn=>{cleanup=fn}).catch(()=>undefined)
     return()=>{if(cleanup)void cleanup()}
   },[nativeTarget,auth.phase,auth.user?.id,auth.role])
-  if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>
+  const nativeSignOut=async()=>{if(nativeTarget)await removeAllNativePushTokens(nativeTarget).catch(()=>undefined);await auth.signOut()}
+  if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void nativeSignOut()}/>
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
   const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))

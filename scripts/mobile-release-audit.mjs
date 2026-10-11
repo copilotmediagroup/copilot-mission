@@ -10,6 +10,7 @@ const pushDispatch=fs.readFileSync('supabase/functions/mobile-push-dispatch/inde
 const nativeBackground=fs.readFileSync('src/mobile/nativeBackgroundLocation.ts','utf8')
 const target=fs.readFileSync('src/mobile/mobileTarget.ts','utf8')
 const main=fs.readFileSync('src/main.tsx','utf8')
+const appSource=fs.readFileSync('src/App.tsx','utf8')
 const html=fs.readFileSync('index.html','utf8')
 const storeMeta=fs.readFileSync('mobile/store/STORE_METADATA.md','utf8')
 const privacyCopy=fs.readFileSync('mobile/store/PRIVACY_DISCLOSURES.md','utf8')

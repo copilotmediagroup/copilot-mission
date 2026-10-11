@@ -39,3 +39,18 @@ revoke execute on function public.unregister_mobile_push_token(text) from public
 
 grant execute on function public.register_mobile_push_token(text,text,text) to authenticated;
 grant execute on function public.unregister_mobile_push_token(text) to authenticated;
+
+create or replace function public.unregister_all_mobile_push_tokens(p_app_target text default null)
+returns integer language plpgsql security definer set search_path=public set row_security=off as $$
+declare v_count integer;
+begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+  if p_app_target is not null and p_app_target not in ('client','guard') then raise exception 'INVALID_APP_TARGET' using errcode='23514'; end if;
+  delete from public.mobile_push_tokens
+  where user_id=auth.uid() and (p_app_target is null or app_target=p_app_target);
+  get diagnostics v_count = row_count;
+  return v_count;
+end $$;
+
+revoke execute on function public.unregister_all_mobile_push_tokens(text) from public, anon;
+grant execute on function public.unregister_all_mobile_push_tokens(text) to authenticated;
