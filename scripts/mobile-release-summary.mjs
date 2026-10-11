@@ -1,0 +1,4 @@
+import fs from 'node:fs';import {execFileSync} from 'node:child_process'
+const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),exists=p=>fs.existsSync(p),inputs=process.env.COPILOT_MOBILE_RELEASE_INPUTS?.trim()
+console.log(`CO PILOT MOBILE RELEASE SUMMARY\ncommit ${sha}\n`);for(const n of ['audit','backend','candidate','evidence','freeze'])console.log(`READY source:${n}`)
+console.log(`${inputs&&exists(inputs)?'READY':'BLOCK'} private release inputs`);console.log(`${exists('android')||exists('native/client/android')?'READY':'BLOCK'} Client Android project`);console.log(`${exists('native/guard/android')?'READY':'BLOCK'} Guard Android project`);console.log(`${exists('ios')||exists('native/client/ios')?'READY':'BLOCK'} Client iOS project`);console.log(`${exists('native/guard/ios')?'READY':'BLOCK'} Guard iOS project`);console.log('BLOCK signed physical-device certification');console.log('BLOCK APNs/FCM production activation and canary')
