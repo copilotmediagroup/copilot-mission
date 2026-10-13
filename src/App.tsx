@@ -535,11 +535,15 @@ function GuardApp({
   }
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await refreshDeveloperRuntime(); return }
+      catch(error){ setNotice(error instanceof Error?error.message:'Unable to save incident'); await refreshDeveloperRuntime(); throw error }
+    }
+    if (liveDispatch && dispatchMission) {
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch(); return }
+      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch(); throw error }
+    }
     setIncidents(records)
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await refreshDeveloperRuntime() } catch(error){setNotice(error instanceof Error?error.message:'Unable to save incident')} ; return }
-    if (!liveDispatch || !dispatchMission) return
-    try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch() }
-    catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch() }
   }
 
   const nextCheckpoint = async () => {
@@ -615,7 +619,7 @@ function GuardApp({
         onVideoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionVideo({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         incidents={effectiveIncidents}
         missionStartedAt={mission.missionStartedAt}
-        onIncidentsChange={(records) => void updateIncidents(records)}
+        onIncidentsChange={updateIncidents}
         onGoOnline={() => void goOnline()}
         onGoOffline={() => void goOffline()}
         onAccept={() => void accept()}
