@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Clock3, Code2, LogOut, ShieldCheck, X } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
-import { uploadMissionPhoto } from './modules/mission/missionEvidenceRepository'
+import { uploadMissionPhoto, uploadMissionVideo } from './modules/mission/missionEvidenceRepository'
 import ExperienceLab from './ExperienceLab'
 import { GuardianProvider } from './modules/guardian/GuardianProvider'
 import GuardianButton from './modules/guardian/GuardianButton'
@@ -608,6 +608,7 @@ function GuardApp({
         patrolEvidence={effectiveEvidence}
         onEvidenceChange={(records) => void updateEvidence(records)}
         onPhotoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionPhoto({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
+        onVideoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionVideo({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         incidents={effectiveIncidents}
         missionStartedAt={mission.missionStartedAt}
         onIncidentsChange={(records) => void updateIncidents(records)}

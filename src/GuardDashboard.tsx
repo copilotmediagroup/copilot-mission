@@ -320,7 +320,7 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
   const [preview, setPreview] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const choose=(next?:File)=>{if(!next)return;if(!next.type.startsWith('image/')){setError('A real image is required.');return}setFile(next);setCaptured(true);setError('');setPreview(URL.createObjectURL(next))}
+  const choose=(next?:File)=>{if(!next)return;const expected=kind==='photo'?'image/':'video/';if(!next.type.startsWith(expected)){setError(kind==='photo'?'A real image is required.':'A real video is required.');return}setFile(next);setCaptured(true);setError('');setPreview(URL.createObjectURL(next))}
   const use=async()=>{if(kind==='photo'&&!file){setError('Take a real photo first.');return}setBusy(true);setError('');try{await onUse(file??undefined)}catch(e){setError(e instanceof Error?e.message:'Evidence upload failed.')}finally{setBusy(false)}}
   const title = kind === 'photo' ? 'Take Photo' : 'Record Video'
   return <div className="capture-overlay" role="dialog" aria-modal="true">
@@ -330,15 +330,15 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
       <header><button type="button" onClick={onClose}><X/></button><strong>{title}</strong><span/></header>
       <div className={`camera-preview ${captured ? 'captured' : ''}`}>
         <div className="camera-grid"/>
-        {captured ? (preview?<img src={preview} alt="Evidence preview" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div className="captured-preview"><CheckCircle2/><strong>Video selected</strong><small>Ready to attach</small></div>) : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{kind==='photo'?'Your phone camera will open when you tap Take Photo.':'Video capture is not yet enabled.'}</small></div>}
+        {captured ? (preview?(kind==='video'?<video src={preview} controls playsInline style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<img src={preview} alt="Evidence preview" style={{width:'100%',height:'100%',objectFit:'cover'}}/>):<div className="captured-preview"><CheckCircle2/><strong>Video selected</strong><small>Ready to attach</small></div>) : <div className="camera-instructions"><Camera/><strong>Position the checkpoint in frame</strong><small>{kind==='photo'?'Your phone camera will open when you tap Take Photo.':'Your phone camera will open when you tap Record Video.'}</small></div>}
       </div>
-      {!captured ? <div className="capture-controls">{kind==='photo'?<><button type="button" className="shutter photo native-camera-trigger" aria-label="Take photo" title="Take Photo" onClick={async()=>{try{const native=await nativePhotoFile();if(native){choose(native);return}document.getElementById('guard-evidence-camera')?.click()}catch(e){setError(e instanceof Error?e.message:'Camera unavailable.')}}}><i/><b>TAKE PHOTO</b></button><input id="guard-evidence-camera" type="file" accept="image/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/></>:<span className="camera-instructions"><strong>Video evidence coming next</strong><small>Video cannot be marked captured until real recording/upload is connected.</small></span>}</div> : <div className="capture-confirm">
+      {!captured ? <div className="capture-controls">{kind==='photo'?<><button type="button" className="shutter photo native-camera-trigger" aria-label="Take photo" title="Take Photo" onClick={async()=>{try{const native=await nativePhotoFile();if(native){choose(native);return}document.getElementById('guard-evidence-camera')?.click()}catch(e){setError(e instanceof Error?e.message:'Camera unavailable.')}}}><i/><b>TAKE PHOTO</b></button><input id="guard-evidence-camera" type="file" accept="image/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/></>:<><button type="button" className="shutter video native-camera-trigger" aria-label="Record video" title="Record Video" onClick={()=>document.getElementById('guard-evidence-video')?.click()}><Video/><b>RECORD VIDEO</b></button><input id="guard-evidence-video" type="file" accept="video/mp4,video/quicktime,video/webm,video/*" capture="environment" onChange={e=>choose(e.target.files?.[0])} style={{display:'none'}}/></>}</div> : <div className="capture-confirm">
         <SecondaryButton onClick={()=>{setCaptured(false);setFile(null);setPreview('')}}><RotateCcw/> RETAKE</SecondaryButton>
         <PrimaryButton tone={kind === 'photo' ? 'blue' : 'purple'} onClick={()=>void use()} disabled={busy}><Check/> {busy?'UPLOADING…':`USE ${kind.toUpperCase()}`}</PrimaryButton>
       </div>}
       {error&&<p style={{color:'#ff6b6b',fontWeight:700}}>{error}</p>}
       {existing > 0 && kind==='video' ? <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing video</button> : null}
-      <p className="prototype-note">Photos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
+      <p className="prototype-note">Photos and videos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
     </section>
   </div>
 }
@@ -448,7 +448,7 @@ function formatElapsed(totalSeconds: number) {
   return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':')
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture, onVideoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
@@ -544,7 +544,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     <PrimaryButton tone="orange" onClick={complete} disabled={!completionReady}><Check/> {completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
   </main><BottomNav/>
     {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
-    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async()=>{throw new Error('Real video evidence capture is not enabled yet.')}} onRemove={()=>{update({videos:0});setSheet(null)}}/>}
+    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real video is required.');if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,index);update({videos:record.videos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
     {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{update({note});setSheet(null)}} onRemove={()=>{update({note:''});setSheet(null)}}/>}
     {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onSave={(incident)=>{onIncidentsChange([...incidents,incident]);setSheet('workspace')}}/>}
     {sheet === 'workspace' && <EvidenceWorkspace records={records} incidents={incidents} onClose={()=>setSheet(null)} onIncidentsChange={onIncidentsChange}/>}
@@ -566,7 +566,7 @@ function Completed({ next, incidents, records, missionStartedAt, runtime }: { ne
   return <PhoneShell><AppHeader title="MISSION COMPLETE"/><main className="screen-content completed-screen command-complete"><div className="completion-kicker"><ShieldCheck/> MISSION SECURED</div><h2 className="property-title">{runtime?.property.name??"Property"}</h2><p>The professional mission report is ready for agency review and client delivery.</p><div className="success-orbit"><Check/></div><div className="completion-processing report-ready"><span><CheckCircle2/> Evidence synchronized</span><span><CheckCircle2/> Timeline secured</span><span><CheckCircle2/> Report ready</span></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton tone="purple" onClick={()=>setReportOpen(true)}><Eye/> VIEW MISSION REPORT</PrimaryButton><SecondaryButton onClick={next}><RefreshCw/> RETURN ONLINE</SecondaryButton></main><BottomNav/>{reportOpen&&<MissionReport records={records} incidents={incidents} missionStartedAt={missionStartedAt} onClose={()=>setReportOpen(false)}/>}</PhoneShell>
 }
 
-export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>;developerGuardId?:string}) {
+export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>;onVideoCapture?: (file:File,checkpoint:number)=>Promise<void>;developerGuardId?:string}) {
   const dashboardMetrics = props.metrics ?? {
     jobsToday: 0,
     onDutySeconds: 0,
@@ -580,7 +580,7 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
-  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt} runtime={runtime} onPhotoCapture={props.onPhotoCapture}/>
+  if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt} runtime={runtime} onPhotoCapture={props.onPhotoCapture} onVideoCapture={props.onVideoCapture}/>
   if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)} incidents={incidents} records={patrolEvidence} missionStartedAt={missionStartedAt} runtime={runtime}/>
 }
