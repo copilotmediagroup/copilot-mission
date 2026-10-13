@@ -68,8 +68,8 @@ export interface GuardDashboardProps {
   onDecline?: () => void
   onStartRoute?: () => void
   onMarkArrived?: () => void
-  onNextCheckpoint?: () => void
-  onSubmitProof?: () => void
+  onNextCheckpoint?: () => void | Promise<void>
+  onSubmitProof?: () => void | Promise<void>
   onReturnOnline?: () => void
   patrolEvidence?: PatrolEvidence[]
   onEvidenceChange?: (records: PatrolEvidence[]) => void | Promise<void>
@@ -451,12 +451,13 @@ function formatElapsed(totalSeconds: number) {
   return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':')
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture, onVideoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void | Promise<void>; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void | Promise<void>; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture, onVideoCapture }: { count: number; next: () => void | Promise<void>; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void | Promise<void>; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void | Promise<void>; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
   const [sheet, setSheet] = useState<CaptureKind | 'notes' | 'incident' | 'workspace' | null>(null)
   const [warning, setWarning] = useState('')
+  const [completing, setCompleting] = useState(false)
   const [elapsed, setElapsed] = useState(() => missionStartedAt ? Math.max(0, Math.floor((Date.now() - missionStartedAt) / 1000)) : 0)
   const [activity, setActivity] = useState<string[]>(['Mission started'])
   const previousTotals = useRef({ photos: 0, videos: 0, notes: 0, incidents: 0, checkpoint: 0 })
@@ -498,9 +499,12 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     current.notes === 'required' && !record.note ? 'notes' : '',
   ].filter(Boolean), [current, record])
 
-  const complete = () => {
+  const complete = async () => {
     if (missing.length) { setWarning(`Required before completion: ${missing.join(', ')}`); return }
-    next()
+    if (checkpointDrafts.length) { setWarning('Submit or delete the incident draft before completing this checkpoint.'); return }
+    if (completing) return
+    setCompleting(true); setWarning('')
+    try { await next() } catch (error) { setWarning(error instanceof Error ? error.message : 'Unable to complete checkpoint. Try again.') } finally { setCompleting(false) }
   }
   const started = missionStartedAt ? new Date(missionStartedAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : 'Now'
 
@@ -544,7 +548,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     <section className="completion-readiness"><div className="evidence-heading"><strong>Ready to complete?</strong><span>{completionReady ? 'All checks passed' : `${missing.length + checkpointDrafts.length} requirement${missing.length + checkpointDrafts.length === 1 ? '' : 's'} open`}</span></div><div className="readiness-list"><span className={gpsReady ? 'ready' : ''}><CheckCircle2/> GPS within checkpoint radius</span><span className={guardianReady ? 'ready' : ''}><CheckCircle2/> Guardian connection secure</span><span className={missing.length === 0 ? 'ready' : ''}><CheckCircle2/> Required evidence attached</span><span className={checkpointDrafts.length === 0 ? 'ready' : ''}><CheckCircle2/> No incident draft pending</span></div></section>
     <section className="mission-activity"><div className="evidence-heading"><strong>Latest Activity</strong><span>Live mission timeline</span></div>{activity.map((item,activityIndex)=><div key={`${item}-${activityIndex}`}><i/><span>{item}</span><time>{activityIndex===0 ? 'Now' : 'Earlier'}</time></div>)}</section>
     {smartAlert && <div className={`mission-smart-alert ${highSeverity ? 'critical' : ''}`}><AlertTriangle/><span><strong>{highSeverity ? 'Mission attention required' : 'Smart checkpoint alert'}</strong><small>{smartAlert}</small></span></div>}
-    <PrimaryButton tone="orange" onClick={complete} disabled={!completionReady}><Check/> {completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
+    <PrimaryButton tone="orange" onClick={()=>void complete()} disabled={!completionReady||completing}><Check/> {completing ? 'COMPLETING…' : completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
   </main><BottomNav/>
     {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);await update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
     {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real video is required.');if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,index);await update({videos:record.videos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
@@ -554,14 +558,17 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
   </PhoneShell>
 }
 
-function Review({ next, records, incidents }: { next: () => void; records: PatrolEvidence[]; incidents: IncidentRecord[] }) {
+function Review({ next, records, incidents }: { next: () => void | Promise<void>; records: PatrolEvidence[]; incidents: IncidentRecord[] }) {
+  const [submitting,setSubmitting]=useState(false)
+  const [error,setError]=useState('')
+  const submit=async()=>{if(submitting)return;setSubmitting(true);setError('');try{await next()}catch(e){setError(e instanceof Error?e.message:'Unable to submit patrol. Try again.')}finally{setSubmitting(false)}}
   const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
   const draftCount = incidents.filter(item=>item.status === 'draft').length
   return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>37 min</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{checkpoints.map((checkpoint,index)=>{
     const item=records.find(record=>record.checkpoint===index)
     const parts=[item?.photos?`${item.photos} photo${item.photos>1?'s':''}`:'',item?.videos?`${item.videos} video${item.videos>1?'s':''}`:'',item?.note?'1 note':''].filter(Boolean)
     return <div key={checkpoint.name}><CheckCircle2/><span><strong>{checkpoint.name}</strong><small>{parts.length?parts.join(' · '):'No evidence'}</small></span><ChevronRight/></div>
-  })}</div>{incidents.length>0&&<><h4 className="section-label incident-review-label">INCIDENTS <span>{incidents.length}</span></h4><div className="incident-review-list">{incidents.map(incident=><div key={incident.id} className={`severity-${incident.severity}`}><AlertTriangle/><span><strong>{checkpoints[incident.checkpoint].name}</strong><small>{incident.type} · {incident.severity} severity · {incident.status} · {incident.timestamp}</small></span><ChevronRight/></div>)}</div></>}<div className={`review-note ${draftCount?'review-blocked':''}`}><FileText/><span><strong>{draftCount?'Mission record needs attention':'Mission record ready'}</strong><small>{draftCount?`${draftCount} incident draft${draftCount>1?'s':''} must be submitted before patrol completion.`:'All checkpoint evidence and incidents are attached.'}</small></span></div><PrimaryButton tone="purple" onClick={next} disabled={draftCount>0}><Check/> {draftCount?'RESOLVE INCIDENT DRAFTS':'SUBMIT PATROL'}</PrimaryButton></main><BottomNav/></PhoneShell>
+  })}</div>{incidents.length>0&&<><h4 className="section-label incident-review-label">INCIDENTS <span>{incidents.length}</span></h4><div className="incident-review-list">{incidents.map(incident=><div key={incident.id} className={`severity-${incident.severity}`}><AlertTriangle/><span><strong>{checkpoints[incident.checkpoint].name}</strong><small>{incident.type} · {incident.severity} severity · {incident.status} · {incident.timestamp}</small></span><ChevronRight/></div>)}</div></>}<div className={`review-note ${draftCount?'review-blocked':''}`}><FileText/><span><strong>{draftCount?'Mission record needs attention':'Mission record ready'}</strong><small>{draftCount?`${draftCount} incident draft${draftCount>1?'s':''} must be submitted before patrol completion.`:'All checkpoint evidence and incidents are attached.'}</small></span></div>{error&&<div className="mission-smart-alert critical"><AlertTriangle/><span><strong>Submission failed</strong><small>{error}</small></span></div>}<PrimaryButton tone="purple" onClick={()=>void submit()} disabled={draftCount>0||submitting}><Check/> {draftCount?'RESOLVE INCIDENT DRAFTS':submitting?'SUBMITTING…':'SUBMIT PATROL'}</PrimaryButton></main><BottomNav/></PhoneShell>
 }
 function Completed({ next, incidents, records, missionStartedAt, runtime }: { next: () => void; incidents: IncidentRecord[]; records: PatrolEvidence[]; missionStartedAt?: number | null; runtime?: MissionRuntime | null }) {
   const [reportOpen, setReportOpen] = useState(false)

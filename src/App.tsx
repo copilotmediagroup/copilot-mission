@@ -547,20 +547,20 @@ function GuardApp({
   }
 
   const nextCheckpoint = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');return} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
-      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint') }
+      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint'); await loadDispatch(); throw error }
       return
     }
     actions.completeCheckpoint()
   }
 
   const submitProof = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');return} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
-      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission') }
+      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission'); await loadDispatch(); throw error }
       return
     }
     actions.submitProof()
