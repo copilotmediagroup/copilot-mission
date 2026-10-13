@@ -523,11 +523,15 @@ function GuardApp({
   }
 
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return }
+      catch(error){ setNotice(error instanceof Error?error.message:'Unable to save evidence'); await refreshDeveloperRuntime(); throw error }
+    }
+    if (liveDispatch && dispatchMission) {
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch(); return }
+      catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch(); throw error }
+    }
     setEvidence(records)
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await refreshDeveloperRuntime() } catch(error){setNotice(error instanceof Error?error.message:'Unable to save evidence')} ; return }
-    if (!liveDispatch || !dispatchMission) return
-    try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch() }
-    catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch() }
   }
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
@@ -606,7 +610,7 @@ function GuardApp({
         } : undefined}
         checkpoint={effectiveCheckpoint}
         patrolEvidence={effectiveEvidence}
-        onEvidenceChange={(records) => void updateEvidence(records)}
+        onEvidenceChange={updateEvidence}
         onPhotoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionPhoto({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         onVideoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionVideo({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         incidents={effectiveIncidents}

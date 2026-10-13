@@ -72,7 +72,7 @@ export interface GuardDashboardProps {
   onSubmitProof?: () => void
   onReturnOnline?: () => void
   patrolEvidence?: PatrolEvidence[]
-  onEvidenceChange?: (records: PatrolEvidence[]) => void
+  onEvidenceChange?: (records: PatrolEvidence[]) => void | Promise<void>
   incidents?: IncidentRecord[]
   onIncidentsChange?: (records: IncidentRecord[]) => void
   missionStartedAt?: number | null
@@ -448,7 +448,7 @@ function formatElapsed(totalSeconds: number) {
   return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':')
 }
 
-function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture, onVideoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
+function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsChange, missionStartedAt, runtime, onPhotoCapture, onVideoCapture }: { count: number; next: () => void; records: PatrolEvidence[]; onRecordsChange: (records: PatrolEvidence[]) => void | Promise<void>; incidents: IncidentRecord[]; onIncidentsChange: (records: IncidentRecord[]) => void; missionStartedAt?: number | null; runtime?: MissionRuntime | null; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
   const index = Math.min(count, checkpoints.length - 1)
   const current = checkpoints[index]
   const record = records.find(item => item.checkpoint === index) ?? { checkpoint:index, photos:0, videos:0, note:'' }
@@ -485,9 +485,9 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     previousTotals.current = { ...totals, incidents: incidents.length, checkpoint: index }
   }, [totals, incidents.length, index])
 
-  const update = (patch: Partial<PatrolEvidence>) => {
+  const update = async (patch: Partial<PatrolEvidence>) => {
     const nextRecord = { ...record, ...patch }
-    onRecordsChange([...records.filter(item => item.checkpoint !== index), nextRecord].sort((a,b)=>a.checkpoint-b.checkpoint))
+    await onRecordsChange([...records.filter(item => item.checkpoint !== index), nextRecord].sort((a,b)=>a.checkpoint-b.checkpoint))
     setWarning('')
   }
   const missing = useMemo(() => [
@@ -543,9 +543,9 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     {smartAlert && <div className={`mission-smart-alert ${highSeverity ? 'critical' : ''}`}><AlertTriangle/><span><strong>{highSeverity ? 'Mission attention required' : 'Smart checkpoint alert'}</strong><small>{smartAlert}</small></span></div>}
     <PrimaryButton tone="orange" onClick={complete} disabled={!completionReady}><Check/> {completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
   </main><BottomNav/>
-    {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
-    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real video is required.');if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,index);update({videos:record.videos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
-    {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{update({note});setSheet(null)}} onRemove={()=>{update({note:''});setSheet(null)}}/>}
+    {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);await update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
+    {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real video is required.');if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,index);await update({videos:record.videos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
+    {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{void update({note}).then(()=>setSheet(null)).catch(()=>setWarning('Unable to save note. Try again.'))}} onRemove={()=>{void update({note:''}).then(()=>setSheet(null)).catch(()=>setWarning('Unable to remove note. Try again.'))}}/>}
     {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onSave={(incident)=>{onIncidentsChange([...incidents,incident]);setSheet('workspace')}}/>}
     {sheet === 'workspace' && <EvidenceWorkspace records={records} incidents={incidents} onClose={()=>setSheet(null)} onIncidentsChange={onIncidentsChange}/>}
   </PhoneShell>
