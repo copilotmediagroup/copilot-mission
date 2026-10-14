@@ -22,16 +22,15 @@ type Checkpoint = {
   video: EvidenceLevel
   notes: EvidenceLevel
   smartReminder: string
-  previousVisit: { when: string; result: string; evidence: string; duration: string }
 }
 
 const checkpoints: Checkpoint[] = [
-  { name:'Exterior Perimeter', instructions:['Walk the full exterior perimeter','Look for damage, loitering, or unsecured access'], photo:'recommended', video:'optional', notes:'optional', smartReminder:'Capture the full fence line and any unsecured access point.', previousVisit:{when:'2 days ago',result:'No issues reported',evidence:'2 photos',duration:'1m 54s'} },
-  { name:'Parking Lot', instructions:['Inspect parked vehicles and lighting','Check for suspicious activity or debris'], photo:'optional', video:'optional', notes:'optional', smartReminder:'Keep license plates out of frame unless documenting an incident.', previousVisit:{when:'2 days ago',result:'Lighting normal',evidence:'1 photo',duration:'2m 11s'} },
-  { name:'Main Entrance', instructions:['Verify entrance doors are secure','Inspect glass, locks, and vestibule'], photo:'required', video:'optional', notes:'optional', smartReminder:'Door handles, lock, and alarm indicator must be visible.', previousVisit:{when:'2 days ago',result:'No issues reported',evidence:'3 photos',duration:'1m 42s'} },
-  { name:'Back Entrance', instructions:['Confirm employee entrance is secured','Check hinges, lock, and surrounding area'], photo:'optional', video:'optional', notes:'recommended', smartReminder:'Note any delivery activity or signs of forced entry.', previousVisit:{when:'2 days ago',result:'Delivery area clear',evidence:'1 note',duration:'2m 06s'} },
-  { name:'Rear Loading Dock', instructions:['Check delivery doors','Verify dock gate is locked','Inspect fence line and look for suspicious activity'], photo:'required', video:'optional', notes:'optional', smartReminder:'Show the dock gate lock and both delivery doors in evidence.', previousVisit:{when:'2 days ago',result:'Dock secure',evidence:'3 photos',duration:'2m 34s'} },
-  { name:'Side Doors', instructions:['Verify all side exits are secure','Check for tampering or blocked exits'], photo:'optional', video:'optional', notes:'optional', smartReminder:'Confirm exits are unobstructed from both directions.', previousVisit:{when:'2 days ago',result:'No issues reported',evidence:'1 photo',duration:'1m 37s'} },
+  { name:'Exterior Perimeter', instructions:['Walk the full exterior perimeter','Look for damage, loitering, or unsecured access'], photo:'recommended', video:'optional', notes:'optional', smartReminder:'Capture the full fence line and any unsecured access point.' },
+  { name:'Parking Lot', instructions:['Inspect parked vehicles and lighting','Check for suspicious activity or debris'], photo:'optional', video:'optional', notes:'optional', smartReminder:'Keep license plates out of frame unless documenting an incident.' },
+  { name:'Main Entrance', instructions:['Verify entrance doors are secure','Inspect glass, locks, and vestibule'], photo:'required', video:'optional', notes:'optional', smartReminder:'Door handles, lock, and alarm indicator must be visible.' },
+  { name:'Back Entrance', instructions:['Confirm employee entrance is secured','Check hinges, lock, and surrounding area'], photo:'optional', video:'optional', notes:'recommended', smartReminder:'Note any delivery activity or signs of forced entry.' },
+  { name:'Rear Loading Dock', instructions:['Check delivery doors','Verify dock gate is locked','Inspect fence line and look for suspicious activity'], photo:'required', video:'optional', notes:'optional', smartReminder:'Show the dock gate lock and both delivery doors in evidence.' },
+  { name:'Side Doors', instructions:['Verify all side exits are secure','Check for tampering or blocked exits'], photo:'optional', video:'optional', notes:'optional', smartReminder:'Confirm exits are unobstructed from both directions.' },
 ]
 
 type GuardDashboardMetrics = {
@@ -521,9 +520,9 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
 
   const missionStages = ['Accepted','Travel','Arrived',...checkpoints.map((_, checkpointIndex) => `C${checkpointIndex + 1}`),'Review','Complete']
   const activeStage = Math.min(3 + index, missionStages.length - 1)
-  const guardianReady = true
-  const gpsReady = true
-  const completionReady = missing.length === 0 && guardianReady && gpsReady && checkpointDrafts.length === 0
+  const gpsFreshness = runtime?.guardLocation?.freshness ?? 'none'
+  const gpsReady = gpsFreshness === 'live' || gpsFreshness === 'stale'
+  const completionReady = missing.length === 0 && checkpointDrafts.length === 0
   const smartAlert = highSeverity ? 'High-priority incident attached. Guardian remains active.' : checkpointDrafts.length ? 'Submit or delete the incident draft before completing this checkpoint.' : warning || (!completionReady ? `Complete ${missing.join(', ')} before moving on.` : current.smartReminder)
 
   return <PhoneShell><AppHeader title="MISSION COMMAND"/><main className="screen-content compact-content patrol-content">
@@ -543,8 +542,8 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     </section>
     <section className="guardian-command-card">
       <div className="guardian-command-heading"><span><ShieldCheck/></span><div><small>GUARDIAN</small><strong>Monitoring mission</strong></div><StatusChip tone="green">LIVE</StatusChip></div>
-      <div className="guardian-command-signals"><div><Navigation/><span><strong>GPS</strong><small>Active</small></span></div><div><Activity/><span><strong>Motion</strong><small>Normal</small></span></div><div><BatteryMedium/><span><strong>Battery</strong><small>82%</small></span></div><div><Wifi/><span><strong>Connection</strong><small>Excellent</small></span></div></div>
-      <div className="guardian-command-foot"><RadioTower/><span>Check-in secure · Guardian is recording mission continuity.</span></div>
+      <div className="guardian-command-signals"><div><Navigation/><span><strong>GPS</strong><small>{gpsFreshness==='live'?'Live':gpsFreshness==='stale'?'Last known':gpsFreshness==='expired'?'Offline':'Waiting'}</small></span></div><div><Camera/><span><strong>Evidence</strong><small>{totals.photos + totals.videos} media</small></span></div><div><FileText/><span><strong>Notes</strong><small>{totals.notes} saved</small></span></div><div><AlertTriangle/><span><strong>Incidents</strong><small>{incidents.length} logged</small></span></div></div>
+      <div className="guardian-command-foot"><RadioTower/><span>{gpsReady?'Location telemetry is available for this mission.':'Location telemetry is not currently available.'}</span></div>
     </section>
     <div className="patrol-property-row"><div><small>{runtime?.property.name?.toUpperCase()??"PROPERTY"}</small><span>Checkpoint {index + 1} of {checkpoints.length} · Est. {estimatedRemaining} min remaining</span></div><div className="patrol-progress-block"><b>{progress}%</b><div className="patrol-mini-progress"><i style={{width:`${progress}%`}}/></div></div></div>
     <section className="checkpoint-hero"><div className="location-mark"><MapPin/></div><div><small>CURRENT PATROL LOCATION</small><h2>{current.name}</h2></div></section>
@@ -555,8 +554,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
       <EvidenceAction icon={<FileText/>} label="Notes" level={current.notes} count={0} detail={record.note ? 'Note saved' : ''} checkpointName={current.name} onClick={()=>setSheet('notes')}/>
     </section>
     <button className={`incident-action ${checkpointIncidents.length ? 'reported' : ''}`} onClick={()=>setSheet('incident')}><span><AlertTriangle/></span><div><strong>{checkpointIncidents.length ? `${checkpointIncidents.length} Incident${checkpointIncidents.length>1?'s':''} Reported` : 'Report Incident'}</strong><small>{checkpointIncidents.length ? 'Attached to this patrol location' : 'Document an issue without leaving patrol'}</small></div><ChevronRight/></button>
-    <section className="checkpoint-history"><div className="evidence-heading"><strong>Previous Visit</strong><span>{current.previousVisit.when}</span></div><div className="previous-visit-grid"><span><small>RESULT</small><strong>{current.previousVisit.result}</strong></span><span><small>EVIDENCE</small><strong>{current.previousVisit.evidence}</strong></span><span><small>DURATION</small><strong>{current.previousVisit.duration}</strong></span></div></section>
-    <section className="completion-readiness"><div className="evidence-heading"><strong>Ready to complete?</strong><span>{completionReady ? 'All checks passed' : `${missing.length + checkpointDrafts.length} requirement${missing.length + checkpointDrafts.length === 1 ? '' : 's'} open`}</span></div><div className="readiness-list"><span className={gpsReady ? 'ready' : ''}><CheckCircle2/> GPS within checkpoint radius</span><span className={guardianReady ? 'ready' : ''}><CheckCircle2/> Guardian connection secure</span><span className={missing.length === 0 ? 'ready' : ''}><CheckCircle2/> Required evidence attached</span><span className={checkpointDrafts.length === 0 ? 'ready' : ''}><CheckCircle2/> No incident draft pending</span></div></section>
+    <section className="completion-readiness"><div className="evidence-heading"><strong>Ready to complete?</strong><span>{completionReady ? 'All checks passed' : `${missing.length + checkpointDrafts.length} requirement${missing.length + checkpointDrafts.length === 1 ? '' : 's'} open`}</span></div><div className="readiness-list"><span className={gpsReady ? 'ready' : ''}><CheckCircle2/> {gpsReady ? 'Guard location available' : 'Guard location unavailable'}</span><span className={missing.length === 0 ? 'ready' : ''}><CheckCircle2/> Required evidence attached</span><span className={checkpointDrafts.length === 0 ? 'ready' : ''}><CheckCircle2/> No incident draft pending</span></div></section>
     <section className="mission-activity"><div className="evidence-heading"><strong>Latest Activity</strong><span>Live mission timeline</span></div>{activity.map((item,activityIndex)=><div key={`${item}-${activityIndex}`}><i/><span>{item}</span><time>{activityIndex===0 ? 'Now' : 'Earlier'}</time></div>)}</section>
     {smartAlert && <div className={`mission-smart-alert ${highSeverity ? 'critical' : ''}`}><AlertTriangle/><span><strong>{highSeverity ? 'Mission attention required' : 'Smart checkpoint alert'}</strong><small>{smartAlert}</small></span></div>}
     <PrimaryButton tone="orange" onClick={()=>void complete()} disabled={!completionReady||completing}><Check/> {completing ? 'COMPLETING…' : completionReady ? 'COMPLETE CHECKPOINT' : 'COMPLETE REQUIREMENTS'}</PrimaryButton>
@@ -569,13 +567,14 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
   </PhoneShell>
 }
 
-function Review({ next, records, incidents }: { next: () => void | Promise<void>; records: PatrolEvidence[]; incidents: IncidentRecord[] }) {
+function Review({ next, records, incidents, missionStartedAt }: { next: () => void | Promise<void>; records: PatrolEvidence[]; incidents: IncidentRecord[]; missionStartedAt?: number | null }) {
   const [submitting,setSubmitting]=useState(false)
   const [error,setError]=useState('')
   const submit=async()=>{if(submitting)return;setSubmitting(true);setError('');try{await next()}catch(e){setError(e instanceof Error?e.message:'Unable to submit patrol. Try again.')}finally{setSubmitting(false)}}
   const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
   const draftCount = incidents.filter(item=>item.status === 'draft').length
-  return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>37 min</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{checkpoints.map((checkpoint,index)=>{
+  const elapsed = missionStartedAt ? formatElapsed(Math.max(0,Math.floor((Date.now()-missionStartedAt)/1000))) : '—'
+  return <PhoneShell><AppHeader title="REVIEW & SUBMIT"/><main className="screen-content compact-content review-content"><div className="review-intro"><CheckCircle2/><div><h2>Patrol complete</h2><p>Review the mission record before submitting.</p></div></div><div className="review-summary"><div><small>TIME ON SITE</small><strong>{elapsed}</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} items</strong></div></div><h4 className="section-label">PATROL LOCATIONS</h4><div className="review-list">{checkpoints.map((checkpoint,index)=>{
     const item=records.find(record=>record.checkpoint===index)
     const parts=[item?.photos?`${item.photos} photo${item.photos>1?'s':''}`:'',item?.videos?`${item.videos} video${item.videos>1?'s':''}`:'',item?.note?'1 note':''].filter(Boolean)
     return <div key={checkpoint.name}><CheckCircle2/><span><strong>{checkpoint.name}</strong><small>{parts.length?parts.join(' · '):'No evidence'}</small></span><ChevronRight/></div>
@@ -584,7 +583,9 @@ function Review({ next, records, incidents }: { next: () => void | Promise<void>
 function Completed({ next, incidents, records, missionStartedAt, runtime }: { next: () => void; incidents: IncidentRecord[]; records: PatrolEvidence[]; missionStartedAt?: number | null; runtime?: MissionRuntime | null }) {
   const [reportOpen, setReportOpen] = useState(false)
   const totalEvidence = records.reduce((sum,item)=>sum+item.photos+item.videos+(item.note?1:0),0)
-  return <PhoneShell><AppHeader title="MISSION COMPLETE"/><main className="screen-content completed-screen command-complete"><div className="completion-kicker"><ShieldCheck/> MISSION SECURED</div><h2 className="property-title">{runtime?.property.name??"Property"}</h2><p>The professional mission report is ready for agency review and client delivery.</p><div className="success-orbit"><Check/></div><div className="completion-processing report-ready"><span><CheckCircle2/> Evidence synchronized</span><span><CheckCircle2/> Timeline secured</span><span><CheckCircle2/> Report ready</span></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>00:37:21</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton tone="purple" onClick={()=>setReportOpen(true)}><Eye/> VIEW MISSION REPORT</PrimaryButton><SecondaryButton onClick={next}><RefreshCw/> RETURN ONLINE</SecondaryButton></main><BottomNav/>{reportOpen&&<MissionReport records={records} incidents={incidents} missionStartedAt={missionStartedAt} onClose={()=>setReportOpen(false)}/>}</PhoneShell>
+  const completedAt=runtime?.timestamps.completedAt?new Date(runtime.timestamps.completedAt).getTime():Date.now()
+  const elapsed=missionStartedAt?formatElapsed(Math.max(0,Math.floor((completedAt-missionStartedAt)/1000))):'—'
+  return <PhoneShell><AppHeader title="MISSION COMPLETE"/><main className="screen-content completed-screen command-complete"><div className="completion-kicker"><ShieldCheck/> MISSION SECURED</div><h2 className="property-title">{runtime?.property.name??"Property"}</h2><p>The professional mission report is ready for agency review and client delivery.</p><div className="success-orbit"><Check/></div><div className="completion-processing report-ready"><span><CheckCircle2/> Evidence synchronized</span><span><CheckCircle2/> Timeline secured</span><span><CheckCircle2/> Report ready</span></div><div className="summary-grid"><div><small>TIME ON SITE</small><strong>{elapsed}</strong></div><div><small>CHECKPOINTS</small><strong>6 of 6</strong></div><div><small>EVIDENCE</small><strong>{totalEvidence} Items</strong></div><div><small>INCIDENTS</small><strong>{incidents.length}</strong></div></div><PrimaryButton tone="purple" onClick={()=>setReportOpen(true)}><Eye/> VIEW MISSION REPORT</PrimaryButton><SecondaryButton onClick={next}><RefreshCw/> RETURN ONLINE</SecondaryButton></main><BottomNav/>{reportOpen&&<MissionReport records={records} incidents={incidents} missionStartedAt={missionStartedAt} runtime={runtime} onClose={()=>setReportOpen(false)}/>}</PhoneShell>
 }
 
 export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>;onVideoCapture?: (file:File,checkpoint:number)=>Promise<void>;developerGuardId?:string}) {
@@ -602,6 +603,6 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
   if (state === 'patrol') return <Patrol count={checkpoint} next={action(props.onNextCheckpoint,onAdvance)} records={patrolEvidence} onRecordsChange={onEvidenceChange} incidents={incidents} onIncidentsChange={onIncidentsChange} missionStartedAt={missionStartedAt} runtime={runtime} onPhotoCapture={props.onPhotoCapture} onVideoCapture={props.onVideoCapture}/>
-  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents}/>
+  if (state === 'proof') return <Review next={action(props.onSubmitProof,onAdvance)} records={patrolEvidence} incidents={incidents} missionStartedAt={missionStartedAt}/>
   return <Completed next={action(props.onReturnOnline,onAdvance)} incidents={incidents} records={patrolEvidence} missionStartedAt={missionStartedAt} runtime={runtime}/>
 }
