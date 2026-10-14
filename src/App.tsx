@@ -184,15 +184,13 @@ function GuardApp({
     developerGuardState,
   ])
 
-  const effectiveCheckpoint = isDeveloperPreview && missionRuntime
-    ? missionRuntime.checkpointIndex
-    : mission.checkpoint
-  const effectiveEvidence = isDeveloperPreview && missionRuntime
-    ? missionRuntime.evidence
-    : mission.patrolEvidence
-  const effectiveIncidents = isDeveloperPreview && missionRuntime
-    ? missionRuntime.incidents
-    : mission.incidents
+  const authoritativeRuntime = (isDeveloperPreview || liveDispatch) ? missionRuntime : null
+  const effectiveCheckpoint = authoritativeRuntime?.checkpointIndex ?? mission.checkpoint
+  const effectiveEvidence = authoritativeRuntime?.evidence ?? mission.patrolEvidence
+  const effectiveIncidents = authoritativeRuntime?.incidents ?? mission.incidents
+  const effectiveMissionStartedAt = authoritativeRuntime?.missionStartedAt
+    ? new Date(authoritativeRuntime.missionStartedAt).getTime()
+    : mission.missionStartedAt
 
   const refreshDeveloperRuntime = async () => {
     if (!isDeveloperPreview || !dispatchMission) return null
@@ -512,7 +510,7 @@ function GuardApp({
       catch(error){ setNotice(error instanceof Error?error.message:'Unable to save evidence'); await refreshDeveloperRuntime(); throw error }
     }
     if (liveDispatch && dispatchMission) {
-      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:mission.incidents}); await loadDispatch(); return }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await loadDispatch(); return }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save evidence'); await loadDispatch(); throw error }
     }
     setEvidence(records)
@@ -524,7 +522,7 @@ function GuardApp({
       catch(error){ setNotice(error instanceof Error?error.message:'Unable to save incident'); await refreshDeveloperRuntime(); throw error }
     }
     if (liveDispatch && dispatchMission) {
-      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:records}); await loadDispatch(); return }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await loadDispatch(); return }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to save incident'); await loadDispatch(); throw error }
     }
     setIncidents(records)
@@ -533,7 +531,7 @@ function GuardApp({
   const nextCheckpoint = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
-      try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:missionRuntime?.checkpointIndex??mission.checkpoint,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint'); await loadDispatch(); throw error }
       return
     }
@@ -543,7 +541,7 @@ function GuardApp({
   const submitProof = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
-      try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:mission.patrolEvidence,incidents:mission.incidents}); await loadDispatch() }
+      try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission'); await loadDispatch(); throw error }
       return
     }
@@ -571,7 +569,7 @@ function GuardApp({
         onPhotoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionPhoto({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         onVideoCapture={async(file,checkpoint)=>{const guardId=isDeveloperPreview?(developerGuardId||''):'';if(!dispatchMission?.job_id)throw new Error('Active guard mission is unavailable.');if(isDeveloperPreview&&!guardId)throw new Error('Selected guard is unavailable.');const coords=await currentNativeCoordinates().catch(()=>null);await uploadMissionVideo({jobId:dispatchMission.job_id,guardId:guardId||undefined,checkpoint,file,developerTest:isDeveloperPreview,latitude:coords?.latitude??null,longitude:coords?.longitude??null})}}
         incidents={effectiveIncidents}
-        missionStartedAt={mission.missionStartedAt}
+        missionStartedAt={effectiveMissionStartedAt}
         onIncidentsChange={updateIncidents}
         onGoOnline={() => void goOnline()}
         onGoOffline={() => void goOffline()}
@@ -587,7 +585,7 @@ function GuardApp({
       <MissionTimeline className={timelineOpen ? 'timeline-open' : ''} onClose={() => setTimelineOpen(false)}/>
     </div>
     <div className="mission-utility-dock">
-      <GuardianButton missionState={mission.state}/>
+      <GuardianButton missionState={displayedMissionState}/>
       <button className="timeline-trigger" onClick={() => setTimelineOpen(true)} aria-label="Open mission timeline"><Clock3/><span>Timeline</span></button>
     </div>
     {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}
