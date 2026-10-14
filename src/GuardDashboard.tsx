@@ -420,8 +420,15 @@ function NotesSheet({ existing, onClose, onSave, onRemove }: { existing: string;
 function EvidenceWorkspace({ records, incidents, onClose, onIncidentsChange }: { records: PatrolEvidence[]; incidents: IncidentRecord[]; onClose: () => void; onIncidentsChange: (records: IncidentRecord[]) => void | Promise<void> }) {
   const totals = records.reduce((sum,item)=>({photos:sum.photos+item.photos,videos:sum.videos+item.videos,notes:sum.notes+(item.note?1:0)}),{photos:0,videos:0,notes:0})
   const drafts = incidents.filter(item=>item.status === 'draft')
-  const updateIncident = (id: string, patch: Partial<IncidentRecord>) => onIncidentsChange(incidents.map(item=>item.id===id?{...item,...patch}:item))
-  const removeIncident = (id: string) => onIncidentsChange(incidents.filter(item=>item.id!==id))
+  const [busyIncidentId,setBusyIncidentId]=useState<string|null>(null)
+  const [actionError,setActionError]=useState('')
+  const persistIncidentChange=async(id:string,next:IncidentRecord[])=>{
+    if(busyIncidentId)return
+    setBusyIncidentId(id);setActionError('')
+    try{await onIncidentsChange(next)}catch(error){setActionError(error instanceof Error?error.message:'Unable to update incident. Try again.')}finally{setBusyIncidentId(null)}
+  }
+  const updateIncident = (id: string, patch: Partial<IncidentRecord>) => persistIncidentChange(id,incidents.map(item=>item.id===id?{...item,...patch}:item))
+  const removeIncident = (id: string) => persistIncidentChange(id,incidents.filter(item=>item.id!==id))
   return <div className="capture-overlay" role="dialog" aria-modal="true">
     <button type="button" className="capture-backdrop" onClick={onClose} aria-label="Close mission evidence"/>
     <section className="capture-sheet evidence-workspace-sheet">
@@ -438,10 +445,11 @@ function EvidenceWorkspace({ records, incidents, onClose, onIncidentsChange }: {
             {record?.photos ? <div><span className="workspace-thumb"><Camera/></span><span><strong>{record.photos} Photo{record.photos>1?'s':''}</strong><small>GPS verified · Synced</small></span><CheckCircle2/></div>:null}
             {record?.videos ? <div><span className="workspace-thumb"><Video/></span><span><strong>{record.videos} Video{record.videos>1?'s':''}</strong><small>Checkpoint attached · Synced</small></span><CheckCircle2/></div>:null}
             {record?.note ? <div><span className="workspace-thumb"><FileText/></span><span><strong>Guard Note</strong><small>{record.note}</small></span><CheckCircle2/></div>:null}
-            {checkpointIncidents.map(incident=><div className={`workspace-incident severity-${incident.severity}`} key={incident.id}><span className="workspace-thumb"><AlertTriangle/></span><span><strong>{incident.type}</strong><small>{incident.severity} · {incident.status} · {incident.timestamp}</small></span><div className="workspace-incident-actions">{incident.status==='draft'&&<button type="button" onClick={()=>updateIncident(incident.id,{status:'submitted'})}>Submit</button>}{incident.status==='submitted'&&<button type="button" onClick={()=>updateIncident(incident.id,{status:'resolved'})}>Resolve</button>}<button type="button" onClick={()=>removeIncident(incident.id)} aria-label="Delete incident"><Trash2/></button></div></div>)}
+            {checkpointIncidents.map(incident=><div className={`workspace-incident severity-${incident.severity}`} key={incident.id}><span className="workspace-thumb"><AlertTriangle/></span><span><strong>{incident.type}</strong><small>{incident.severity} · {incident.status} · {incident.timestamp}</small></span><div className="workspace-incident-actions">{incident.status==='draft'&&<button type="button" disabled={busyIncidentId!==null} onClick={()=>void updateIncident(incident.id,{status:'submitted'})}>{busyIncidentId===incident.id?'Saving…':'Submit'}</button>}{incident.status==='submitted'&&<button type="button" disabled={busyIncidentId!==null} onClick={()=>void updateIncident(incident.id,{status:'resolved'})}>{busyIncidentId===incident.id?'Saving…':'Resolve'}</button>}<button type="button" disabled={busyIncidentId!==null} onClick={()=>void removeIncident(incident.id)} aria-label="Delete incident">{busyIncidentId===incident.id?<RefreshCw/>:<Trash2/>}</button></div></div>)}
           </div>}
         </section>
       })}</div>
+      {actionError&&<div className="workspace-warning"><AlertTriangle/><span><strong>Incident update failed</strong><small>{actionError}</small></span></div>}
       {drafts.length>0&&<div className="workspace-warning"><AlertTriangle/><span><strong>{drafts.length} incident draft{drafts.length>1?'s':''} must be submitted</strong><small>Mission completion remains protected until every draft is handled.</small></span></div>}
     </section>
   </div>
