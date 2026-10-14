@@ -129,10 +129,7 @@ function GuardApp({
   },[])
   const [guardMetrics, setGuardMetrics] = useState<GuardOperationalMetrics | null>(null)
   const [missionRuntime, setMissionRuntime] = useState<MissionRuntime | null>(null)
-  const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(()=>{
-    if(!(developerMode&&accessMode==='preview')) return null
-    try { const v=window.sessionStorage.getItem('copilot:developer:guard-state'); return (v as typeof mission.state|null)||null } catch { return null }
-  })
+  const [developerGuardState, setDeveloperGuardState] = useState<typeof mission.state | null>(null)
 
   const canReadLiveDispatch =
     auth.mode === 'supabase' &&
@@ -146,7 +143,7 @@ function GuardApp({
     canReadLiveDispatch &&
     !isDeveloperPreview
 
-  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState);try{window.sessionStorage.setItem('copilot:developer:guard-state',hydratedState)}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
+  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState)}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
 
   const displayedMissionState =
@@ -410,7 +407,7 @@ function GuardApp({
 
   const goOnline = async () => {
     if (isDeveloperPreview) {
-      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,true);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const online=workspace.guard.availability!=='offline';const next=online?'waiting':'offline';setDeveloperGuardState(next);try { window.sessionStorage.setItem('copilot:developer:guard-state',next) } catch {};if(!online)throw new Error('Guard did not enter online state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,true);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const online=workspace.guard.availability!=='offline';const next=online?'waiting':'offline';setDeveloperGuardState(next);if(!online)throw new Error('Guard did not enter online state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
       return
     }
     if (liveDispatch) {
@@ -421,7 +418,7 @@ function GuardApp({
   }
   const goOffline = async () => {
     if (isDeveloperPreview) {
-      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,false);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const offline=workspace.guard.availability==='offline';const next=offline?'offline':'waiting';setDeveloperGuardState(next);try { window.sessionStorage.setItem('copilot:developer:guard-state',next) } catch {};if(!offline)throw new Error('Guard did not enter offline state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,false);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const offline=workspace.guard.availability==='offline';const next=offline?'offline':'waiting';setDeveloperGuardState(next);if(!offline)throw new Error('Guard did not enter offline state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
       return
     }
     if (liveDispatch) {
@@ -466,7 +463,6 @@ function GuardApp({
         const runtime=workspace.assignment?await getMissionRuntime(workspace.assignment.job_id):null
         setMissionRuntime(runtime)
         setDeveloperGuardState('enroute')
-        try { window.sessionStorage.setItem('copilot:developer:guard-state','enroute') } catch {}
         return
       } catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to accept assignment'); return }
     }
@@ -558,37 +554,6 @@ function GuardApp({
     <div className="ambient ambient-one" />
     <div className="ambient ambient-two" />
     {notice && <div className="mission-toast">{notice}</div>}
-
-    {developerMode && <div className="guard-developer-state-preview">
-      <strong>GUARD STATE</strong>
-
-      {([
-        ['offline', 'Offline'],
-        ['waiting', 'Waiting'],
-        ['assignment', 'Assignment'],
-        ['enroute', 'En Route'],
-        ['arrived', 'Arrived'],
-        ['patrol', 'Patrol'],
-        ['proof', 'Review'],
-        ['completed', 'Complete'],
-      ] as const).map(([state, label]) =>
-        <button
-          key={state}
-          className={displayedMissionState === state ? 'active' : ''}
-          disabled={(['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(state) < ['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(displayedMissionState))}
-          onClick={() => {if(['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(state) < ['offline','waiting','assignment','enroute','arrived','patrol','proof','completed'].indexOf(displayedMissionState))return;setDeveloperGuardState(state);try{window.sessionStorage.setItem('copilot:developer:guard-state',state)}catch{}}}
-        >
-          {label}
-        </button>
-      )}
-
-      <button
-        className={developerGuardState === null ? 'active' : ''}
-        onClick={() => {setDeveloperGuardState(null);try{window.sessionStorage.removeItem('copilot:developer:guard-state')}catch{}}}
-      >
-        LIVE STATE
-      </button>
-    </div>}
 
     <div className="production-workspace">
       <div className="production-stage" key={displayedMissionState}>
