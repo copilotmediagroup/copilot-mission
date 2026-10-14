@@ -8,7 +8,7 @@ import type { DeveloperAccessMode } from './DeveloperPortalSwitcher'
 import ClientReports from './ClientReportsCalendar'
 import { getClientTrackingExperience, subscribeToClientTracking, type ClientTrackingExperience } from './modules/client/clientLiveTrackingRepository'
 import ClientLiveTracking from './ClientLiveTracking'
-import { createDeveloperTestJob,getDeveloperClientWorkspace,getDeveloperJobEstimate } from './modules/developer/developerLiveRepository'
+import { createDeveloperTestJob,getDeveloperClientTracking,getDeveloperClientWorkspace,getDeveloperJobEstimate } from './modules/developer/developerLiveRepository'
 import { loadGoogleMaps, resolveAddressSuggestion, searchAddressSuggestions, type AddressBias, type AddressSuggestion, type VerifiedAddress } from './modules/location/addressSearch'
 import {getMyNotificationUnreadCount,subscribeToMyNotifications} from './modules/notifications/notificationRepository'
 import { NotificationCenter } from './components/NotificationCenter'
@@ -75,9 +75,16 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
     return subscribeToClientWorkspace(clientId, () => void load())
   }, [clientId, load])
   useEffect(()=>{
-    if(isPreview||!clientId)return
-    const loadTracking=()=>void getClientTrackingExperience().then(setLiveTracking).catch(()=>setLiveTracking(null))
+    if(!clientId){setLiveTracking(null);return}
+    const loadTracking=()=>void (isPreview
+      ? getDeveloperClientTracking(clientId)
+      : getClientTrackingExperience()
+    ).then(setLiveTracking).catch(()=>setLiveTracking(null))
     loadTracking()
+    if(isPreview){
+      const timer=window.setInterval(loadTracking,3000)
+      return()=>window.clearInterval(timer)
+    }
     return subscribeToClientTracking(loadTracking)
   },[isPreview,clientId])
   useEffect(() => { if (!notice) return; const timer = window.setTimeout(() => setNotice(''), 2800); return () => window.clearTimeout(timer) }, [notice])
