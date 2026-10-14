@@ -1,0 +1,3 @@
+-- Local mirror of production migration developer_client_withdraw_rc16.
+-- Function: public.withdraw_developer_client_job_rc1(uuid,uuid).
+-- Platform-admin only; selected client ownership; developer_test only; open jobs only.

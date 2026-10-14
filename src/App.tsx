@@ -22,7 +22,7 @@ import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocat
 import {consumeStoredNativePushAction,currentNativeCoordinates,registerNativePush,storeNativePushAction,type NativePushAction} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
 import {persistNativePushToken} from './mobile/pushTokenRepository'
-import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
+import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics,getDeveloperGuardSlotRuntime, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
 
 const cleanPath = window.location.pathname.replace(/\/+$/, '')
@@ -143,7 +143,7 @@ function GuardApp({
     canReadLiveDispatch &&
     !isDeveloperPreview
 
-  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState)}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
+  useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){if(assignment.multi_guard_slot){const slot=await getDeveloperGuardSlotRuntime(developerGuardId,assignment.job_id);runtime=slot?{jobId:assignment.job_id,assignmentId:assignment.assignment_id,state:slot.state,version:slot.version,checkpointIndex:slot.checkpoint_index,evidence:slot.evidence,incidents:slot.incidents,missionStartedAt:slot.mission_started_at,priority:assignment.priority,title:assignment.title,instructions:assignment.instructions,client:{id:assignment.job_id,name:assignment.client.display_name},agency:{id:assignment.agency_id,name:'Assigned agency'},guard:assignment.guard?{id:assignment.guard.id,name:assignment.guard.name,badgeNumber:assignment.guard.badge_number,availability:assignment.guard.availability}:null,property:{id:assignment.job_id,name:assignment.property.name,address:assignment.property.address,latitude:assignment.property.latitude,longitude:assignment.property.longitude,photoUrl:assignment.property.photo_url},guardLocation:null,timestamps:{createdAt:assignment.assigned_at,assignedAt:assignment.assigned_at,acceptedAt:assignment.accepted_at,routeStartedAt:slot.route_started_at,arrivedAt:slot.arrived_at,completedAt:slot.completed_at,updatedAt:slot.updated_at},timeline:[]}:null}else runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState)}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
 
   const displayedMissionState =
@@ -194,7 +194,7 @@ function GuardApp({
 
   const refreshDeveloperRuntime = async () => {
     if (!isDeveloperPreview || !dispatchMission) return null
-    const runtime = await getMissionRuntime(dispatchMission.job_id)
+    const runtime = dispatchMission.multi_guard_slot && developerGuardId ? await getDeveloperGuardSlotRuntime(developerGuardId,dispatchMission.job_id).then(slot=>slot?{...missionRuntime!,state:slot.state,version:slot.version,checkpointIndex:slot.checkpoint_index,evidence:slot.evidence,incidents:slot.incidents,missionStartedAt:slot.mission_started_at,timestamps:{...missionRuntime!.timestamps,routeStartedAt:slot.route_started_at,arrivedAt:slot.arrived_at,completedAt:slot.completed_at,updatedAt:slot.updated_at}}:missionRuntime) : await getMissionRuntime(dispatchMission.job_id)
     setMissionRuntime(runtime)
     return runtime
   }
@@ -455,7 +455,7 @@ function GuardApp({
   const accept = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
       try {
-        await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'accept',expectedVersion:missionRuntime?.version})
+        await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'accept',expectedVersion:missionRuntime?.version})
         const workspace=await getDeveloperGuardWorkspace(developerGuardId)
         setDispatchMission(workspace.assignment??null)
         const runtime=workspace.assignment?await getMissionRuntime(workspace.assignment.job_id):null
@@ -471,6 +471,10 @@ function GuardApp({
     actions.acceptAssignment()
   }
   const decline = async () => {
+    if (isDeveloperPreview && developerGuardId && dispatchMission?.multi_guard_slot) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:true,action:'decline'});setDispatchMission(null);setMissionRuntime(null);setDeveloperGuardState('waiting');return }
+      catch(error){setNotice(error instanceof Error?error.message:'Unable to decline assignment');return}
+    }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'decline',expectedVersion:missionRuntime?.version}); setDispatchMission(null); setMissionRuntime(null) }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to decline assignment'); return }
@@ -480,7 +484,7 @@ function GuardApp({
 
   const startRoute = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
-      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'start_route',expectedVersion:missionRuntime?.version}); return }
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'start_route',expectedVersion:missionRuntime?.version}); return }
       catch(error){setNotice(error instanceof Error?error.message:'Unable to start route');return}
     }
     if (liveDispatch && dispatchMission) {
@@ -493,7 +497,7 @@ function GuardApp({
 
   const markArrived = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
-      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'mark_arrived',expectedVersion:missionRuntime?.version}); return }
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'mark_arrived',expectedVersion:missionRuntime?.version}); return }
       catch(error){setNotice(error instanceof Error?error.message:'Unable to mark arrival');return}
     }
     if (liveDispatch && dispatchMission) {
@@ -506,7 +510,7 @@ function GuardApp({
 
   const updateEvidence = async (records: import('./types').PatrolEvidence[]) => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
-      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return }
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:records,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return }
       catch(error){ setNotice(error instanceof Error?error.message:'Unable to save evidence'); await refreshDeveloperRuntime(); throw error }
     }
     if (liveDispatch && dispatchMission) {
@@ -518,7 +522,7 @@ function GuardApp({
 
   const updateIncidents = async (records: import('./types').IncidentRecord[]) => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
-      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await refreshDeveloperRuntime(); return }
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'save_payload',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:records}); await refreshDeveloperRuntime(); return }
       catch(error){ setNotice(error instanceof Error?error.message:'Unable to save incident'); await refreshDeveloperRuntime(); throw error }
     }
     if (liveDispatch && dispatchMission) {
@@ -529,7 +533,7 @@ function GuardApp({
   }
 
   const nextCheckpoint = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');await refreshDeveloperRuntime();throw error} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to complete checkpoint');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'complete_checkpoint',expectedVersion:missionRuntime?.version,checkpoint:effectiveCheckpoint,evidence:effectiveEvidence,incidents:effectiveIncidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to complete checkpoint'); await loadDispatch(); throw error }
@@ -539,7 +543,7 @@ function GuardApp({
   }
 
   const submitProof = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');await refreshDeveloperRuntime();throw error} }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) { try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await refreshDeveloperRuntime(); return } catch(error){setNotice(error instanceof Error?error.message:'Unable to submit mission');await refreshDeveloperRuntime();throw error} }
     if (liveDispatch && dispatchMission) {
       try { await liveTransition({jobId:dispatchMission.job_id,action:'submit',expectedVersion:missionRuntime?.version,evidence:effectiveEvidence,incidents:effectiveIncidents}); await loadDispatch() }
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to submit mission'); await loadDispatch(); throw error }

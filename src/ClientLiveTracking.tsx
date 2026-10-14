@@ -5,11 +5,11 @@ import type { ActiveMissionRoute } from './modules/location/missionRouting'
 import { withdrawClientJob } from './modules/client/clientRepository'
 import { useState } from 'react'
 
-type Props={experience:ClientTrackingExperience;onViewReport:()=>void}
+type Props={experience:ClientTrackingExperience;onViewReport:()=>void;onWithdraw?:(jobId:string)=>Promise<void>}
 const stages=['marketplace','offered','accepted','en_route','active','checkpoint','review','completed']
 const labels:Record<string,string>={marketplace:'Finding coverage',awaiting_guard:'Agency preparing',offered:'Guard assigned',accepted:'Guard confirmed',en_route:'Guard en route',active:'Patrol active',checkpoint:'Patrol active',review:'Mission review',completed:'Mission complete'}
 
-export default function ClientLiveTracking({experience,onViewReport}:Props){
+export default function ClientLiveTracking({experience,onViewReport,onWithdraw}:Props){
  const [withdrawing,setWithdrawing]=useState(false)
  const [withdrawError,setWithdrawError]=useState('')
  if(!experience)return null
@@ -84,7 +84,7 @@ export default function ClientLiveTracking({experience,onViewReport}:Props){
 
    try{
      if(!experience) return
-     await withdrawClientJob(experience.job_id)
+     await (onWithdraw?onWithdraw(experience.job_id):withdrawClientJob(experience.job_id))
    }catch(error){
      setWithdrawError(
        error instanceof Error

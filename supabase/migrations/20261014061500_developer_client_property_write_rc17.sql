@@ -1,0 +1,2 @@
+-- Local mirror: developer_client_property_write_rc17.
+-- Platform-admin Live Account Test create/update selected client property through save_developer_client_property_rc1.

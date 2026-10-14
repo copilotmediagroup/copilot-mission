@@ -7,7 +7,7 @@ import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
 import type { ActiveMissionRoute, MissionRouteResult } from './modules/location/missionRouting'
 import { toMissionRuntimeRouteInput } from './modules/mission-runtime/missionRuntimeState'
-import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGuardMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
+import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGuardMessage, getDeveloperGuardMessages, sendDeveloperGuardMessage, subscribeToAgencyMessages } from './modules/messaging/messagingRepository'
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 import GuardSettingsPage from './GuardSettings'
 import { getMyGuardSettings, type GuardSettings } from './modules/guard/guardSettingsRepository'
@@ -94,7 +94,7 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { 
 function GuardSectionView({ section, online, metrics, developerGuardId, profile }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
-  useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive){setMessages(records as GuardMessageRecord[]);setMessageError('')}}).catch(error=>{if(alive){setMessages([]);setMessageError(error instanceof Error?error.message:'Messages unavailable.')}});load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
+  useEffect(()=>{let alive=true;const load=()=>{const request=developerGuardId?getDeveloperGuardMessages(developerGuardId):fetchGuardMessages();return request.then(records=>{if(alive){setMessages(records as GuardMessageRecord[]);setMessageError('')}}).catch(error=>{if(alive){setMessages([]);setMessageError(error instanceof Error?error.message:'Messages unavailable.')}})};void load();const stop=subscribeToAgencyMessages(()=>void load());return()=>{alive=false;stop()}},[developerGuardId])
   const sendGuardMessage=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
     const form=event.currentTarget
@@ -102,7 +102,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
     const body=String(data.get('body')??'').trim()
     if(!body)return
     let message:GuardMessageRecord|null=null
-    try{message=await persistGuardMessage({channel:'active_mission',body,senderRole:'guard'}) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
+    try{message=(developerGuardId?await sendDeveloperGuardMessage(developerGuardId,{channel:'active_mission',body}):await persistGuardMessage({channel:'active_mission',body,senderRole:'guard'})) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
     setMessages(current=>[message,...current])
     form.reset()
   }
