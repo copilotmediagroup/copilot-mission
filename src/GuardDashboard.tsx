@@ -47,14 +47,6 @@ function formatDutyTime(totalSeconds: number) {
 
 
 type GuardMessageRecord={id:string;channel:'all_guards'|'active_mission'|'post_job';sender:'agency'|'guard'|'system';senderName:string;body:string;context:string;createdAt:string}
-const guardMessageStoreKey='copilot-agency-message-center-v1'
-function loadGuardMessages():GuardMessageRecord[]{
-  if(typeof window==='undefined')return []
-  try{const parsed=JSON.parse(window.localStorage.getItem(guardMessageStoreKey)??'[]');return Array.isArray(parsed)?parsed:[]}catch{return []}
-}
-function saveGuardMessages(messages:GuardMessageRecord[]){
-  if(typeof window!=='undefined')window.localStorage.setItem(guardMessageStoreKey,JSON.stringify(messages.slice(0,80)))
-}
 
 export interface GuardDashboardProps {
   state: MissionState
@@ -102,7 +94,6 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { 
 function GuardSectionView({ section, online, metrics, developerGuardId, profile }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
-  useEffect(()=>saveGuardMessages(messages),[messages])
   useEffect(()=>{let alive=true;const load=()=>fetchGuardMessages().then(records=>{if(alive){setMessages(records as GuardMessageRecord[]);setMessageError('')}}).catch(error=>{if(alive){setMessages([]);setMessageError(error instanceof Error?error.message:'Messages unavailable.')}});load();const stop=subscribeToAgencyMessages(load);return()=>{alive=false;stop()}},[])
   const sendGuardMessage=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault()
@@ -162,7 +153,7 @@ function Waiting({ offline, metrics, developerGuardId, profile }: { offline: () 
   const [section, setSection] = useState<GuardNavTarget>('home')
   return <PhoneShell><AppHeader title="CO PILOT"/><main className="screen-content">{section==='home'?<GuardHomeView online metrics={metrics} onGoOffline={offline} profile={profile}/>:<GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav active={section} onSelect={setSection}/></PhoneShell>
 }
-function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/>{runtime?.property.photoUrl?<img className="property-image" src={runtime.property.photoUrl} alt={runtime.property.name??"Property"}/>:null}<div className="two-stats"><div><small>DISTANCE</small><strong>4.2 mi</strong></div><div><small>ETA</small><strong>9 min</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
+function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) { const guardLocation=runtime?.guardLocation,hasGuardLocation=Number.isFinite(guardLocation?.latitude)&&Number.isFinite(guardLocation?.longitude),hasPropertyLocation=Number.isFinite(runtime?.property.latitude)&&Number.isFinite(runtime?.property.longitude);return <PhoneShell><AppHeader title="NEW ASSIGNMENT"/><main className="screen-content compact-content"><PropertyHeader eyebrow="NEW ASSIGNMENT" runtime={runtime}/>{runtime?.property.photoUrl?<img className="property-image" src={runtime.property.photoUrl} alt={runtime.property.name??"Property"}/>:null}<div className="two-stats"><div><small>GUARD GPS</small><strong>{hasGuardLocation?(guardLocation?.freshness==='live'?'Live':'Available'):'Unavailable'}</strong></div><div><small>DESTINATION</small><strong>{hasPropertyLocation?'Mapped':'Unmapped'}</strong></div></div><div className="info-grid"><div><small>PATROL TYPE</small><strong>{runtime?.title??'Mission'}</strong></div><div><small>PRIORITY</small><span className="priority">{runtime?.priority?.toUpperCase()??'STANDARD'}</span></div></div><div className="payment-row"><small>ASSIGNMENT</small><strong>Marketplace Job</strong></div><SecondaryButton onClick={decline}>DECLINE</SecondaryButton><PrimaryButton onClick={accept}><Check/> ACCEPT</PrimaryButton></main><BottomNav/></PhoneShell> }
 function EnRoute({ next, runtime }: { next: () => void; runtime?: MissionRuntime | null }) {
   const [route, setRoute] = useState<MissionRouteResult | null>(null)
 
