@@ -22,7 +22,6 @@ import {startNativeGuardBackgroundLocation} from './mobile/nativeBackgroundLocat
 import {consumeStoredNativePushAction,currentNativeCoordinates,registerNativePush,storeNativePushAction,type NativePushAction} from './mobile/nativePlatform'
 import {mobileTarget,roleAllowedForMobile} from './mobile/mobileTarget'
 import {persistNativePushToken} from './mobile/pushTokenRepository'
-import { getDeveloperSandboxJobs, subscribeDeveloperSandbox, setDeveloperSandboxGuardPresence } from './modules/developer/developerSandbox'
 import { getDeveloperLiveAccounts,setDeveloperGuardPresence,getDeveloperGuardWorkspace,getDeveloperGuardOperationalMetrics, transitionDeveloperGuardMission,type DeveloperLiveAccounts } from './modules/developer/developerLiveRepository'
 import EarthFlightLab from './EarthFlightLab'
 
@@ -134,7 +133,6 @@ function GuardApp({
     if(!(developerMode&&accessMode==='preview')) return null
     try { const v=window.sessionStorage.getItem('copilot:developer:guard-state'); return (v as typeof mission.state|null)||null } catch { return null }
   })
-  const [sandboxJobs,setSandboxJobs]=useState(()=>developerMode&&accessMode==='preview'?getDeveloperSandboxJobs():[])
 
   const canReadLiveDispatch =
     auth.mode === 'supabase' &&
@@ -150,15 +148,6 @@ function GuardApp({
 
   useEffect(()=>{if(!isDeveloperPreview||!developerGuardId)return;let cancelled=false;const sync=()=>void Promise.all([getDeveloperGuardWorkspace(developerGuardId),getDeveloperGuardOperationalMetrics(developerGuardId)]).then(async ([workspace,metrics])=>{if(cancelled)return;setGuardMetrics(metrics);const online=workspace.guard.availability!=='offline';const assignment=workspace.assignment??null;setDispatchMission(assignment);let runtime:MissionRuntime|null=null;if(assignment){runtime=await getMissionRuntime(assignment.job_id);if(cancelled)return;setMissionRuntime(runtime)}else setMissionRuntime(null);const hydratedState:typeof mission.state=assignment?(runtime?.state==='accepted'?'enroute':runtime?.state==='en_route'?'arrived':runtime?.state==='active'||runtime?.state==='checkpoint'?'patrol':runtime?.state==='review'?'proof':runtime?.state==='completed'?'completed':'assignment'):(online?'waiting':'offline');setDeveloperGuardState(hydratedState);try{window.sessionStorage.setItem('copilot:developer:guard-state',hydratedState)}catch{}}).catch(error=>{if(!cancelled)setNotice(error instanceof Error?error.message:'Unable to load real guard state')});sync();const timer=window.setInterval(sync,3000);return()=>{cancelled=true;window.clearInterval(timer)}},[isDeveloperPreview,developerGuardId])
 
-  useEffect(()=>{if(!isDeveloperPreview){setSandboxJobs([]);return}const sync=()=>setSandboxJobs(getDeveloperSandboxJobs());sync();return subscribeDeveloperSandbox(sync)},[isDeveloperPreview])
-  const sandboxJob=sandboxJobs.find(job=>job.state==='assigned'||job.state==='claimed'||job.state==='open')??sandboxJobs[0]??null
-  const sandboxRuntime=useMemo<MissionRuntime|null>(()=>sandboxJob?({
-    jobId:sandboxJob.id,assignmentId:sandboxJob.id,state:'offered',version:1,checkpointIndex:0,evidence:[],incidents:[],missionStartedAt:null,
-    priority:sandboxJob.priority,title:sandboxJob.title,instructions:'Developer sandbox request — no real charge',
-    client:{id:'preview-client',name:sandboxJob.client},agency:{id:'preview-agency',name:'Developer Agency'},guard:null,
-    property:{id:'preview-property',name:sandboxJob.property,address:sandboxJob.address,latitude:sandboxJob.latitude??null,longitude:sandboxJob.longitude??null,photoUrl:sandboxJob.photoUrl??null},guardLocation:null,
-    timestamps:{createdAt:sandboxJob.createdAt,assignedAt:sandboxJob.createdAt,acceptedAt:null,routeStartedAt:null,arrivedAt:null,completedAt:null,updatedAt:sandboxJob.createdAt},timeline:[]
-  } as MissionRuntime):null,[sandboxJob])
 
   const displayedMissionState =
     developerMode && developerGuardState
@@ -166,7 +155,7 @@ function GuardApp({
       : mission.state
 
   const displayedMissionRuntime = useMemo<MissionRuntime | null>(() => {
-    const baseRuntime=isDeveloperPreview?(missionRuntime??sandboxRuntime??null):missionRuntime
+    const baseRuntime=missionRuntime
     if (!baseRuntime) return null
     if (!isDeveloperPreview || !developerGuardState) return baseRuntime
 
@@ -194,7 +183,6 @@ function GuardApp({
     return missionRuntime
   }, [
     missionRuntime,
-    sandboxRuntime,
     isDeveloperPreview,
     developerGuardState,
   ])
