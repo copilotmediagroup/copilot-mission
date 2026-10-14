@@ -328,7 +328,7 @@ function CaptureSheet({ kind, existing, onClose, onUse, onRemove }: { kind: Capt
       </div>}
       {error&&<p style={{color:'#ff6b6b',fontWeight:700}}>{error}</p>}
       {existing > 0 && kind==='video' ? <button className="remove-evidence" onClick={onRemove}><Trash2/> Remove existing video</button> : null}
-      <p className="prototype-note">Photos and videos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
+      <p className="evidence-note">Photos and videos are uploaded to the secured mission evidence record before they count toward checkpoint completion.</p>
     </section>
   </div>
 }
@@ -385,7 +385,7 @@ function IncidentSheet({ checkpoint, onClose, onSave, onPhotoCapture, onVideoCap
       <PrimaryButton tone="orange" disabled={!canSave||busy||mediaBusy!==null} onClick={async()=>{if(!canSave||busy)return;setBusy(true);setError('');try{await onSave({id:`incident-${Date.now()}`,checkpoint,type,severity,note,photos,videos,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),location:'',status:'draft',peopleOrVehicles,emergencyServices})}catch(e){setError(e instanceof Error?e.message:'Unable to save incident. Try again.')}finally{setBusy(false)}}}><AlertTriangle/> {busy?'SAVING…':'SAVE DRAFT'}</PrimaryButton>
       {!canSave && <p className="incident-required">Choose an incident type to continue.</p>}
       {error&&<p className="incident-required">{error}</p>}
-      <p className="prototype-note">Incident evidence attaches to the mission record with checkpoint, timestamp, and location context.</p>
+      <p className="evidence-note">Incident evidence attaches to the mission record with checkpoint, timestamp, and location context.</p>
     </section>
   </div>
 }

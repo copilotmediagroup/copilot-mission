@@ -50,7 +50,7 @@ export default function MissionReport({ records, incidents, missionStartedAt, ru
       <header className="report-brand-header">
         <div className="report-brand-mark"><ShieldCheck/></div>
         <div><small>SECURITY PROVIDER</small><h1>Co Pilot Security</h1><p>Professional Patrol & Response Services</p></div>
-        <div className="report-status"><CheckCircle2/><strong>MISSION COMPLETE</strong><span>GPS Verified</span></div>
+        <div className="report-status"><CheckCircle2/><strong>MISSION COMPLETE</strong><span>{runtime?.guardLocation?.updatedAt?'Location recorded':'Mission record secured'}</span></div>
       </header>
 
       <section className="report-property-grid">
