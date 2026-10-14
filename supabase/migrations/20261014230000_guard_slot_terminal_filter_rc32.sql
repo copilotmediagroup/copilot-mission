@@ -1,0 +1,13 @@
+-- RC32: Never surface stale slot rows from terminal jobs as active Guard assignments.
+-- Historical slot rows may remain for audit/history, but Guard Home must only hydrate
+-- a slot while the parent marketplace job itself is still operational.
+create or replace function public.get_developer_guard_slot_offer_rc1(p_guard_id uuid)
+returns jsonb language plpgsql security definer set search_path=public set row_security=off as $$
+declare v_guard public.guards;v_slot public.job_guard_slots;v_job public.marketplace_jobs;v_property public.properties;v_client public.clients;begin
+ if auth.uid() is null or public.current_role()<>'platform_admin'::public.app_role then raise exception 'PLATFORM_ADMIN_REQUIRED' using errcode='42501';end if;
+ select * into v_guard from public.guards where id=p_guard_id;if v_guard.id is null then raise exception 'GUARD_NOT_FOUND' using errcode='40400';end if;
+ select s.* into v_slot from public.job_guard_slots s join public.marketplace_jobs j on j.id=s.job_id where s.guard_id=p_guard_id and s.status in('offered','accepted','en_route','arrived','active') and j.status in('accepted','assigned','active') and greatest(1,coalesce(j.required_guards,1))>1 and coalesce(j.pricing_snapshot->>'developer_test','false')='true' order by s.updated_at desc limit 1;
+ if v_slot.id is null then return null;end if;
+ select * into v_job from public.marketplace_jobs where id=v_slot.job_id;select * into v_property from public.properties where id=v_job.property_id;select * into v_client from public.clients where id=v_job.client_id;
+ return jsonb_build_object('assignment_id',v_slot.id,'slot_number',v_slot.slot_number,'required_guards',v_job.required_guards,'job_id',v_job.id,'agency_id',v_slot.agency_id,'guard_id',v_guard.id,'status',v_slot.status,'assigned_at',v_slot.created_at,'offered_at',v_slot.offered_at,'accepted_at',v_slot.accepted_at,'declined_at',v_slot.declined_at,'title',v_job.title,'instructions',v_job.instructions,'priority',v_job.priority,'scheduled_for',v_job.scheduled_for,'duration_minutes',v_job.duration_minutes,'property',jsonb_build_object('name',v_property.name,'address',coalesce(v_property.formatted_address,v_property.address),'latitude',v_property.latitude,'longitude',v_property.longitude,'photo_url',v_property.photo_url),'client',jsonb_build_object('display_name',v_client.display_name),'guard',jsonb_build_object('id',v_guard.id,'user_id',v_guard.user_id,'name',coalesce((select full_name from public.profiles where id=v_guard.user_id),'Guard'),'badge_number',v_guard.badge_number,'availability',v_guard.availability),'multi_guard_slot',true);
+end $$;
