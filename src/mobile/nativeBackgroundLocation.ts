@@ -43,6 +43,15 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
 
   let publishing=false
   let stopped=false
+  let pending:Location|null=null
+  const publishLatest=async(location:Location)=>{
+    if(stopped)return
+    if(publishing){pending=location;return}
+    publishing=true
+    try{await publishGuardLocation(asGeolocationPosition(location),input.jobId??null);input.onPublished?.()}
+    catch(error){input.onError?.(error instanceof Error?error.message:'Unable to publish background location')}
+    finally{publishing=false;const next=pending;pending=null;if(next&&!stopped)void publishLatest(next)}
+  }
   const watcherId=await BackgroundGeolocation.addWatcher({
     backgroundMessage:'CO PILOT GUARD is sharing your location for an active security mission.',
     backgroundTitle:'Active mission location',
@@ -52,15 +61,9 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
   },async(location?:Location,error?:CallbackError)=>{
     if(stopped)return
     if(error){input.onError?.(error.message||'Unable to receive background location');return}
-    if(!location||publishing)return
-    publishing=true
-    try{
-      await publishGuardLocation(asGeolocationPosition(location),input.jobId??null)
-      input.onPublished?.()
-    }catch(error){
-      input.onError?.(error instanceof Error?error.message:'Unable to publish background location')
-    }finally{publishing=false}
+    if(!location)return
+    void publishLatest(location)
   })
 
-  return()=>{stopped=true;void BackgroundGeolocation.removeWatcher({id:watcherId}).catch(()=>undefined)}
+  return()=>{stopped=true;pending=null;void BackgroundGeolocation.removeWatcher({id:watcherId}).catch(()=>undefined)}
 }

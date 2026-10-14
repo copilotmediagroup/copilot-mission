@@ -152,54 +152,39 @@ export function startGuardLocationPublisher(input: {
   let lastLatitude: number | null = null
   let lastLongitude: number | null = null
   let publishing = false
+  let pendingPosition: GeolocationPosition | null = null
+  let stopped = false
+
+  const publishLatest = async (position: GeolocationPosition) => {
+    if (publishing || stopped) { pendingPosition = position; return }
+    publishing = true
+    try {
+      await publishGuardLocation(position, input.jobId ?? null)
+      lastPublishedAt = Date.now()
+      lastLatitude = position.coords.latitude
+      lastLongitude = position.coords.longitude
+      input.onPublished?.()
+    } catch (error) {
+      input.onError?.(error instanceof Error ? error.message : 'Unable to publish location')
+    } finally {
+      publishing = false
+      const next = pendingPosition
+      pendingPosition = null
+      if (next && !stopped) void publishLatest(next)
+    }
+  }
 
   const watchId =
     navigator.geolocation.watchPosition(
-      async position => {
-        if (publishing) return
-
+      position => {
         const now = Date.now()
         const latitude = position.coords.latitude
         const longitude = position.coords.longitude
-
-        const firstSample =
-          lastLatitude == null ||
-          lastLongitude == null
-
-        const moved =
-          firstSample ||
-          Math.abs(latitude - lastLatitude!) > 0.00003 ||
-          Math.abs(longitude - lastLongitude!) > 0.00003
-
-        const heartbeatDue =
-          now - lastPublishedAt >= 5000
-
-        if (!moved && !heartbeatDue) {
-          return
-        }
-
-        publishing = true
-
-        try {
-          await publishGuardLocation(
-            position,
-            input.jobId ?? null
-          )
-
-          lastPublishedAt = now
-          lastLatitude = latitude
-          lastLongitude = longitude
-
-          input.onPublished?.()
-        } catch (error) {
-          input.onError?.(
-            error instanceof Error
-              ? error.message
-              : 'Unable to publish location'
-          )
-        } finally {
-          publishing = false
-        }
+        const firstSample = lastLatitude == null || lastLongitude == null
+        const moved = firstSample || Math.abs(latitude - lastLatitude!) > 0.00003 || Math.abs(longitude - lastLongitude!) > 0.00003
+        const heartbeatDue = now - lastPublishedAt >= 5000
+        if (!moved && !heartbeatDue) return
+        void publishLatest(position)
       },
       error => {
         input.onError?.(error.message)
@@ -212,6 +197,8 @@ export function startGuardLocationPublisher(input: {
     )
 
   return () => {
+    stopped = true
+    pendingPosition = null
     navigator.geolocation.clearWatch(watchId)
   }
 }
