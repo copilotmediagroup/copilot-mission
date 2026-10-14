@@ -102,3 +102,11 @@
 /* Agency marketplace toolbar breathing room — keep controls visually separate from KPI rail. */
 .v4-market-radar .agency-earth-tools{margin-top:18px}
 @media(max-width:760px){.v4-market-radar .agency-earth-tools{margin-top:14px}}
+
+/* Agency live-follow vehicle on the 3D operations map */
+.copilot-earth-vehicle{display:grid;justify-items:center;gap:5px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.42));transform:rotate(var(--vehicle-heading,0deg));transform-origin:50% 50%;transition:transform .3s ease}
+.copilot-earth-vehicle-body{position:relative;width:48px;height:27px;border:2px solid #fff;border-radius:7px 11px 7px 7px;background:#050505;box-shadow:inset 0 0 0 1px #333;display:grid;place-items:center}
+.copilot-earth-vehicle-body:before{content:'';position:absolute;left:8px;right:8px;top:-7px;height:9px;background:#111;border:2px solid #fff;border-bottom:0;border-radius:6px 6px 0 0}
+.copilot-earth-vehicle-body i,.copilot-earth-vehicle-body em{position:absolute;bottom:-6px;width:9px;height:9px;border:2px solid #fff;border-radius:50%;background:#050505}.copilot-earth-vehicle-body i{left:6px}.copilot-earth-vehicle-body em{right:6px}
+.copilot-earth-vehicle-body b{position:relative;z-index:2;color:#fff;font:800 7px/1 Arial,sans-serif;letter-spacing:.08em}
+.copilot-earth-vehicle>small{padding:3px 6px;border-radius:999px;background:rgba(0,0,0,.86);color:#fff;font:700 9px/1 Arial,sans-serif;white-space:nowrap}
