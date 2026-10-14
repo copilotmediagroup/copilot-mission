@@ -356,7 +356,7 @@ const incidentTypes = [
   { label:'Other', icon:<Circle/> },
 ]
 
-function IncidentSheet({ checkpoint, onClose, onSave }: { checkpoint: number; onClose: () => void; onSave: (incident: IncidentRecord) => void | Promise<void> }) {
+function IncidentSheet({ checkpoint, onClose, onSave, onPhotoCapture, onVideoCapture }: { checkpoint: number; onClose: () => void; onSave: (incident: IncidentRecord) => void | Promise<void>; onPhotoCapture?: (file:File,checkpoint:number)=>Promise<void>; onVideoCapture?: (file:File,checkpoint:number)=>Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [type, setType] = useState('')
@@ -364,6 +364,7 @@ function IncidentSheet({ checkpoint, onClose, onSave }: { checkpoint: number; on
   const [note, setNote] = useState('')
   const [photos, setPhotos] = useState(0)
   const [videos, setVideos] = useState(0)
+  const [mediaBusy, setMediaBusy] = useState<'photo'|'video'|null>(null)
   const [peopleOrVehicles, setPeopleOrVehicles] = useState('')
   const [emergencyServices, setEmergencyServices] = useState(false)
   const current = checkpoints[checkpoint]
@@ -382,14 +383,16 @@ function IncidentSheet({ checkpoint, onClose, onSave }: { checkpoint: number; on
       </div>
       <h4>Evidence <small>Optional</small></h4>
       <div className="incident-evidence-grid">
-        <button type="button" className={photos?'attached':''} onClick={()=>setPhotos(photos+1)}><Camera/><span>{photos ? `${photos} photo${photos>1?'s':''}` : 'Add Photo'}</span>{photos>0&&<CheckCircle2/>}</button>
-        <button type="button" className={videos?'attached':''} onClick={()=>setVideos(videos+1)}><Video/><span>{videos ? `${videos} video${videos>1?'s':''}` : 'Add Video'}</span>{videos>0&&<CheckCircle2/>}</button>
+        <button type="button" className={photos?'attached':''} disabled={mediaBusy!==null} onClick={()=>document.getElementById('guard-incident-photo')?.click()}><Camera/><span>{mediaBusy==='photo'?'Uploading…':photos ? `${photos} photo${photos>1?'s':''}` : 'Add Photo'}</span>{photos>0&&<CheckCircle2/>}</button>
+        <input id="guard-incident-photo" type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setError('');setMediaBusy('photo');try{if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,checkpoint);setPhotos(value=>value+1)}catch(error){setError(error instanceof Error?error.message:'Unable to upload incident photo.')}finally{setMediaBusy(null)}}}/>
+        <button type="button" className={videos?'attached':''} disabled={mediaBusy!==null} onClick={()=>document.getElementById('guard-incident-video')?.click()}><Video/><span>{mediaBusy==='video'?'Uploading…':videos ? `${videos} video${videos>1?'s':''}` : 'Add Video'}</span>{videos>0&&<CheckCircle2/>}</button>
+        <input id="guard-incident-video" type="file" accept="video/mp4,video/quicktime,video/webm,video/*" capture="environment" style={{display:'none'}} onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setError('');setMediaBusy('video');try{if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,checkpoint);setVideos(value=>value+1)}catch(error){setError(error instanceof Error?error.message:'Unable to upload incident video.')}finally{setMediaBusy(null)}}}/>
       </div>
       <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Describe what happened…" maxLength={400}/>
       <input className="incident-text-input" value={peopleOrVehicles} onChange={e=>setPeopleOrVehicles(e.target.value)} placeholder="People, vehicles, or identifying details (optional)"/>
       <label className="incident-service-toggle"><input type="checkbox" checked={emergencyServices} onChange={e=>setEmergencyServices(e.target.checked)}/><span><strong>Police or emergency services contacted</strong><small>Record this in the final mission report.</small></span></label>
       <div className="note-count">{note.length}/400</div>
-      <PrimaryButton tone="orange" disabled={!canSave||busy} onClick={async()=>{if(!canSave||busy)return;setBusy(true);setError('');try{await onSave({id:`incident-${Date.now()}`,checkpoint,type,severity,note,photos,videos,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),location:'',status:'draft',peopleOrVehicles,emergencyServices})}catch(e){setError(e instanceof Error?e.message:'Unable to save incident. Try again.')}finally{setBusy(false)}}}><AlertTriangle/> {busy?'SAVING…':'SAVE DRAFT'}</PrimaryButton>
+      <PrimaryButton tone="orange" disabled={!canSave||busy||mediaBusy!==null} onClick={async()=>{if(!canSave||busy)return;setBusy(true);setError('');try{await onSave({id:`incident-${Date.now()}`,checkpoint,type,severity,note,photos,videos,timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),location:'',status:'draft',peopleOrVehicles,emergencyServices})}catch(e){setError(e instanceof Error?e.message:'Unable to save incident. Try again.')}finally{setBusy(false)}}}><AlertTriangle/> {busy?'SAVING…':'SAVE DRAFT'}</PrimaryButton>
       {!canSave && <p className="incident-required">Choose an incident type to continue.</p>}
       {error&&<p className="incident-required">{error}</p>}
       <p className="prototype-note">Incident evidence attaches to the mission record with checkpoint, timestamp, and location context.</p>
@@ -553,7 +556,7 @@ function Patrol({ count, next, records, onRecordsChange, incidents, onIncidentsC
     {sheet === 'photo' && <CaptureSheet kind="photo" existing={record.photos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real photo is required.');if(!onPhotoCapture)throw new Error('Photo upload engine is unavailable.');await onPhotoCapture(file,index);await update({photos:record.photos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
     {sheet === 'video' && <CaptureSheet kind="video" existing={record.videos} onClose={()=>setSheet(null)} onUse={async(file)=>{if(!file)throw new Error('A real video is required.');if(!onVideoCapture)throw new Error('Video upload engine is unavailable.');await onVideoCapture(file,index);await update({videos:record.videos+1});setSheet(null)}} onRemove={()=>setSheet(null)}/>}
     {sheet === 'notes' && <NotesSheet existing={record.note} onClose={()=>setSheet(null)} onSave={(note)=>{void update({note}).then(()=>setSheet(null)).catch(()=>setWarning('Unable to save note. Try again.'))}} onRemove={()=>{void update({note:''}).then(()=>setSheet(null)).catch(()=>setWarning('Unable to remove note. Try again.'))}}/>}
-    {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onSave={async(incident)=>{await onIncidentsChange([...incidents,incident]);setSheet('workspace')}}/>}
+    {sheet === 'incident' && <IncidentSheet checkpoint={index} onClose={()=>setSheet(null)} onPhotoCapture={onPhotoCapture} onVideoCapture={onVideoCapture} onSave={async(incident)=>{await onIncidentsChange([...incidents,incident]);setSheet('workspace')}}/>}
     {sheet === 'workspace' && <EvidenceWorkspace records={records} incidents={incidents} onClose={()=>setSheet(null)} onIncidentsChange={onIncidentsChange}/>}
   </PhoneShell>
 }
