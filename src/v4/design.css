@@ -121,3 +121,11 @@
 .v4-report-overlay:not(.client-report-center-overlay) .v4-report-results>button strong{color:#fff!important;-webkit-text-fill-color:#fff!important}
 .v4-report-overlay:not(.client-report-center-overlay) .v4-report-results>button small,.v4-report-overlay:not(.client-report-center-overlay) .v4-report-results>button time{color:#b9b9b9!important;-webkit-text-fill-color:#b9b9b9!important}
 .v4-report-overlay:not(.client-report-center-overlay) .v4-report-results>button .v4-badge{display:inline-block!important;width:max-content!important;background:#fff!important;color:#111!important;-webkit-text-fill-color:#111!important;border:0!important;font-weight:850!important}
+
+/* Operations mission queue: keep all mission metadata high-contrast on dark cards. */
+.v4-command-card{background:#111!important;color:#fff!important;border-color:#111!important}
+.v4-command-card:hover,.v4-command-card.active{background:#181818!important;color:#fff!important;border-color:#111!important}
+.v4-command-card>strong{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.v4-command-card small,.v4-command-card p,.v4-command-card p b,.v4-command-card em{color:#fff!important;-webkit-text-fill-color:#fff!important;opacity:1!important}
+.v4-command-card small svg,.v4-command-card p svg{color:#fff!important;stroke:#fff!important;opacity:1!important}
+.v4-command-card .v4-command-state{background:#fff!important;color:#111!important;-webkit-text-fill-color:#111!important}
