@@ -464,7 +464,7 @@ function GuardApp({
   const accept = async () => {
     if (isDeveloperPreview && developerGuardId && dispatchMission) {
       try {
-        await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'accept',expectedVersion:missionRuntime?.version})
+        await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'accept'})
         const workspace=await getDeveloperGuardWorkspace(developerGuardId)
         setDispatchMission(workspace.assignment??null)
         const runtime=workspace.assignment?await getMissionRuntime(workspace.assignment.job_id):null
@@ -480,8 +480,8 @@ function GuardApp({
     actions.acceptAssignment()
   }
   const decline = async () => {
-    if (isDeveloperPreview && developerGuardId && dispatchMission?.multi_guard_slot) {
-      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:true,action:'decline'});setDispatchMission(null);setMissionRuntime(null);setDeveloperGuardState('waiting');return }
+    if (isDeveloperPreview && developerGuardId && dispatchMission) {
+      try { await transitionDeveloperGuardMission({guardId:developerGuardId,jobId:dispatchMission.job_id,multiGuardSlot:!!dispatchMission.multi_guard_slot,action:'decline'});setDispatchMission(null);setMissionRuntime(null);setDeveloperGuardState('waiting');return }
       catch(error){setNotice(error instanceof Error?error.message:'Unable to decline assignment');return}
     }
     if (liveDispatch && dispatchMission) {
