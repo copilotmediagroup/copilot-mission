@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "npm run validate:schema && tsc && vite build",
+    "build": "npm run validate:schema && npm run audit:mission-critical && tsc && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "validate:schema": "node scripts/validate-schema-contract.mjs",
     "mobile:sync": "npm run build && cap sync",
@@ -46,7 +46,8 @@
     "mobile:native:isolation:audit": "node scripts/mobile-native-isolation-audit.mjs",
     "mobile:android:ready": "node scripts/android-release-readiness.mjs",
     "mobile:android:debug:evidence": "node scripts/android-debug-artifact-evidence.mjs",
-    "mobile:android:debug:verify": "node scripts/android-debug-artifact-verify.mjs"
+    "mobile:android:debug:verify": "node scripts/android-debug-artifact-verify.mjs",
+    "audit:mission-critical": "node scripts/mission-critical-regression-audit.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
