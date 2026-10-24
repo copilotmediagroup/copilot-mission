@@ -10,7 +10,7 @@ import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
 import AgencyV4 from './v4/AgencyV4'
 import { AuthProvider, useAuth } from './modules/auth/AuthProvider'
-import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, transitionGuardMission, transitionGuardSlotMission, getGuardSlotRuntime, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
+import { getGuardDispatchWorkspace, getGuardOperationalMetrics, getGuardPresence, setGuardPresence, subscribeToDispatch, transitionGuardMission, transitionGuardSlotMission, getGuardSlotRuntime, type DispatchMission, type GuardOperationalMetrics } from './modules/dispatch/dispatchRepository'
 import { getMissionRuntime, subscribeToMissionRuntime } from './modules/mission-runtime/missionRuntimeRepository'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
 import { AuthGateway } from './modules/auth/AuthGateway'
@@ -333,6 +333,15 @@ function GuardApp({
 
   useEffect(() => {
     if (canReadLiveDispatch) void loadDispatch()
+  }, [canReadLiveDispatch, loadDispatch])
+
+  // Listen even while the Guard is idle. Assignment events happen before a
+  // mission exists, so mission-only subscriptions cannot discover new offers.
+  useEffect(() => {
+    if (!canReadLiveDispatch) return
+    const stop = subscribeToDispatch(() => void loadDispatch())
+    const timer = window.setInterval(() => void loadDispatch(), 3000)
+    return () => { stop(); window.clearInterval(timer) }
   }, [canReadLiveDispatch, loadDispatch])
   useEffect(()=>{
     if(!nativePushJobId||!canReadLiveDispatch)return
