@@ -65,5 +65,5 @@ export async function startNativeGuardBackgroundLocation(input:NativeBackgroundL
     void publishLatest(location)
   })
 
-  return()=>{stopped=true;pending=null;void BackgroundGeolocation.removeWatcher({id:watcherId}).catch(error=>input.onError?.(error instanceof Error?error.message:'Unable to stop background location watcher'))}
+  return()=>{stopped=true;pending=null;void BackgroundGeolocation.removeWatcher({id:watcherId}).catch(()=>undefined)}
 }
