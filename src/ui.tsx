@@ -66,7 +66,7 @@ export function AppHeader({ light = false, title, onNotifications, notificationC
   const [notificationsOpen,setNotificationsOpen]=useState(false)
   const openNotifications=()=>{if(onNotifications)onNotifications();else setNotificationsOpen(true)}
   return <><div className={`app-header ${light ? 'light' : ''}`}>
-    <button type="button" className="app-header-action" aria-label="Guard menu"><Menu size={18} /></button>
+    <span className="app-header-action app-header-spacer" aria-hidden="true" />
     {title ? <strong className="app-title">{title}</strong> : <span />}
     <button type="button" className="app-header-action bell" aria-label="Guard notifications" onClick={openNotifications}><Bell size={17} />{notificationCount>0&&<b className="notification-badge">{notificationCount>9?'9+':notificationCount}</b>}</button>
   </div><NotificationCenter open={notificationsOpen} onClose={()=>setNotificationsOpen(false)}/></>

@@ -1222,7 +1222,7 @@ export default function MissionMap({
           [key]: address,
         }))
       })
-      .catch(() => undefined)
+      .catch(error => { console.error('Mission map auxiliary lookup failed', error); return undefined })
 
     return () => {
       cancelled = true

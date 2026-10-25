@@ -94,6 +94,8 @@ export function subscribeToMarketplace(onChange: () => void) {
   const channel = db.channel(`marketplace-lifecycle-${crypto.randomUUID()}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_jobs' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'job_assignments' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'job_guard_slots' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'guard_slot_mission_state' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, onChange)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_events' }, onChange)

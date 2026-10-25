@@ -102,7 +102,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
     const body=String(data.get('body')??'').trim()
     if(!body)return
     let message:GuardMessageRecord|null=null
-    try{message=(developerGuardId?await sendDeveloperGuardMessage(developerGuardId,{channel:'active_mission',body}):await persistGuardMessage({channel:'active_mission',body,senderRole:'guard'})) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
+    try{message=(developerGuardId?await sendDeveloperGuardMessage(developerGuardId,{channel:'active_mission',body}):await persistGuardMessage({channel:'active_mission',body})) as GuardMessageRecord;setMessageError('')}catch(error){setMessageError(error instanceof Error?error.message:'Message was not delivered.');return}
     setMessages(current=>[message,...current])
     form.reset()
   }
@@ -586,7 +586,7 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
   }
 
   const [guardProfile,setGuardProfile]=useState<GuardSettings|null>(null)
-  useEffect(()=>{let live=true;void getMyGuardSettings(props.developerGuardId).then(p=>{if(live)setGuardProfile(p)}).catch(()=>{});return()=>{live=false}},[props.developerGuardId])
+  useEffect(()=>{let live=true;void getMyGuardSettings(props.developerGuardId).then(p=>{if(live)setGuardProfile(p)}).catch(error=>{if(live)console.error('Guard settings unavailable',error)});return()=>{live=false}},[props.developerGuardId])
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
   if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>
   if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>

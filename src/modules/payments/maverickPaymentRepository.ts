@@ -9,7 +9,7 @@ export type MaverickPaymentConfig = {
 
 export type MaverickPaymentResult = {
   approved: boolean
-  status: 'authorized' | 'captured' | 'declined'
+  status: 'authorized' | 'captured' | 'declined' | 'voided' | 'refunded' | 'authorization_unknown' | 'capture_unknown' | 'void_unknown' | 'refund_unknown'
   message: string
   transactionId?: string
   authCode?: string
@@ -52,6 +52,16 @@ export async function authorizeMaverickJobPayment(input: {
       billing: input.billing ?? {},
     },
   })
+  if (error) throw new Error(error.message)
+  return data as MaverickPaymentResult
+}
+
+export async function runMaverickPaymentLifecycle(input: {
+  jobId: string
+  action: 'capture' | 'void' | 'refund'
+  amountCents?: number
+}) {
+  const { data, error } = await db().functions.invoke('maverick-payment-lifecycle', { body: input })
   if (error) throw new Error(error.message)
   return data as MaverickPaymentResult
 }
@@ -107,3 +117,6 @@ export async function deleteMaverickPaymentMethod() {
   if (!data?.deleted) throw new Error(data?.message || 'Unable to remove payment method.')
   return data as { deleted: boolean }
 }
+
+export type PaymentAuthorizationTiming={authorize_now:boolean;requires_fresh_authorization:boolean;reason:string;scheduled_for:string|null;authorization_opens_at:string|null}
+export async function getPaymentAuthorizationTiming(jobId:string){const client=db();const{data,error}=await client.rpc('payment_authorization_timing_rc1',{p_job_id:jobId});if(error)throw new Error(error.message);return data as PaymentAuthorizationTiming}

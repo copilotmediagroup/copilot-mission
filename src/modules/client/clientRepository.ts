@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { runMaverickPaymentLifecycle } from '../payments/maverickPaymentRepository'
 
 export type ClientProperty = { id:string; client_id:string; name:string; address:string; street:string|null; city:string|null; state:string|null; postal_code:string|null; formatted_address:string|null; latitude:number|null; longitude:number|null; geocoding_provider:string|null; geocoding_place_id:string|null; photo_path:string|null; photo_url:string|null; archived_at:string|null; created_at:string; updated_at:string }
 export type ClientJob = { id:string; client_id:string; property_id:string; title:string; instructions:string|null; priority:'standard'|'priority'|'emergency'; status:'open'|'accepted'|'assigned'|'active'|'completed'|'cancelled'; scheduled_for:string|null; duration_minutes:number; service_type?:string|null; requested_start?:string|null; client_contact_phone?:string|null; access_notes?:string|null; estimated_total_cents?:number|null; platform_fee_cents?:number|null; agency_payout_cents?:number|null; payment_status?:string|null; payout_status?:string|null; required_guards?:number|null; created_at:string; updated_at:string }
@@ -184,42 +185,20 @@ export async function deleteClientProperty(propertyId:string) {
 
 export async function withdrawClientJob(jobId:string) {
   const db=requireSupabase()
-
-  const {data:{user}}=await db.auth.getUser()
-  if(!user) throw new Error('Your session expired. Please sign in again.')
-
-  const {data:clientId,error:workspaceError}=await db.rpc('ensure_client_workspace')
-  if(workspaceError) throw workspaceError
-  if(!clientId) throw new Error('Client workspace unavailable.')
-
-  const {data:job,error:readError}=await db
-    .from('marketplace_jobs')
-    .select('id,client_id,status')
-    .eq('id',jobId)
-    .eq('client_id',clientId as string)
-    .single()
-
-  if(readError) throw readError
-
-  if(job.status==='cancelled') return
-
-  if(job.status!=='open'){
-    throw new Error(
-      'This request has already been accepted and can no longer be withdrawn from the marketplace.'
-    )
+  const {data:job,error:jobError}=await db.from('marketplace_jobs').select('payment_status,processor_transaction_id').eq('id',jobId).maybeSingle()
+  if(jobError) throw jobError
+  if(job?.payment_status==='authorized'&&job.processor_transaction_id){
+    const result=await runMaverickPaymentLifecycle({jobId,action:'void'})
+    if(!result.approved||result.status!=='voided') throw new Error(result.message||'The authorization could not be released. Cancellation is paused for payment review.')
+    return {withdrawn:true,job_id:jobId,status:'cancelled',payment_status:'voided'}
   }
-
-  const {error:updateError}=await db
-    .from('marketplace_jobs')
-    .update({
-      status:'cancelled',
-      updated_at:new Date().toISOString(),
-    })
-    .eq('id',jobId)
-    .eq('client_id',clientId as string)
-    .eq('status','open')
-
-  if(updateError) throw updateError
+  const {data,error}=await db.rpc('withdraw_client_job_rc2',{p_job_id:jobId})
+  if(error){
+    if(error.message?.includes('PAYMENT_REVERSAL_REQUIRED')) throw new Error('This request has a live card authorization. It must be reversed by the payment processor before cancellation can finish.')
+    if(error.message?.includes('JOB_ALREADY_ACCEPTED')||error.message?.includes('MISSION_ALREADY_STAFFED')) throw new Error('This request has already been accepted and can no longer be withdrawn from the marketplace.')
+    throw error
+  }
+  return data as {withdrawn:boolean;job_id:string;status:string;payment_status?:string;ledger_entries_reversed?:number}
 }
 
 export type ClientJobStaffing={job_id:string;required_guards:number;filled_slots:number;accepted_slots:number;en_route_slots:number;active_slots:number;completed_slots:number;slots:Array<{slot_number:number;status:string;guard_name:string|null}>}

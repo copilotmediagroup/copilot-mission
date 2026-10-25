@@ -42,10 +42,10 @@ function AppShell() {
     if(!nativeTarget||auth.phase!=='ready'||!auth.user||!roleAllowedForMobile(auth.role))return
     let cleanup:(()=>Promise<void>)|null=null
     let cancelled=false
-    void registerNativePush(registration=>{if(!cancelled)void persistNativePushToken(registration,nativeTarget).catch(()=>undefined)},action=>{if(!cancelled)storeNativePushAction(action,nativeTarget)}).then(fn=>{
+    void registerNativePush(registration=>{if(!cancelled)void persistNativePushToken(registration,nativeTarget).catch(error=>console.warn('Native push token persistence failed',error))},action=>{if(!cancelled)storeNativePushAction(action,nativeTarget)}).then(fn=>{
       if(cancelled){if(fn)void fn();return}
       cleanup=fn
-    }).catch(()=>undefined)
+    }).catch(error=>console.warn('Native push registration unavailable',error))
     return()=>{cancelled=true;if(cleanup)void cleanup()}
   },[nativeTarget,auth.phase,auth.user?.id,auth.role])
   if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>

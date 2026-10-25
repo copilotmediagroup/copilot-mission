@@ -152,8 +152,13 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
           <div><Clock3 /><span><small>COMPLETED</small><strong>{formatDate(mission.completed_at ?? snapshot?.job?.completed_at)}</strong></span></div>
           <div><UserRound /><span><small>GUARD</small><strong>{snapshot?.guard?.name ?? (guards.length?`${guards.length} assigned guards`:'Assigned Guard')}</strong></span></div>
           <div><Building2 /><span><small>AGENCY</small><strong>{snapshot?.agency?.name ?? 'Security Agency'}</strong></span></div>
-          <div><CheckCircle2 /><span><small>CHECKPOINTS</small><strong>6 of 6 verified</strong></span></div>
+          <div><CheckCircle2 /><span><small>CHECKPOINTS</small><strong>{guards.length?`${guards.filter((g:any)=>Number(g?.mission?.checkpoint_index)>=6).length}/${guards.length} guards verified`:'6 of 6 verified'}</strong></span></div>
         </section>
+
+        {guards.length > 0 && <section className="client-report-section">
+          <div className="client-report-section-heading"><div><small>MULTI-GUARD COVERAGE</small><h2>Guard completion</h2></div><span>{guards.length} guards</span></div>
+          <div className="client-report-checkpoints">{guards.map((entry:any)=><div key={entry?.slot_number??entry?.guard?.id}><ShieldCheck/><span><strong>Guard {entry?.slot_number}: {entry?.guard?.name??'Assigned Guard'}</strong><small>{Number(entry?.mission?.checkpoint_index??0)}/6 checkpoints · {entry?.mission?.state??'unknown'}</small></span><div className="client-report-evidence-counts"><em>{safeArray(entry?.mission?.evidence).reduce((n:number,x:any)=>n+Number(x?.photos||0)+Number(x?.videos||0)+(x?.note?1:0),0)} evidence</em></div></div>)}</div>
+        </section>}
 
         <section className="client-report-section">
           <div className="client-report-section-heading">
@@ -182,7 +187,7 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
 
         <section className="client-report-section">
           <div className="client-report-section-heading"><div><small>GUARD EVIDENCE</small><h2>Photos & videos</h2></div>{!mediaLoading&&!mediaFailed&&<span>{media.length} media item{media.length===1?'':'s'}</span>}</div>
-          {mediaLoading?<p>Loading secure evidence…</p>:mediaFailed?<p>Evidence media could not be loaded.</p>:media.length?<div className="client-evidence-gallery">{media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls preload="metadata"/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt={`Guard evidence checkpoint ${item.checkpoint_index+1}`}/></a>}<figcaption>Checkpoint {item.checkpoint_index+1} · {new Date(item.captured_at).toLocaleString()}</figcaption></figure>)}</div>:<p>No uploaded photo or video evidence for this mission.</p>}
+          {mediaLoading?<p>Loading secure evidence…</p>:mediaFailed?<p>Evidence media could not be loaded.</p>:media.length?<div className="client-evidence-gallery">{media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls preload="metadata"/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt={`Guard evidence checkpoint ${item.checkpoint_index+1}`}/></a>}<figcaption>{guards.length?`${guards.find((g:any)=>g?.guard?.id===item.guard_id)?.guard?.name??'Guard'} · `:''}Checkpoint {item.checkpoint_index+1} · {new Date(item.captured_at).toLocaleString()}</figcaption></figure>)}</div>:<p>No uploaded photo or video evidence for this mission.</p>}
         </section>
 
         <section className="client-report-section">
