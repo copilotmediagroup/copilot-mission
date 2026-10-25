@@ -9,7 +9,7 @@ export type AgencyDocumentRecord = {
 export type AgencyDocumentCenter = { agency:{id:string;name:string;status:string}; compliance:{status:string;missing:string[];expiring_soon:number}; documents:AgencyDocumentRecord[] }
 export type AgencyApplicationInput = { ownerContactName:string; operatingStates:string[]; serviceCategories:string[]; licenseNumber?:string; note?:string }
 export type OwnerDocumentRecord = AgencyDocumentRecord & { agency_name:string; agency_status:string; owner_name:string }
-export type OwnerDocumentCenter = { documents:OwnerDocumentRecord[]; agencies:{agency_id:string;agency_name:string;agency_status:string;compliance:{status:string;missing:string[];expiring_soon:number}}[] }
+export type OwnerDocumentCenter = { documents:OwnerDocumentRecord[]; agencies:{agency_id:string;agency_name:string;agency_status:string;avatar_url?:string|null;compliance:{status:string;missing:string[];expiring_soon:number}}[] }
 
 const bucket='agency-documents'
 function db(){ if(!supabase) throw new Error('Supabase is not configured.'); return supabase }
