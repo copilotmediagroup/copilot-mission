@@ -14,6 +14,7 @@ export type GuardLiveLocation = {
   longitude: number | null
   last_location_at: string | null
   current_address?: string | null
+  avatar_url?: string | null
   freshness: LocationFreshness
   job_id: string | null
   mission_state: string | null

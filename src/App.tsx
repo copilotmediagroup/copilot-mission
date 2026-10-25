@@ -147,8 +147,8 @@ function GuardApp({
 
 
   const displayedMissionState =
-    developerMode && developerGuardState
-      ? developerGuardState
+    isDeveloperPreview
+      ? (developerGuardState ?? 'waiting')
       : mission.state
 
   const displayedMissionRuntime = useMemo<MissionRuntime | null>(() => {
@@ -569,7 +569,7 @@ function GuardApp({
     <div className="production-workspace">
       <div className="production-stage" key={displayedMissionState}>
       <GuardDashboard
-        developerGuardId={isDeveloperPreview?developerGuardId:undefined}
+        developerGuardId={developerMode&&developerGuardId?developerGuardId:undefined}
         state={displayedMissionState}
         runtime={displayedMissionRuntime}
         metrics={guardMetrics ? {

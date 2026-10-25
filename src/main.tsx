@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './styles.css'
 import './v3.css'
+import './guard-presentation-polish.css'
 import {configureMobileDocument} from './mobile/mobileTarget'
 
 configureMobileDocument()
