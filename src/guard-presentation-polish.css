@@ -65,3 +65,50 @@
 .guard-app.state-proof .review-note{background:#fff!important;color:#111!important;border:1px solid #ddd!important;box-shadow:none!important}.guard-app.state-proof .review-note strong{color:#111!important}.guard-app.state-proof .review-note small{color:#747b82!important}.guard-app.state-proof .review-note>svg{color:#555!important}.guard-app.state-proof .review-note.review-blocked{background:#fff8f1!important;border-color:#e7d2b8!important}
 .guard-app.state-proof .primary-button{background:#111!important;color:#fff!important;border:0!important}
 @media(min-width:521px){.guard-app.state-proof .review-content>*{width:min(100%,1080px)!important;max-width:1080px!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box!important}}
+
+/* Guard Jobs / Account drawers — monochrome presentation, no legacy blue/navy surfaces. */
+.guard-app .guard-drawer-screen{background:#f5f6f6!important;color:#111!important}
+.guard-app .guard-drawer-screen .profile-row{background:#fff!important;color:#111!important;border:1px solid #ddd!important;border-radius:16px!important;padding:16px!important}
+.guard-app .guard-drawer-screen .guard-main-section,.guard-app .guard-drawer-screen .guard-message-center,.guard-app .guard-drawer-screen .guard-settings-page{background:#fff!important;color:#111!important;border-color:#ddd!important;box-shadow:none!important}
+.guard-app .guard-drawer-screen .guard-main-section-icon{background:#111!important;color:#fff!important}
+.guard-app .guard-drawer-screen .guard-main-section>small,.guard-app .guard-drawer-screen .guard-message-center>small{color:#747b82!important}
+.guard-app .guard-drawer-screen .guard-main-section p,.guard-app .guard-drawer-screen .guard-main-section-card span{color:#747b82!important}
+.guard-app .guard-drawer-screen .guard-main-section-card{background:#f7f7f7!important;color:#111!important;border-color:#e2e2e2!important}
+.guard-app .guard-drawer-screen .guard-settings-page>header p,.guard-app .guard-drawer-screen .guard-settings-profile span,.guard-app .guard-drawer-screen .guard-settings-profile small{color:#68717b!important}
+.guard-app .guard-drawer-screen .guard-back-map{background:#fff!important;color:#111!important;border-color:#111!important}
+
+/* RC71 — Guard Jobs + Account desktop presentation: centered, monochrome, premium. */
+@media(min-width:521px){
+ .guard-drawer-screen{display:flex!important;flex-direction:column!important;align-items:center!important;padding:86px clamp(28px,5vw,72px) 52px!important;background:#f5f6f6!important}
+ .guard-drawer-screen>.guard-back-map{align-self:stretch!important;width:min(100%,1180px)!important;margin:0 auto 26px!important;box-sizing:border-box!important}
+ .guard-drawer-screen>.profile-row{width:min(100%,920px)!important;max-width:920px!important;margin:0 auto 18px!important;box-sizing:border-box!important;border:1px solid #dedede!important;border-radius:20px!important;background:#fff!important;color:#111!important;padding:14px 18px!important;box-shadow:0 8px 24px rgba(0,0,0,.04)!important}
+ .guard-drawer-screen .guard-main-section{width:min(100%,920px)!important;max-width:920px!important;margin:0 auto!important;padding:42px!important;box-sizing:border-box!important;border:1px solid #dedede!important;border-radius:24px!important;background:#fff!important;color:#111!important;box-shadow:0 12px 34px rgba(0,0,0,.06)!important}
+ .guard-drawer-screen .guard-main-section-icon{width:58px!important;height:58px!important;border-radius:17px!important;margin-bottom:22px!important;background:#111!important;color:#fff!important}
+ .guard-drawer-screen .guard-main-section small{color:#666!important}.guard-drawer-screen .guard-main-section h3{color:#111!important;font-size:30px!important}.guard-drawer-screen .guard-main-section p{color:#666!important;font-size:14px!important;max-width:620px!important}
+ .guard-drawer-screen .guard-main-section-card{margin-top:26px!important;padding:20px 22px!important;border:1px solid #e2e2e2!important;border-radius:16px!important;background:#f7f7f7!important;color:#111!important;box-shadow:none!important}.guard-drawer-screen .guard-main-section-card strong{color:#111!important}.guard-drawer-screen .guard-main-section-card span{color:#707070!important}
+ .guard-drawer-screen .guard-settings-page{width:min(100%,920px)!important;max-width:920px!important;margin:0 auto!important;padding:34px!important;box-sizing:border-box!important;border:1px solid #dedede!important;border-radius:24px!important;background:#111!important;color:#fff!important;box-shadow:0 12px 34px rgba(0,0,0,.08)!important}
+ .guard-drawer-screen .guard-settings-page>header{width:100%!important;margin-bottom:4px!important}.guard-drawer-screen .guard-settings-page>header small,.guard-drawer-screen .guard-settings-page>header h2{color:#fff!important}.guard-drawer-screen .guard-settings-page>header p{color:#aeb3b8!important}.guard-drawer-screen .guard-settings-page>header small{background:transparent!important;opacity:1!important}.guard-drawer-screen .guard-settings-page>header h2{font-size:28px!important;letter-spacing:-.035em!important}
+ .guard-drawer-screen .guard-settings-profile,.guard-drawer-screen .guard-settings-card{border-color:#dedede!important;background:#fff!important;color:#111!important}.guard-drawer-screen .guard-settings-profile *,.guard-drawer-screen .guard-settings-card *{color:#111}.guard-drawer-screen .guard-settings-profile span,.guard-drawer-screen .guard-settings-profile small,.guard-drawer-screen .guard-settings-card .guard-settings-readonly span{color:#68717b!important}
+}
+
+/* RC70 regression lock — Waiting must always retain the visible blurred city map behind radar. */
+.guard-app.state-waiting .guard-home-map{background:#d9d9d9!important;filter:none!important}
+.guard-app.state-waiting .guard-home-map .mission-map-shell,
+.guard-app.state-waiting .guard-home-map .mission-google-map{display:block!important;visibility:visible!important;opacity:1!important;background:#d9d9d9!important}
+.guard-app.state-waiting .guard-home-map .mission-google-map{filter:grayscale(1) blur(3px) brightness(.72)!important;transform:scale(1.015)!important;transform-origin:center!important}
+.guard-app.state-waiting .guard-home-map .mission-map-engine-badge{display:none!important}
+
+/* RC72 — Guard drawer/message cleanup: one identity, white messaging surfaces, no blue legacy UI. */
+.guard-app.state-waiting .guard-drawer-screen{padding-top:28px!important}
+.guard-app .profile-avatar-identity{display:flex!important;flex-direction:column!important;align-items:center!important;gap:5px!important;flex:0 0 auto!important}
+.guard-app .profile-avatar-identity>small{color:#555!important;font-size:10px!important;font-weight:800!important;line-height:1.1!important;max-width:100px!important;text-align:center!important}
+.guard-app .guard-message-center{background:#fff!important;color:#111!important;border:1px solid #dedede!important;border-radius:24px!important;box-shadow:0 12px 34px rgba(0,0,0,.06)!important}
+.guard-app .guard-message-center h3,.guard-app .guard-message-center strong,.guard-app .guard-message-center span{color:#111!important}
+.guard-app .guard-message-center>p,.guard-app .guard-message-center>small,.guard-app .guard-message-feed article small{color:#6f767d!important}
+.guard-app .guard-message-composer textarea{background:#f7f7f7!important;color:#111!important;border:1px solid #d9d9d9!important;box-shadow:none!important}
+.guard-app .guard-message-composer textarea::placeholder{color:#858b91!important}
+.guard-app .guard-message-composer button{background:#111!important;color:#fff!important;border:1px solid #111!important;box-shadow:none!important}
+.guard-app .guard-message-feed article,.guard-app .guard-message-feed>div{background:#fff!important;color:#111!important;border:1px solid #dedede!important;box-shadow:none!important}
+.guard-app .guard-message-feed article.guard{background:#f5f5f5!important;border-color:#d8d8d8!important}
+.guard-app .guard-message-feed article.agent,.guard-app .guard-message-feed article.agency{background:#fff!important;border-color:#d8d8d8!important}
+@media(min-width:521px){.guard-app.state-waiting .guard-drawer-screen{padding-top:28px!important}.guard-drawer-screen .guard-message-center{width:min(100%,920px)!important;max-width:920px!important;margin:0 auto!important;padding:34px!important;box-sizing:border-box!important}.guard-drawer-screen>.profile-row{margin-bottom:18px!important}}

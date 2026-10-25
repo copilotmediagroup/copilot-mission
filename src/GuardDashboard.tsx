@@ -72,7 +72,7 @@ export interface GuardDashboardProps {
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
 
-function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:GuardSettings|null }) { const name=profile?.name||'Guard',initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(); return <div className="profile-row"><div><small>Good Morning,</small><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div><div className={`avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div></div>
+function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:GuardSettings|null }) { const name=profile?.name||'Guard',initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(); return <div className="profile-row"><div><small>Good Morning,</small><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div><div className="profile-avatar-identity"><div className={`avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div><small>{name}</small></div></div>
 }
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
@@ -146,15 +146,15 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
 
 function Offline({ next, metrics, developerGuardId, profile }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell light><AppHeader light avatarUrl={profile?.avatar_url} guardName={profile?.name}/><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell light><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
 }
 
 function Waiting({ offline, metrics, developerGuardId, profile }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget | null>(null)
   const name=profile?.name||'Guard'
-  if(section)return <PhoneShell><AppHeader title={section.toUpperCase()} avatarUrl={profile?.avatar_url} guardName={profile?.name}/><main className="screen-content guard-drawer-screen"><button className="guard-back-map" onClick={()=>setSection(null)}><ChevronRight/> Back to map</button><GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/></main></PhoneShell>
+  if(section)return <PhoneShell><main className="screen-content guard-drawer-screen"><button className="guard-back-map" onClick={()=>setSection(null)}><ChevronRight/> Back to map</button><GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/></main></PhoneShell>
   return <PhoneShell><main className="guard-map-home">
-    <div className="guard-home-map"><MissionMap markers={[]} showViewerLocation zoom={14}/></div>
+    <div className="guard-home-map"><MissionMap markers={[]} showViewerLocation zoom={14} visualTheme="light"/></div>
     <div className="guard-waiting-radar" aria-hidden="true"><span/><span/><span/><b className="guard-radar-crosshair horizontal"/><b className="guard-radar-crosshair vertical"/><em className="guard-radar-sweep"/><i/></div>
     <header className="guard-map-top"><button onClick={()=>setSection('settings')} aria-label="Open guard menu"><Menu/></button><div><strong>CO PILOT</strong><small><i/> ONLINE</small></div><button onClick={()=>setSection('messages')} aria-label="Open messages"><MessageCircle/></button></header>
     <section className="guard-ready-card"><span className="guard-ready-handle"/><small>YOU'RE ONLINE</small><h2>Ready for requests</h2><p>Stay available. Your next security assignment will appear here.</p><div className="guard-ready-meta"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span><span><strong>{name.split(' ')[0]}</strong><small>Guard</small></span></div><button className="guard-offline-pill" onClick={offline}><Power/> GO OFFLINE</button></section>
