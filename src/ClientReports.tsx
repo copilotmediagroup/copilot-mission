@@ -9,12 +9,15 @@ import {
   Printer,
   RefreshCw,
   ShieldCheck,
+  Star,
   UserRound,
   Video,
   X,
 } from 'lucide-react'
 import {
   getClientReports,
+  getMyMissionGuardRatings,
+  rateMissionGuard,
   subscribeToReports,
   type MissionReportRecord,
 } from './modules/reporting/reportingRepository'
@@ -117,7 +120,14 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
   const [media,setMedia]=useState<MissionEvidenceMediaWithUrl[]>([])
   const [mediaLoading,setMediaLoading]=useState(true)
   const [mediaFailed,setMediaFailed]=useState(false)
+  const [ratings,setRatings]=useState<Record<string,{rating:number;comment:string|null}>>({})
+  const [ratingDrafts,setRatingDrafts]=useState<Record<string,{rating:number;comment:string}>>({})
+  const [ratingBusy,setRatingBusy]=useState<string|null>(null)
+  const [ratingError,setRatingError]=useState('')
+  useEffect(()=>{let alive=true;void getMyMissionGuardRatings(report.job_id).then(rows=>{if(alive)setRatings(Object.fromEntries(rows.map(r=>[r.guard_id,{rating:r.rating,comment:r.comment}])))}).catch(()=>undefined);return()=>{alive=false}},[report.job_id])
   useEffect(()=>{let alive=true;setMediaLoading(true);setMediaFailed(false);getMissionEvidenceWithUrls(report.job_id).then(rows=>{if(alive)setMedia(rows)}).catch(()=>{if(alive){setMedia([]);setMediaFailed(true)}}).finally(()=>{if(alive)setMediaLoading(false)});return()=>{alive=false}},[report.job_id])
+  const rateableGuards=useMemo(()=>guards.length?guards.map((entry:any)=>({id:entry?.guard?.id,name:entry?.guard?.name??'Assigned Guard'})).filter((g:any)=>g.id):snapshot?.guard?.id?[{id:snapshot.guard.id,name:snapshot.guard.name??'Assigned Guard'}]:[],[guards,snapshot?.guard?.id,snapshot?.guard?.name])
+  const submitRating=async(guardId:string)=>{const draft=ratingDrafts[guardId];if(!draft?.rating||ratingBusy)return;setRatingBusy(guardId);setRatingError('');try{const saved=await rateMissionGuard(report.job_id,guardId,draft.rating,draft.comment);setRatings(v=>({...v,[guardId]:{rating:saved.rating,comment:saved.comment}}))}catch(e){setRatingError(e instanceof Error?e.message:'Unable to submit rating.')}finally{setRatingBusy(null)}}
   const evidenceTotal = useMemo(() => evidence.reduce((total, item) => (
     total + Number(item?.photos || 0) + Number(item?.videos || 0) + (item?.note ? 1 : 0)
   ), 0), [evidence])
@@ -204,6 +214,8 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
             </div>) : <div><i /><span><strong>Mission completed</strong><small>{formatDate(mission.completed_at ?? snapshot?.job?.completed_at)}</small></span></div>}
           </div>
         </section>
+
+        {rateableGuards.length>0 && <section className="client-report-section client-guard-rating-section"><div className="client-report-section-heading"><div><small>YOUR EXPERIENCE</small><h2>Rate your guard</h2></div><span>Individual guard rating</span></div><p className="client-rating-help">Your rating is for the guard who served this mission — not the security agency.</p>{ratingError&&<div className="client-rating-error">{ratingError}</div>}<div className="client-guard-rating-list">{rateableGuards.map((guard:any)=>{const saved=ratings[guard.id],draft=ratingDrafts[guard.id]??{rating:0,comment:''};return <div className="client-guard-rating-card" key={guard.id}><div className="client-rating-guard"><UserRound/><span><strong>{guard.name}</strong><small>{saved?'Rating submitted':'How was your experience?'}</small></span></div>{saved?<div className="client-rating-saved"><div className="client-rating-stars">{[1,2,3,4,5].map(n=><Star key={n} className={n<=saved.rating?'filled':''}/>)}</div>{saved.comment&&<p>“{saved.comment}”</p>}<small>Thank you for rating this guard.</small></div>:<><div className="client-rating-stars interactive" role="radiogroup" aria-label={`Rate ${guard.name} from 1 to 5 stars`}>{[1,2,3,4,5].map(n=><button type="button" key={n} aria-label={`${n} star${n===1?'':'s'}`} onClick={()=>setRatingDrafts(v=>({...v,[guard.id]:{...draft,rating:n}}))}><Star className={n<=draft.rating?'filled':''}/></button>)}</div><textarea maxLength={1000} value={draft.comment} onChange={e=>setRatingDrafts(v=>({...v,[guard.id]:{...draft,comment:e.target.value}}))} placeholder="Optional: Tell us about your experience with this guard."/><button className="client-rating-submit" type="button" disabled={!draft.rating||ratingBusy===guard.id} onClick={()=>void submitRating(guard.id)}>{ratingBusy===guard.id?'Submitting…':'Submit guard rating'}</button></>}</div>})}</div></section>}
 
         {(report.agency_review_note || report.published_at) && <section className="client-report-review-note">
           <ShieldCheck />
