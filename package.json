@@ -47,7 +47,9 @@
     "mobile:android:ready": "node scripts/android-release-readiness.mjs",
     "mobile:android:debug:evidence": "node scripts/android-debug-artifact-evidence.mjs",
     "mobile:android:debug:verify": "node scripts/android-debug-artifact-verify.mjs",
-    "audit:mission-critical": "node scripts/mission-critical-regression-audit.mjs"
+    "audit:mission-critical": "node scripts/mission-critical-regression-audit.mjs",
+    "mobile:googleplay:api36": "node scripts/prepare-google-play-api36.mjs",
+    "mobile:googleplay:audit": "node scripts/google-play-release-audit.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
