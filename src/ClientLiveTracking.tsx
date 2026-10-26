@@ -1,4 +1,4 @@
-import { Building2, Check, CheckCircle2, Clock3, FileText, LocateFixed, MapPin, Navigation, Radio, Shield, UserRound } from 'lucide-react'
+import { Building2, Check, CheckCircle2, Clock3, FileText, LocateFixed, MapPin, Navigation, Radio, Shield, Star, UserRound } from 'lucide-react'
 import type { ClientTrackingExperience, TrackingTimelineEvent } from './modules/client/clientLiveTrackingRepository'
 import MissionMap, { type MissionMapMarker } from './modules/location/MissionMap'
 import type { ActiveMissionRoute } from './modules/location/missionRouting'
@@ -129,7 +129,7 @@ export default function ClientLiveTracking({experience,onViewReport,onWithdraw}:
     />
    </div>
    <div className="tracking-mission-card">
-    {guard?<div className="tracking-guard"><span className={guard.avatar_url?'has-avatar':''}>{guard.avatar_url?<img src={guard.avatar_url} alt={`${guard.name} profile`}/>:<UserRound/>}</span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong><em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''} · {freshnessLabel(guard.freshness)}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE ROUTING</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
+    {guard?<div className="tracking-guard"><span className={guard.avatar_url?'has-avatar':''}>{guard.avatar_url?<img src={guard.avatar_url} alt={`${guard.name} profile`}/>:<UserRound/>}</span><div><small>ASSIGNED PROFESSIONAL</small><strong>{guard.name}</strong>{guard.reputation&&guard.reputation.rating_count>0?<span className="tracking-guard-rating"><Star/><b>{Number(guard.reputation.average_rating).toFixed(1)}</b> · {guard.reputation.rating_count} rating{guard.reputation.rating_count===1?'':'s'}</span>:<span className="tracking-guard-rating new">New · Not yet rated</span>}<em>{experience.agency?.name||'Approved security agency'}{guard.badge_number?` · Badge ${guard.badge_number}`:''} · {freshnessLabel(guard.freshness)}</em></div><CheckCircle2/></div>:<div className="tracking-guard waiting"><span><Shield/></span><div><small>MARKETPLACE ROUTING</small><strong>Locating approved coverage</strong><em>Your request is visible to qualified agencies.</em></div></div>}
     <div className="tracking-metrics"><div><Navigation/><span><small>STATUS</small><b>{labels[state]||state.replaceAll('_',' ')}</b></span></div><div><Clock3/><span><small>UPDATED</small><b>{relativeTime(experience.mission.updated_at||experience.created_at)}</b></span></div></div>
    </div>
   </div>

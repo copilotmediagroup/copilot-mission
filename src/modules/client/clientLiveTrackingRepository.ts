@@ -6,7 +6,7 @@ export type ClientTrackingExperience={
   job_id:string;title:string;priority:string;job_status:string;created_at:string;scheduled_for:string|null
   property:{id:string;name:string;address:string;photo_url:string|null;latitude:number|null;longitude:number|null}
   agency:{id:string;name:string}|null
-  guard:{id:string;name:string;avatar_url:string|null;badge_number:string|null;latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:TrackingFreshness}|null
+  guard:{id:string;name:string;avatar_url:string|null;badge_number:string|null;latitude:number|null;longitude:number|null;last_location_at:string|null;freshness:TrackingFreshness;reputation?:{average_rating:number;rating_count:number}}|null
   mission:{state:string;checkpoint_index:number;route_started_at:string|null;arrived_at:string|null;mission_started_at:string|null;completed_at:string|null;updated_at:string|null}
   distance_miles:number|null;eta_minutes:number|null
   report:{id:string;status:string;published_at:string|null}|null
