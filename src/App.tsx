@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Clock3, Code2, LogOut, ShieldCheck, X } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
-import { publishMyMissionReport } from './modules/reporting/reportingRepository'
+import { publishMyMissionReport, publishGuardMissionReport } from './modules/reporting/reportingRepository'
 import { uploadMissionPhoto, uploadMissionVideo } from './modules/mission/missionEvidenceRepository'
 import ExperienceLab from './ExperienceLab'
 import { GuardianProvider } from './modules/guardian/GuardianProvider'
@@ -576,8 +576,8 @@ function GuardApp({
 
   const publishReport = async () => {
     if (!dispatchMission?.job_id) throw new Error('Completed mission is unavailable.')
-    if (isDeveloperPreview) throw new Error('Direct client publication is available from a signed-in Guard account.')
-    await publishMyMissionReport(dispatchMission.job_id)
+    if (isDeveloperPreview && developerGuardId) { await publishGuardMissionReport(dispatchMission.job_id, developerGuardId) }
+    else { await publishMyMissionReport(dispatchMission.job_id) }
     setNotice('Mission report published to client.')
   }
 
