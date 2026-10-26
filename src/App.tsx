@@ -209,10 +209,19 @@ function GuardApp({
         getGuardOperationalMetrics(),
       ])
 
-      setDispatchMission(workspace.assignment)
       setGuardMetrics(operationalMetrics)
 
       const assignment = workspace.assignment
+
+      // A completed assignment can disappear from the active dispatch workspace before
+      // the guard has reviewed/published the report. Keep the completed mission snapshot
+      // mounted until the guard explicitly chooses RETURN ONLINE. This prevents the
+      // 3-second dispatch refresh from stranding an unpublished report.
+      if (!assignment && mission.state === 'completed' && dispatchMission?.job_id && missionRuntime?.state === 'completed') {
+        return
+      }
+
+      setDispatchMission(assignment)
 
       if (!assignment) {
         setMissionRuntime(null)
@@ -330,7 +339,7 @@ function GuardApp({
           : 'Unable to load mission.'
       )
     }
-  }, [canReadLiveDispatch, actions])
+  }, [canReadLiveDispatch, actions, mission.state, dispatchMission?.job_id, missionRuntime?.state])
 
   useEffect(() => {
     if (canReadLiveDispatch) void loadDispatch()
