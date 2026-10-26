@@ -79,7 +79,7 @@ export default function ClientReports({ preview = false }: { preview?: boolean }
       <div>
         <span>VERIFIED REPORT ARCHIVE</span>
         <h2>Published mission reports</h2>
-        <p>Agency-reviewed patrol records, preserved for your property.</p>
+        <p>Guard-published patrol records, preserved for your property.</p>
       </div>
     </div>
 
@@ -104,7 +104,7 @@ export default function ClientReports({ preview = false }: { preview?: boolean }
     </div> : <div className="client-empty">
       <div><FileText /></div>
       <h4>No published reports</h4>
-      <p>Completed mission reports appear after Agency review.</p>
+      <p>Completed mission reports appear as soon as your guard publishes them.</p>
     </div>}
 
     {selected && <PublishedClientReport report={selected} onClose={() => setSelected(null)} />}
@@ -154,7 +154,7 @@ export function PublishedClientReport({ report, onClose }: { report: MissionRepo
           <div className="client-report-verification">
             <CheckCircle2 />
             <strong>VERIFIED</strong>
-            <span>Agency reviewed</span>
+            <span>Guard published</span>
           </div>
         </header>
 
