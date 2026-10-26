@@ -11,6 +11,8 @@ import { getAgencyMessages as fetchGuardMessages, sendAgencyMessage as persistGu
 import { AppHeader, BottomNav, Metric, PhoneShell, PrimaryButton, SecondaryButton, StatusChip } from './ui'
 import GuardSettingsPage from './GuardSettings'
 import { getMyGuardSettings, type GuardSettings } from './modules/guard/guardSettingsRepository'
+import { getMyGuardReports, publishMyMissionReport, type MissionReportRecord } from './modules/reporting/reportingRepository'
+import { getMissionEvidenceWithUrls, type MissionEvidenceMediaWithUrl } from './modules/mission/missionEvidenceRepository'
 import type { GuardNavTarget } from './ui'
 
 
@@ -92,6 +94,21 @@ function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { 
   </>
 }
 
+function GuardJobsArchive({ developerGuardId }: { developerGuardId?:string }) {
+  const [reports,setReports]=useState<MissionReportRecord[]>([])
+  const [loading,setLoading]=useState(!developerGuardId)
+  const [selected,setSelected]=useState<MissionReportRecord|null>(null)
+  const [media,setMedia]=useState<MissionEvidenceMediaWithUrl[]>([])
+  const [busy,setBusy]=useState<string|null>(null)
+  const [error,setError]=useState('')
+  const load=async()=>{if(developerGuardId){setLoading(false);return}try{setReports(await getMyGuardReports());setError('')}catch(e){setError(e instanceof Error?e.message:'Unable to load report history.')}finally{setLoading(false)}}
+  useEffect(()=>{void load()},[developerGuardId])
+  useEffect(()=>{let alive=true;if(!selected){setMedia([]);return()=>{alive=false}};void getMissionEvidenceWithUrls(selected.job_id).then(rows=>{if(alive)setMedia(rows)}).catch(()=>{if(alive)setMedia([])});return()=>{alive=false}},[selected?.job_id])
+  const publish=async(report:MissionReportRecord)=>{if(busy)return;setBusy(report.id);setError('');try{await publishMyMissionReport(report.job_id);await load();setSelected(current=>current?.id===report.id?{...current,status:'published',published_at:new Date().toISOString()}:current)}catch(e){setError(e instanceof Error?e.message:'Unable to publish report.')}finally{setBusy(null)}}
+  if(developerGuardId)return <section className="guard-main-section"><div className="guard-main-section-icon"><BriefcaseBusiness/></div><small>JOBS</small><h3>Mission Reports</h3><p>Report history is available from a signed-in Guard account.</p></section>
+  return <section className="guard-jobs-archive"><header><div><small>JOBS & REPORTS</small><h3>Mission history</h3><p>Published and unpublished reports stay here so nothing gets stranded.</p></div><button onClick={()=>void load()}><RefreshCw/> Refresh</button></header>{error&&<div className="guard-report-error">{error}</div>}{loading?<p>Loading mission reports…</p>:reports.length?<div className="guard-report-list">{reports.map(report=>{const snapshot=report.snapshot??{};const publishable=report.status==='pending_review'||report.status==='clarification_requested';return <article key={report.id}><div><span className={`guard-report-status ${report.status}`}>{report.status==='published'?'PUBLISHED':report.status==='archived'?'ARCHIVED':'NEEDS PUBLISHING'}</span><small>{new Date(snapshot?.job?.completed_at??report.created_at).toLocaleString()}</small></div><h4>{snapshot?.property?.name??snapshot?.job?.title??'Completed mission'}</h4><p>{snapshot?.property?.address??'Mission report'}</p><footer><button onClick={()=>setSelected(report)}><Eye/> View report</button>{publishable&&<button className="publish" disabled={busy===report.id} onClick={()=>void publish(report)}><Send/> {busy===report.id?'Publishing…':'Publish to client'}</button>}</footer></article>})}</div>:<div className="guard-report-empty"><FileText/><strong>No completed reports yet</strong><span>Your completed missions will appear here.</span></div>}{selected&&<div className="guard-report-archive-overlay"><button className="guard-report-archive-close" onClick={()=>setSelected(null)}><X/></button><article><small>{selected.status==='published'?'PUBLISHED REPORT':'UNPUBLISHED REPORT'}</small><h2>{selected.snapshot?.job?.title??'Completed security mission'}</h2><p>{selected.snapshot?.property?.name??'Property'} · {selected.snapshot?.property?.address??''}</p><div className="guard-archive-media">{media.length?media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt="Guard mission evidence"/></a>}<figcaption>Checkpoint {item.checkpoint_index+1}</figcaption></figure>):<div>No uploaded photo or video evidence.</div>}</div>{(selected.status==='pending_review'||selected.status==='clarification_requested')&&<button className="guard-archive-publish" disabled={busy===selected.id} onClick={()=>void publish(selected)}><Send/> {busy===selected.id?'PUBLISHING…':'PUBLISH TO CLIENT'}</button>}</article></div>}</section>
+}
+
 function GuardSectionView({ section, online, metrics, developerGuardId, profile }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [messages,setMessages]=useState<GuardMessageRecord[]>([])
   const [messageError,setMessageError]=useState('')
@@ -109,6 +126,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
   }
   if(section==='settings')return <GuardSettingsPage guardId={developerGuardId}/>
   if(section==='profile')return <GuardSettingsPage guardId={developerGuardId}/>
+  if(section==='jobs')return <GuardJobsArchive developerGuardId={developerGuardId}/>
   if(section==='messages')return <>
     <ProfileBlock online={online} profile={profile}/>
     <section className="guard-message-center">
@@ -140,7 +158,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
       <small>{selected.kicker}</small>
       <h3>{selected.title}</h3>
       <p>{selected.body}</p>
-      <div className="guard-main-section-card"><strong>{selected.detail}</strong><span>{section === 'jobs' ? 'Current mission workflow will open here when assigned.' : 'This section is connected to the guard portal navigation.'}</span></div>
+      <div className="guard-main-section-card"><strong>{selected.detail}</strong><span>This section is connected to the guard portal navigation.</span></div>
     </section>
   </>
 }

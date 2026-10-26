@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, BarChart3, BatteryMedium, Check, CheckCircle2, Clock3, Download, FileText, Image, MapPinned, Navigation, PenLine, Printer, RadioTower, ShieldCheck, Signal, Video, Wifi, X } from 'lucide-react'
 import type { IncidentRecord, PatrolEvidence } from './types'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
+import { getMissionEvidenceWithUrls, type MissionEvidenceMediaWithUrl } from './modules/mission/missionEvidenceRepository'
 
 const checkpointNames = ['Exterior Perimeter','Parking Lot','Main Entrance','Back Entrance','Rear Loading Dock','Side Doors']
 
@@ -19,6 +20,9 @@ function formatTime(value: number) {
 }
 
 export default function MissionReport({ records, incidents, missionStartedAt, runtime, onClose }: MissionReportProps) {
+  const [media,setMedia]=useState<MissionEvidenceMediaWithUrl[]>([])
+  const [mediaLoading,setMediaLoading]=useState(Boolean(runtime?.jobId))
+  useEffect(()=>{let alive=true;if(!runtime?.jobId){setMedia([]);setMediaLoading(false);return()=>{alive=false}};setMediaLoading(true);void getMissionEvidenceWithUrls(runtime.jobId).then(rows=>{if(alive)setMedia(rows)}).catch(()=>{if(alive)setMedia([])}).finally(()=>{if(alive)setMediaLoading(false)});return()=>{alive=false}},[runtime?.jobId])
   const now = Date.now()
   const completedAt = runtime?.timestamps.completedAt ? new Date(runtime.timestamps.completedAt).getTime() : now
   const start = missionStartedAt ?? (runtime?.missionStartedAt ? new Date(runtime.missionStartedAt).getTime() : completedAt)
@@ -96,7 +100,9 @@ export default function MissionReport({ records, incidents, missionStartedAt, ru
         <div className="report-evidence-gallery">{checkpointNames.map((name, index) => {
           const record = records.find(item => item.checkpoint === index)
           const count = (record?.photos ?? 0) + (record?.videos ?? 0) + (record?.note ? 1 : 0)
-          return <div key={name}><div className="report-evidence-visual">{record?.photos ? <Image/> : record?.videos ? <Video/> : <FileText/>}<span>{count || 0}</span></div><strong>{name}</strong><small>{record?.photos ?? 0} photos · {record?.videos ?? 0} videos · {record?.note ? 'note attached' : 'no note'}</small><em><MapPinned/> Checkpoint {index + 1}</em></div>
+          const checkpointMedia=media.filter(item=>item.checkpoint_index===index)
+          const first=checkpointMedia[0]
+          return <div key={name}><div className={`report-evidence-visual ${first?'has-media':''}`}>{mediaLoading?<FileText/>:first?.kind==='video'?<video src={first.url} controls preload="metadata"/>:first?<a href={first.url} target="_blank" rel="noreferrer"><img src={first.url} alt={`${name} guard evidence`}/></a>:record?.photos?<Image/>:record?.videos?<Video/>:<FileText/>}<span>{checkpointMedia.length||count||0}</span></div><strong>{name}</strong><small>{checkpointMedia.filter(x=>x.kind==='photo').length||record?.photos||0} photos · {checkpointMedia.filter(x=>x.kind==='video').length||record?.videos||0} videos · {record?.note ? 'note attached' : 'no note'}</small><em><MapPinned/> Checkpoint {index + 1}</em></div>
         })}</div>
       </section>
 

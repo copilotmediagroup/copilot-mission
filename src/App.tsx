@@ -202,6 +202,9 @@ function GuardApp({
 
   const loadDispatch = useCallback(async () => {
     if (!canReadLiveDispatch) return
+    // Completed missions remain pinned until the guard explicitly returns online.
+    // Realtime/polling refreshes must never dismiss an unpublished report screen.
+    if (mission.state === 'completed' && dispatchMission?.job_id) return
 
     try {
       const [workspace, operationalMetrics] = await Promise.all([
