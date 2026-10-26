@@ -5,7 +5,6 @@ import { publishMyMissionReport, publishGuardMissionReport } from './modules/rep
 import { uploadMissionPhoto, uploadMissionVideo } from './modules/mission/missionEvidenceRepository'
 import ExperienceLab from './ExperienceLab'
 import { GuardianProvider } from './modules/guardian/GuardianProvider'
-import GuardianButton from './modules/guardian/GuardianButton'
 import { useMissionEngine } from './modules/mission/useMissionEngine'
 import MissionTimeline from './modules/timeline/MissionTimeline'
 import { timelineEngine } from './modules/timeline/TimelineEngine'
@@ -619,7 +618,6 @@ function GuardApp({
       <MissionTimeline className={timelineOpen ? 'timeline-open' : ''} onClose={() => setTimelineOpen(false)}/>
     </div>
     <div className="mission-utility-dock">
-      <GuardianButton missionState={displayedMissionState}/>
       <button className="timeline-trigger" onClick={() => setTimelineOpen(true)} aria-label="Open mission timeline"><Clock3/><span>Timeline</span></button>
     </div>
     {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}

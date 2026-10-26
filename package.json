@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "npm run validate:schema && npm run audit:mission-critical && npm run audit:production-parity && tsc && vite build",
+    "build": "npm run validate:schema && npm run audit:mission-critical && npm run audit:production-parity && npm run audit:launch-integrity && tsc && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "validate:schema": "node scripts/validate-schema-contract.mjs",
     "mobile:sync": "npm run build && cap sync",
@@ -50,7 +50,8 @@
     "audit:mission-critical": "node scripts/mission-critical-regression-audit.mjs",
     "mobile:googleplay:api36": "node scripts/prepare-google-play-api36.mjs",
     "mobile:googleplay:audit": "node scripts/google-play-release-audit.mjs",
-    "audit:production-parity": "node scripts/production-parity-audit.mjs"
+    "audit:production-parity": "node scripts/production-parity-audit.mjs",
+    "audit:launch-integrity": "node scripts/launch-integrity-audit.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
