@@ -15,3 +15,5 @@ export async function getPlatformGuardRatingModeration(){const{data,error}=await
 export async function moderateGuardRating(id:string,action:'remove'|'restore',reason?:string){const{data,error}=await db().rpc('moderate_guard_rating',{p_rating_id:id,p_action:action,p_reason:reason??null});if(error)throw new Error(error.message);return data}
 export async function getClientReports(){const{data,error}=await db().rpc('get_client_reports');if(error)throw new Error(error.message);return(data??[]) as MissionReportRecord[]}
 export function subscribeToReports(onChange:()=>void){const channel=db().channel(`reports-${crypto.randomUUID()}`).on('postgres_changes',{event:'*',schema:'public',table:'mission_reports'},onChange).subscribe();return()=>{void db().removeChannel(channel)}}
+
+export function subscribeToGuardRatings(onChange:()=>void){const channel=db().channel('guard-ratings-live').on('postgres_changes',{event:'*',schema:'public',table:'guard_ratings'},onChange).subscribe();return()=>{void db().removeChannel(channel)}}
