@@ -5,6 +5,7 @@ const app=read('src/App.tsx')
 const evidence=read('src/modules/mission/missionEvidenceRepository.ts')
 const sql=read(migration)
 const presenceSql=read('supabase/migrations/20261027003000_guard_completed_presence_parity.sql')
+const profileSql=read('supabase/migrations/20261027011500_guard_live_profile_parity.sql')
 const styles=read('src/styles.css')
 const checks=[
  ['real slot offers exclude terminal parent jobs',sql,/get_my_guard_slot_offer_rc1[\s\S]*?j\.status in\('accepted','assigned','active'\)/],
@@ -25,6 +26,9 @@ const checks=[
  ['developer Guard publication is restricted to developer-test jobs',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?DEVELOPER_TEST_JOB_REQUIRED/],
  ['developer Guard publication requires completed mission',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?MISSION_NOT_COMPLETED/],
  ['developer Guard publication requires completed staffing',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?MISSION_STAFFING_INCOMPLETE/],
+ ['production Guard profile reads email from auth.users',profileSql,/select email into u_email from auth\.users where id=g\.user_id/],
+ ['production Guard profile never reads nonexistent profiles.email',profileSql,/coalesce\(nullif\(trim\(p\.full_name\),''\),u_email,'Guard'\)/],
+ ['production Guard profile carries avatar fallback',profileSql,/avatar_url',coalesce\(g\.avatar_url,p\.avatar_url\)/],
  ['return-online recognizes completed multi-guard slot missions',presenceSql,/guard_slot_mission_state[\s\S]*?s\.status='completed'[\s\S]*?gs\.state='completed'/],
  ['return-online rejects still-active parent jobs',presenceSql,/marketplace_jobs[\s\S]*?j\.status in\('accepted','assigned','active'\)/],
  ['Guard mission toast follows white-black launch theme',styles,/\.guard-app \.mission-toast\{background:#fff!important;color:#111!important/],
