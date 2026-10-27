@@ -453,10 +453,13 @@ function GuardApp({
         const presence = await setGuardPresence(true)
 
         if (presence.availability !== 'available') {
-          throw new Error('Mission must be completed before returning online')
+          throw new Error('Unable to return online. The completed mission is still finalizing.')
         }
 
-        await loadDispatch()
+        // The completed mission is intentionally pinned against background refreshes.
+        // Clear that pin only after the authoritative presence RPC confirms availability.
+        setDispatchMission(null)
+        setMissionRuntime(null)
       } catch (error) {
         setNotice(
           error instanceof Error

@@ -5598,3 +5598,9 @@ input:disabled, select:disabled{
 .agency-table-identity,.agency-profile-identity{display:flex;align-items:center;gap:10px;min-width:0}.agency-table-identity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agency-avatar{display:block;width:34px;height:34px;flex:0 0 34px;border-radius:50%;object-fit:cover;border:1px solid #d8d8d8;background:#fff}.agency-avatar-fallback{display:grid;place-items:center;background:#111;color:#fff;border-color:#111;font-size:12px;font-weight:900}.agency-avatar-lg{width:54px;height:54px;flex-basis:54px;font-size:17px}.agency-profile-identity>div{min-width:0}
 .agency-breadcrumb{gap:8px;padding:14px 16px}.agency-breadcrumb button{padding:7px 11px!important;border:1px solid #dedede!important;border-radius:999px!important;background:#f7f7f7!important;color:#222!important;line-height:1!important}.agency-breadcrumb button:hover{background:#111!important;color:#fff!important;border-color:#111!important}.agency-breadcrumb>b{color:#555}.agency-breadcrumb>span{color:#aaa}
 .agency-table-row>button{justify-self:end;padding:8px 12px!important;border-radius:999px!important;background:#111!important;color:#fff!important}.agency-table-row>button:hover{opacity:.82}
+
+
+/* Launch parity: universal Guard feedback + active-mission navigation. */
+.guard-app .mission-toast{background:#fff!important;color:#111!important;-webkit-text-fill-color:#111!important;border:1px solid #d8d8d8!important;border-radius:14px!important;padding:12px 18px!important;font-size:12px!important;font-weight:900!important;line-height:1.35!important;box-shadow:0 14px 42px rgba(0,0,0,.22)!important;backdrop-filter:none!important;max-width:min(560px,calc(100vw - 32px))!important;text-align:center!important}
+.guard-app:not(.state-offline):not(.state-waiting) .bottom-nav{display:none!important}
+.guard-app.state-completed .screen-content{padding-bottom:48px!important}

@@ -4,6 +4,8 @@ const migration='supabase/migrations/20261026193000_guard_live_parity_hardening.
 const app=read('src/App.tsx')
 const evidence=read('src/modules/mission/missionEvidenceRepository.ts')
 const sql=read(migration)
+const presenceSql=read('supabase/migrations/20261027003000_guard_completed_presence_parity.sql')
+const styles=read('src/styles.css')
 const checks=[
  ['real slot offers exclude terminal parent jobs',sql,/get_my_guard_slot_offer_rc1[\s\S]*?j\.status in\('accepted','assigned','active'\)/],
  ['real slot offers require multi-guard parent',sql,/get_my_guard_slot_offer_rc1[\s\S]*?greatest\(1,coalesce\(j\.required_guards,1\)\)>1/],
@@ -23,6 +25,10 @@ const checks=[
  ['developer Guard publication is restricted to developer-test jobs',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?DEVELOPER_TEST_JOB_REQUIRED/],
  ['developer Guard publication requires completed mission',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?MISSION_NOT_COMPLETED/],
  ['developer Guard publication requires completed staffing',sql,/publish_developer_guard_mission_report_rc1[\s\S]*?MISSION_STAFFING_INCOMPLETE/],
+ ['return-online recognizes completed multi-guard slot missions',presenceSql,/guard_slot_mission_state[\s\S]*?s\.status='completed'[\s\S]*?gs\.state='completed'/],
+ ['return-online rejects still-active parent jobs',presenceSql,/marketplace_jobs[\s\S]*?j\.status in\('accepted','assigned','active'\)/],
+ ['Guard mission toast follows white-black launch theme',styles,/\.guard-app \.mission-toast\{background:#fff!important;color:#111!important/],
+ ['active mission hides legacy five-item navigation',styles,/not\(\.state-offline\):not\(\.state-waiting\) \.bottom-nav\{display:none!important/],
 ]
 let failed=0
 for(const [name,text,pattern] of checks){const ok=pattern.test(text);console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
