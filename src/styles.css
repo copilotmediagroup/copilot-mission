@@ -5637,3 +5637,32 @@ input:disabled, select:disabled{
 @media(max-width:350px){
   .auth-options{grid-template-columns:1fr!important;gap:4px!important}.auth-options>button{text-align:left!important;justify-self:start!important}
 }
+
+/* Client mobile map-first home — fast path from property to security request. */
+.client-v3-property-count{display:none}
+@media(max-width:760px){
+  .client-content:has(.client-v3-home){padding-bottom:0!important;overflow:hidden!important}
+  .client-v3-home{height:calc(100dvh - 72px)!important;min-height:0!important;display:flex!important;flex-direction:column!important;margin:-18px -14px -80px!important;overflow:hidden!important;background:#fff!important}
+  .client-v3-map-hero{flex:1 1 auto!important;min-height:0!important;height:auto!important}
+  .client-v3-map-top,.client-v3-map-status{display:none!important}
+  .client-v3-real-map .gm-bundled-control{margin-bottom:150px!important}
+  .client-v3-sheet{flex:0 0 auto!important;min-height:0!important;margin-top:-22px!important;border-radius:28px 28px 0 0!important;padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 18px)!important;box-shadow:0 -10px 32px rgba(0,0,0,.08)!important;z-index:4!important}
+  .client-v3-handle{display:block!important;width:44px!important;height:4px!important;margin:0 auto 12px!important;background:#cfd2d4!important}
+  .client-v3-welcome{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;align-items:center!important;margin-bottom:14px!important}
+  .client-v3-welcome small{font-size:8px!important;letter-spacing:.22em!important;color:#7d8389!important}
+  .client-v3-welcome h2{font-size:24px!important;line-height:1.02!important;letter-spacing:-.045em!important;margin:7px 0 0!important;max-width:230px!important}
+  .client-v3-property-count{display:flex!important;align-items:center!important;gap:7px!important;align-self:center!important;border:0!important;border-radius:999px!important;background:#f5f5f4!important;color:#111!important;padding:11px 12px!important;white-space:nowrap!important;font-size:10px!important;font-weight:900!important}
+  .client-v3-property-count svg{width:16px!important;height:16px!important}.client-v3-property-count svg:last-child{width:13px!important}
+  .client-v3-services{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+  .client-v3-services button{min-width:0!important;min-height:116px!important;padding:10px!important;border:0!important;border-radius:20px!important;background:#111!important;color:#fff!important;justify-content:flex-start!important;box-sizing:border-box!important}
+  .client-v3-services button.urgent{background:#111!important;color:#fff!important}
+  .client-v3-services button>span,.client-v3-services button.urgent>span{width:40px!important;height:40px!important;border-radius:12px!important;background:#fff!important;color:#111!important}
+  .client-v3-services button>b{font-size:10px!important;line-height:1.1!important;margin-top:8px!important;color:#fff!important}
+  .client-v3-services button>small,.client-v3-services button.urgent>small{font-size:7.5px!important;line-height:1.2!important;color:#aeb2b6!important;margin-top:3px!important}
+  .client-v3-services button>svg{display:none!important}
+  .client-v3-live,.client-v3-trust{display:none!important}
+}
+@media(max-width:380px){
+  .client-v3-welcome h2{font-size:21px!important;max-width:190px!important}.client-v3-property-count{padding:9px 10px!important;font-size:9px!important}
+  .client-v3-services button{min-height:108px!important;padding:9px!important}.client-v3-services button>span{width:36px!important;height:36px!important}
+}
