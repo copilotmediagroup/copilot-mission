@@ -5707,3 +5707,16 @@ input:disabled, select:disabled{
   .client-report-center-overlay .v4-report-center-body>main>.client-report-overlay .client-report-shell{width:100%!important;max-width:none!important;margin:0!important}
   .client-report-center-overlay .v4-report-center-body>main>.client-report-overlay .client-report-toolbar{top:0!important;border-radius:0!important;margin:0!important}
 }
+
+/* Client report center phone reliability: selected report opens, cards keep all metadata inside. */
+@media(max-width:760px){
+  .client-report-center-overlay .v4-report-center-body.detail-open>aside{display:none!important}
+  .client-report-center-overlay .v4-report-center-body.detail-open>main{display:block!important;transform:translateX(0)!important;pointer-events:auto!important;animation:clientReportSlideIn .26s cubic-bezier(.2,.8,.2,1)!important}
+  .client-report-center-overlay .v4-report-results{gap:10px!important;padding:0 14px 18px!important}
+  .client-report-center-overlay .v4-report-results>button{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;width:100%!important;height:auto!important;min-height:0!important;padding:18px 18px 16px!important;overflow:hidden!important;box-sizing:border-box!important;border-radius:18px!important}
+  .client-report-center-overlay .v4-report-results>button .v4-badge{flex:0 0 auto!important;margin:0 0 10px!important}
+  .client-report-center-overlay .v4-report-results>button strong{display:block!important;width:100%!important;margin:0 0 5px!important;line-height:1.2!important}
+  .client-report-center-overlay .v4-report-results>button small{display:block!important;width:100%!important;margin:0 0 6px!important;line-height:1.25!important}
+  .client-report-center-overlay .v4-report-results>button time{display:block!important;position:static!important;width:100%!important;margin:0!important;line-height:1.25!important;color:#b9b9b9!important;-webkit-text-fill-color:#b9b9b9!important;white-space:normal!important}
+}
+@keyframes clientReportSlideIn{from{transform:translateX(-102%)}to{transform:translateX(0)}}
