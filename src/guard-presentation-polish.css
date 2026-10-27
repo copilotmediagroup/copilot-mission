@@ -315,3 +315,42 @@
 .guard-app.state-offline .offline-hero .guard-home-avatar{margin-left:auto!important;margin-right:auto!important}
 .guard-app.state-offline .offline-hero h3{width:100%!important;text-align:center!important;margin:0 0 28px!important}
 .guard-app.state-offline .offline-hero .primary-button{width:min(100%,560px)!important;margin-left:auto!important;margin-right:auto!important}
+
+/* Guard mobile production polish: remove prototype phone chrome, keep map controls clear of duty action, and confirm taps. */
+.guard-app .primary-button,.guard-app .guard-map-status-action,.guard-app .guard-slide-offline{transition:transform .14s ease,box-shadow .14s ease,opacity .14s ease!important;touch-action:manipulation}
+.guard-app .primary-button:active,.guard-app .guard-map-status-action:active,.guard-app .guard-slide-offline:active{transform:scale(.965)!important;opacity:.82!important;box-shadow:0 5px 16px rgba(0,0,0,.18)!important}
+.guard-app .mission-toast{background:#fff!important;color:#111!important;border:1px solid #dedede!important;box-shadow:0 12px 32px rgba(0,0,0,.18)!important;font-weight:800!important}
+@media(max-width:520px){
+  .guard-app .phone-notch,.guard-app .statusbar{display:none!important}
+  .guard-app.state-waiting .copilot-map-controls{bottom:96px!important}
+  .guard-app .mission-toast{top:16px!important;max-width:calc(100% - 32px)!important;text-align:center!important}
+}
+
+/* Guard availability action: tactile press only; state controls the color. */
+.guard-app.state-offline .offline-hero .primary-button{
+  background:#fff!important;
+  color:#111!important;
+  border:2px solid #111!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.10)!important;
+  transition:background-color .12s ease,color .12s ease,transform .10s ease,box-shadow .12s ease!important;
+}
+.guard-app.state-offline .offline-hero .primary-button:active{
+  background:#111!important;
+  color:#fff!important;
+  transform:scale(.965)!important;
+  opacity:1!important;
+  box-shadow:inset 0 3px 8px rgba(255,255,255,.08),0 3px 10px rgba(0,0,0,.16)!important;
+}
+.guard-app.state-waiting .guard-map-status-action{
+  background:#111!important;
+  color:#fff!important;
+  border:2px solid #111!important;
+  transition:background-color .12s ease,color .12s ease,transform .10s ease,box-shadow .12s ease!important;
+}
+.guard-app.state-waiting .guard-map-status-action:active{
+  background:#fff!important;
+  color:#111!important;
+  transform:translateX(-50%) scale(.965)!important;
+  opacity:1!important;
+  box-shadow:inset 0 3px 8px rgba(0,0,0,.08),0 3px 10px rgba(0,0,0,.14)!important;
+}

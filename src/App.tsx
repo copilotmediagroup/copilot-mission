@@ -426,7 +426,7 @@ function GuardApp({
 
   const goOnline = async () => {
     if (isDeveloperPreview) {
-      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,true);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const online=workspace.guard.availability!=='offline';const next=online?'waiting':'offline';setDeveloperGuardState(next);if(!online)throw new Error('Guard did not enter online state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,true);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const online=workspace.guard.availability!=='offline';const next=online?'waiting':'offline';setDeveloperGuardState(next);if(!online)throw new Error('Guard did not enter online state.');setNotice('You are now online.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard online');return}
       return
     }
     if (liveDispatch) {
@@ -434,10 +434,11 @@ function GuardApp({
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to go online'); return }
     }
     actions.goOnline()
+    setNotice('You are now online.')
   }
   const goOffline = async () => {
     if (isDeveloperPreview) {
-      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,false);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const offline=workspace.guard.availability==='offline';const next=offline?'offline':'waiting';setDeveloperGuardState(next);if(!offline)throw new Error('Guard did not enter offline state.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
+      try { if(!developerGuardId)throw new Error('Selected guard is unavailable.');await setDeveloperGuardPresence(developerGuardId,false);const workspace=await getDeveloperGuardWorkspace(developerGuardId);const offline=workspace.guard.availability==='offline';const next=offline?'offline':'waiting';setDeveloperGuardState(next);if(!offline)throw new Error('Guard did not enter offline state.');setNotice('You are now offline.') } catch(error){setNotice(error instanceof Error?error.message:'Unable to set real guard offline');return}
       return
     }
     if (liveDispatch) {
@@ -445,6 +446,7 @@ function GuardApp({
       catch (error) { setNotice(error instanceof Error ? error.message : 'Unable to go offline'); return }
     }
     actions.goOffline()
+    setNotice('You are now offline.')
   }
 
   const returnOnline = async () => {
