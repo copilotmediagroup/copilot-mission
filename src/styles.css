@@ -5666,3 +5666,26 @@ input:disabled, select:disabled{
   .client-v3-welcome h2{font-size:21px!important;max-width:190px!important}.client-v3-property-count{padding:9px 10px!important;font-size:9px!important}
   .client-v3-services button{min-height:108px!important;padding:9px!important}.client-v3-services button>span{width:36px!important;height:36px!important}
 }
+/* Client overview mobile: Guard-style map priority, floating drawer only, compact complete action sheet. */
+@media(max-width:760px){
+  .client-main:has(.client-v3-home){position:relative!important;height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
+  .client-main:has(.client-v3-home)>.client-overview-topbar{position:absolute!important;z-index:30!important;top:calc(env(safe-area-inset-top,0px) + 12px)!important;left:14px!important;width:auto!important;height:auto!important;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;pointer-events:none!important}
+  .client-main:has(.client-v3-home)>.client-overview-topbar>.client-menu{pointer-events:auto!important;display:grid!important;place-items:center!important;width:46px!important;height:46px!important;margin:0!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:50%!important;background:#fff!important;color:#111!important;box-shadow:0 8px 22px rgba(0,0,0,.16)!important}
+  .client-main:has(.client-v3-home)>.client-overview-topbar>div,.client-main:has(.client-v3-home)>.client-overview-topbar>.client-top-actions{display:none!important}
+  .client-main:has(.client-v3-home)>.client-content{height:100dvh!important;min-height:100dvh!important;padding:0!important;margin:0!important;overflow:hidden!important}
+  .client-v3-home{height:100dvh!important;min-height:100dvh!important;margin:0!important}
+  .client-v3-map-hero{flex:1 1 auto!important;min-height:0!important}
+  .client-v3-sheet{flex:0 0 auto!important;margin-top:-20px!important;padding:10px 15px calc(env(safe-area-inset-bottom,0px) + 12px)!important;border-radius:26px 26px 0 0!important}
+  .client-v3-handle{margin-bottom:9px!important}
+  .client-v3-welcome{margin-bottom:10px!important;gap:8px!important}
+  .client-v3-welcome h2{font-size:20px!important;line-height:1!important;margin-top:5px!important;max-width:190px!important}
+  .client-v3-property-count{padding:9px 10px!important;font-size:9px!important}
+  .client-v3-services{gap:6px!important}
+  .client-v3-services button{min-height:94px!important;padding:8px!important;border-radius:18px!important}
+  .client-v3-services button>span,.client-v3-services button.urgent>span{width:34px!important;height:34px!important;border-radius:10px!important}
+  .client-v3-services button>span svg{width:17px!important;height:17px!important}
+  .client-v3-services button>b{font-size:9px!important;margin-top:6px!important}.client-v3-services button>small{font-size:7px!important}
+}
+@media(max-width:380px){
+  .client-v3-welcome h2{font-size:19px!important;max-width:175px!important}.client-v3-services button{min-height:90px!important}
+}
