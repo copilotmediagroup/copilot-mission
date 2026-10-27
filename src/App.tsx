@@ -591,6 +591,7 @@ function GuardApp({
     <div className="production-workspace">
       <div className="production-stage" key={displayedMissionState}>
       <GuardDashboard
+        onSignOut={()=>void auth.signOut()}
         developerGuardId={developerMode&&developerGuardId?developerGuardId:undefined}
         state={displayedMissionState}
         runtime={displayedMissionRuntime}

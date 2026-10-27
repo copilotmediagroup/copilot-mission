@@ -112,3 +112,163 @@
 .guard-app .guard-message-feed article.guard{background:#f5f5f5!important;border-color:#d8d8d8!important}
 .guard-app .guard-message-feed article.agent,.guard-app .guard-message-feed article.agency{background:#fff!important;border-color:#d8d8d8!important}
 @media(min-width:521px){.guard-app.state-waiting .guard-drawer-screen{padding-top:28px!important}.guard-drawer-screen .guard-message-center{width:min(100%,920px)!important;max-width:920px!important;margin:0 auto!important;padding:34px!important;box-sizing:border-box!important}.guard-drawer-screen>.profile-row{margin-bottom:18px!important}}
+
+/* Guard identity/profile separation — production parity */
+.guard-app .guard-identity-header{justify-content:flex-start!important;gap:14px!important}.guard-app .guard-identity-header .profile-avatar-identity{order:0!important}.guard-app .guard-identity-header .guard-identity-copy{order:1!important}.guard-app .guard-identity-header .avatar{overflow:hidden!important}.guard-app .guard-identity-header .avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
+.guard-profile-page{width:min(100%,920px);margin:0 auto;padding:30px;border:1px solid #dedede;border-radius:24px;background:#fff;color:#111}.guard-profile-page>header{display:flex;align-items:center;gap:18px;padding-bottom:22px;border-bottom:1px solid #e5e5e5}.guard-profile-avatar{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#111;color:#fff;font-size:28px;font-weight:900}.guard-profile-avatar img{width:100%;height:100%;object-fit:cover}.guard-profile-page>header small,.guard-profile-reputation>small{font-size:10px;font-weight:900;letter-spacing:.15em;color:#727272}.guard-profile-page>header h2{font-size:28px;margin:5px 0 7px}.guard-profile-page>header span{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:9px;font-weight:900;background:#eee}.guard-profile-page>header span.online{background:#e7f8ee;color:#15723d}.guard-profile-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:20px 0}.guard-profile-facts article{padding:16px;border:1px solid #e3e3e3;border-radius:16px}.guard-profile-facts small{display:block;color:#777;font-size:9px;font-weight:900;letter-spacing:.1em}.guard-profile-facts strong{display:block;margin-top:6px;font-size:13px}.guard-profile-reputation{padding:18px;border:1px solid #e3e3e3;border-radius:16px}.guard-profile-reputation strong{display:flex;align-items:center;gap:5px;margin-top:8px;font-size:20px}.guard-profile-reputation strong svg{width:18px}.guard-profile-reputation p,.guard-profile-note{color:#69717a;font-size:12px;line-height:1.5}.guard-profile-note{margin:18px 2px 0}@media(max-width:600px){.guard-profile-page{padding:20px}.guard-profile-facts{grid-template-columns:1fr}.guard-profile-avatar{width:76px;height:76px}}
+
+/* Guard tab alignment — every offline tab uses the exact viewport centerline. */
+.guard-app.state-offline .guard-offline-tab-stage{width:min(920px,calc(100vw - 56px))!important;max-width:920px!important;margin-left:50%!important;margin-right:0!important;transform:translateX(-50%)!important;box-sizing:border-box!important}
+.guard-app.state-offline .guard-tab-content,.guard-app.state-offline .guard-jobs-archive,.guard-app.state-offline .guard-profile-page,.guard-app.state-offline .guard-settings-page,.guard-app.state-offline .guard-message-center,.guard-app.state-offline .guard-main-section,.guard-app.state-offline .guard-identity-header{width:100%!important;max-width:920px!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box!important}
+@media(min-width:521px){
+ .guard-app.state-offline .offline-screen{display:block!important;padding:82px 0 110px!important}
+ .guard-app.state-offline .guard-offline-tab-stage{width:920px!important;max-width:calc(100vw - 144px)!important;margin-left:50%!important;margin-right:0!important;transform:translateX(-50%)!important}
+ .guard-app.state-offline .guard-home-content,.guard-app.state-offline .guard-tab-content{width:100%!important;max-width:none!important;margin:0!important}
+ .guard-app.state-offline .guard-home-content>.offline-hero{width:100%!important;min-height:520px!important;margin:18px 0 0!important;align-items:center!important;text-align:center!important}
+ .guard-app.state-offline .guard-home-content>.offline-hero .shield-orbit{margin-left:auto!important;margin-right:auto!important}
+ .guard-app.state-offline .guard-home-content>.offline-hero .primary-button{width:min(620px,100%)!important}
+ .guard-app.state-offline .guard-identity-header{justify-content:center!important;text-align:left!important}
+ .guard-app.state-offline .guard-jobs-archive,.guard-app.state-offline .guard-profile-page,.guard-app.state-offline .guard-settings-page,.guard-app.state-offline .guard-message-center,.guard-app.state-offline .guard-main-section{width:100%!important;max-width:none!important;margin:0!important}
+ .guard-app.state-offline .guard-settings-page{padding:30px!important;background:#fff!important;color:#111!important;border:1px solid #dedede!important;border-radius:24px!important}
+ .guard-app.state-offline .guard-settings-page>header small,.guard-app.state-offline .guard-settings-page>header h2{color:#111!important}
+ .guard-app.state-offline .guard-settings-page>header p{color:#68717b!important}
+ .guard-app.state-offline .guard-settings-save{position:static!important;width:100%!important;margin-top:18px!important;box-sizing:border-box!important}
+}
+@media(max-width:520px){.guard-app.state-offline .guard-offline-tab-stage,.guard-app.state-offline .guard-tab-content{width:100%!important}.guard-app.state-offline .guard-home-content>.offline-hero{align-items:center!important;text-align:center!important}.guard-app.state-offline .guard-home-content>.offline-hero .primary-button{width:100%!important}}
+
+/* RC: true viewport centering in Developer Guard preview.
+   The developer switcher reserves a left rail, so 50% of the runtime is not 50% of the browser. */
+@media(min-width:521px){
+ .developer-preview-active .guard-app.state-offline .guard-offline-tab-stage{
+   position:relative!important;
+   left:calc(-1 * var(--developer-preview-center-offset, 0px))!important;
+ }
+}
+
+/* Guard desktop shell: remove the legacy two-column mission-timeline grid.
+   Without this, GuardDashboard occupies only grid column 1 and every tab is visually shifted right. */
+@media(min-width:521px){
+ .guard-app.state-offline .production-workspace{
+   display:block!important;
+   width:100%!important;
+   max-width:none!important;
+ }
+ .guard-app.state-offline .production-stage{
+   display:block!important;
+   width:100%!important;
+   max-width:none!important;
+ }
+ .developer-preview-active .guard-app.state-offline .guard-offline-tab-stage{
+   position:static!important;
+   left:auto!important;
+   width:920px!important;
+   max-width:calc(100vw - 144px)!important;
+   margin-left:auto!important;
+   margin-right:auto!important;
+   transform:none!important;
+ }
+}
+
+/* OFFLINE DESKTOP — kill the legacy 220px navigation-column offset at its source.
+   The old wide-desktop shell applies width:calc(100% - 220px) + margin-left:220px
+   to .screen-content. That was shifting every idle Guard tab right as a group. */
+@media(min-width:521px){
+  .guard-app.state-offline .phone-shell,
+  .guard-app.state-offline .phone-screen,
+  .guard-app.state-offline .screen-content,
+  .guard-app.state-offline .offline-screen{
+    width:100%!important;
+    max-width:none!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+  .guard-app.state-offline .screen-content,
+  .guard-app.state-offline .offline-screen{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+  .guard-app.state-offline .guard-offline-tab-stage{
+    width:min(920px,calc(100vw - 144px))!important;
+    max-width:920px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    transform:none!important;
+  }
+}
+
+/* Guard report viewer — same premium light theme as the rest of the Guard portal. */
+.guard-app .guard-report-archive-overlay{background:#f5f5f2!important;color:#111!important}
+.guard-app .guard-report-archive-overlay>article{width:min(920px,calc(100% - 40px))!important;max-width:920px!important;margin:0 auto!important;background:#fff!important;color:#111!important;border:1px solid #dedede!important;border-radius:24px!important;box-shadow:0 18px 50px rgba(0,0,0,.10)!important;padding:30px!important;box-sizing:border-box!important}
+.guard-app .guard-report-archive-overlay>article>small,.guard-app .guard-report-detail-section>small{color:#737373!important;font-size:9px!important;font-weight:900!important;letter-spacing:.14em!important}
+.guard-app .guard-report-archive-overlay h2,.guard-app .guard-report-archive-overlay h3,.guard-app .guard-report-archive-overlay strong{color:#111!important}
+.guard-app .guard-report-archive-overlay>article>p,.guard-app .guard-report-detail-section p,.guard-app .guard-report-summary-grid span{color:#69717a!important}
+.guard-app .guard-report-archive-close{background:#fff!important;color:#111!important;border:1px solid #d7d7d7!important;box-shadow:none!important}
+.guard-app .guard-report-summary-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:22px 0!important}
+.guard-app .guard-report-summary-grid article{display:flex!important;flex-direction:column!important;gap:5px!important;background:#fff!important;color:#111!important;border:1px solid #e1e1e1!important;border-radius:16px!important;padding:16px!important}
+.guard-app .guard-report-summary-grid article small{color:#777!important;font-size:8px!important;font-weight:900!important;letter-spacing:.12em!important}
+.guard-app .guard-report-summary-grid article strong{font-size:13px!important}
+.guard-app .guard-report-summary-grid article span{font-size:10px!important}
+.guard-app .guard-report-detail-section{margin-top:12px!important;padding:18px!important;background:#fff!important;color:#111!important;border:1px solid #e1e1e1!important;border-radius:16px!important}
+.guard-app .guard-report-detail-section h3{margin:7px 0 4px!important;font-size:16px!important}
+.guard-app .guard-report-error{background:#fff5f5!important;color:#a11!important;border:1px solid #e8caca!important;border-radius:10px!important;padding:11px 12px!important;margin:12px 0!important}
+.guard-app .guard-archive-media{color:#111!important}.guard-app .guard-archive-media>div{background:#f7f7f7!important;color:#666!important;border:1px solid #e2e2e2!important;border-radius:12px!important;padding:16px!important}
+.guard-app .guard-archive-media figure{background:#fff!important;color:#111!important;border:1px solid #e1e1e1!important;border-radius:14px!important;overflow:hidden!important}.guard-app .guard-archive-media figcaption{color:#111!important;background:#fff!important}
+.guard-app .guard-archive-publish{background:#111!important;color:#fff!important;border:0!important;border-radius:999px!important}
+@media(max-width:600px){.guard-app .guard-report-archive-overlay>article{width:calc(100% - 24px)!important;padding:20px!important}.guard-app .guard-report-summary-grid{grid-template-columns:1fr!important}}
+
+/* Guard account session control — always reachable from idle portal screens. */
+.guard-session-logout{position:fixed;top:18px;right:18px;z-index:1200;height:42px;padding:0 15px;border:1px solid #d8d8d8;border-radius:999px;background:#fff;color:#111;display:flex;align-items:center;gap:8px;font:800 12px/1 Inter,ui-sans-serif,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.08);cursor:pointer}
+.guard-session-logout svg{width:16px;height:16px}.guard-session-logout:hover{background:#111;color:#fff;border-color:#111}
+@media(max-width:520px){.guard-session-logout{top:12px;right:12px;width:40px;height:40px;padding:0;justify-content:center}.guard-session-logout span{display:none}}
+
+/* Guard reputation uses the same gold star language as Client ratings. */
+.guard-profile-reputation strong svg,
+.guard-own-rating:not(.empty) svg,
+.guard-reputation-panel header strong svg,
+.guard-rating-bars span svg,
+.guard-feedback-list article strong svg{
+  color:#fbbc04!important;
+  fill:#fbbc04!important;
+  stroke:#fbbc04!important;
+}
+/* Written client reviews belong on the Guard's public reputation profile. */
+.guard-profile-reviews{margin-top:18px;padding-top:16px;border-top:1px solid #e5e5e5}.guard-profile-reviews>small{display:block;margin-bottom:9px;color:#727272;font-size:9px;font-weight:900;letter-spacing:.12em}.guard-profile-reviews article{padding:13px 0;border-top:1px solid #ededed}.guard-profile-reviews article:first-of-type{border-top:0}.guard-profile-reviews article>div{display:flex;align-items:center;justify-content:space-between;gap:12px}.guard-profile-reviews article span{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:900}.guard-profile-reviews article span svg{width:14px;height:14px;fill:#fbbc04!important;stroke:#fbbc04!important;color:#fbbc04!important}.guard-profile-reviews article time{color:#8a8f94;font-size:10px}.guard-profile-reviews article p{margin:7px 0 0!important;color:#303438!important;font-size:12px!important;line-height:1.55!important}.guard-profile-no-reviews{margin-top:14px;padding-top:14px;border-top:1px solid #ededed;color:#777;font-size:11px}
+
+/* Guard Home authoritative composition. Stats stay out of Home and live in the portal drawer. */
+.guard-app.state-offline .guard-home-content{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:0!important;width:100%!important;min-height:0!important;padding:64px 0 34px!important;margin:0!important;transform:none!important}
+.guard-app.state-offline .guard-home-content>.guard-identity-header{position:static!important;inset:auto!important;order:0!important;display:flex!important;justify-content:center!important;width:100%!important;max-width:320px!important;min-height:58px!important;margin:0 auto 34px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;transform:none!important}
+.guard-app.state-offline .guard-home-content>.offline-hero{position:static!important;inset:auto!important;order:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;width:100%!important;max-width:620px!important;height:auto!important;min-height:0!important;margin:0 auto!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;transform:none!important;text-align:center!important}
+.guard-app.state-offline .guard-home-content>.offline-hero:before,.guard-app.state-offline .guard-home-content>.offline-hero:after{display:none!important;content:none!important}
+.guard-app.state-offline .guard-home-brandmark{position:static!important;width:112px!important;height:112px!important;min-width:112px!important;min-height:112px!important;margin:0 auto 20px!important;border-radius:50%!important;overflow:hidden!important;background:#fff!important;border:1px solid #dedede!important;box-shadow:0 10px 28px rgba(0,0,0,.08)!important;transform:none!important}
+.guard-app.state-offline .guard-home-brandmark img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+.guard-app.state-offline .guard-home-content>.offline-hero h3{position:static!important;margin:0 0 8px!important;padding:0!important;transform:none!important}
+.guard-app.state-offline .guard-home-content>.offline-hero p{position:static!important;margin:0 0 24px!important;padding:0!important;transform:none!important}
+.guard-app.state-offline .guard-home-content>.offline-hero .primary-button{position:static!important;width:100%!important;max-width:620px!important;margin:0!important;transform:none!important}
+.guard-app.state-offline .guard-home-content>.section-label,.guard-app.state-offline .guard-home-content>.metric-grid,.guard-app.state-offline .guard-home-content>.message-card{display:none!important}
+
+/* Mobile Guard Home: only viewport-specific dimensions; structure comes from the authoritative rules above. */
+@media(max-width:520px){
+.guard-app.state-offline .phone-screen{overflow:hidden!important}
+.guard-app.state-offline .offline-screen{display:block!important;height:100%!important;min-height:0!important;padding:0 16px 88px!important;overflow-y:auto!important}
+.guard-app.state-offline .guard-offline-tab-stage{display:block!important;position:static!important;width:100%!important;max-width:none!important;height:auto!important;min-height:100%!important;margin:0!important;transform:none!important}
+.guard-app.state-offline .guard-home-content{padding:64px 0 34px!important}
+.guard-app.state-offline .guard-home-content>.offline-hero{max-width:360px!important}
+.guard-app.state-offline .guard-home-brandmark{width:82px!important;height:82px!important;min-width:82px!important;min-height:82px!important}
+.guard-app.state-offline .guard-home-content>.offline-hero .primary-button{max-width:360px!important}
+}
+
+/* Guard online slide drawer — hamburger toggles; outside click dismisses. */
+.guard-menu-scrim{position:fixed!important;inset:0!important;z-index:72!important;border:0!important;background:rgba(0,0,0,.22)!important;backdrop-filter:blur(1px)!important;cursor:pointer!important}
+.guard-app.state-waiting .guard-map-top>button:first-child{position:relative!important;z-index:74!important}
+.guard-slide-menu{position:fixed!important;z-index:73!important;top:0!important;left:0!important;bottom:0!important;width:min(390px,88vw)!important;padding:28px 22px 24px!important;box-sizing:border-box!important;background:#fff!important;color:#111!important;box-shadow:18px 0 48px rgba(0,0,0,.18)!important;display:flex!important;flex-direction:column!important;animation:guardDrawerIn .22s cubic-bezier(.2,.8,.2,1)!important}
+@keyframes guardDrawerIn{from{transform:translateX(-102%)}to{transform:translateX(0)}}
+.guard-slide-menu-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;padding:8px 4px 22px!important;border-bottom:1px solid #e5e5e5!important}.guard-slide-menu-head>div{display:flex!important;flex-direction:column!important;gap:5px!important}.guard-slide-menu-head small{font-size:9px!important;letter-spacing:.16em!important;color:#7a7f84!important;font-weight:800!important}.guard-slide-menu-head strong{font-size:24px!important;letter-spacing:-.04em!important}.guard-slide-menu-head span{font-size:10px!important;font-weight:800!important}.guard-slide-menu-head span i{display:inline-block!important;width:7px!important;height:7px!important;border-radius:50%!important;background:#16c56d!important;margin-right:6px!important}.guard-slide-menu-head>button{width:38px!important;height:38px!important;border:1px solid #ddd!important;border-radius:50%!important;background:#fff!important;color:#111!important;display:grid!important;place-items:center!important;cursor:pointer!important}.guard-slide-menu-head>button svg{width:18px!important}
+.guard-slide-stats{display:grid!important;grid-template-columns:1fr 1fr!important;margin:18px 0!important;border:1px solid #e3e3e3!important;border-radius:16px!important;overflow:hidden!important}.guard-slide-stats>span{padding:15px 16px!important;display:flex!important;flex-direction:column!important;gap:3px!important}.guard-slide-stats>span+span{border-left:1px solid #e3e3e3!important}.guard-slide-stats strong{font-size:18px!important}.guard-slide-stats small{font-size:10px!important;color:#777!important}
+.guard-slide-menu nav{display:flex!important;flex-direction:column!important;gap:7px!important}.guard-slide-menu nav>button{width:100%!important;border:0!important;border-radius:14px!important;background:#fff!important;color:#111!important;padding:13px 10px!important;display:grid!important;grid-template-columns:28px 1fr 18px!important;align-items:center!important;gap:10px!important;text-align:left!important;cursor:pointer!important}.guard-slide-menu nav>button:hover{background:#f3f3f3!important}.guard-slide-menu nav>button>svg{width:19px!important}.guard-slide-menu nav>button>span{display:flex!important;flex-direction:column!important;gap:2px!important}.guard-slide-menu nav strong{font-size:13px!important}.guard-slide-menu nav small{font-size:10px!important;color:#777!important}.guard-slide-menu nav>button>svg:last-child{width:15px!important;color:#999!important}
+.guard-slide-offline{margin-top:auto!important;width:100%!important;height:48px!important;border:0!important;border-radius:999px!important;background:#111!important;color:#fff!important;font-weight:800!important;font-size:11px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;cursor:pointer!important}.guard-slide-offline svg{width:16px!important}
+@media(max-width:520px){.guard-slide-menu{width:min(340px,88vw)!important;padding:20px 18px!important}}
+
+/* Online map stays intentionally bare: navigation/details live in the drawer; only the duty toggle remains at the bottom. */
+.guard-map-status-action{position:fixed!important;z-index:60!important;left:50%!important;bottom:18px!important;transform:translateX(-50%)!important;width:min(360px,calc(100% - 40px))!important;height:54px!important;border:0!important;border-radius:999px!important;background:#111!important;color:#fff!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em!important;box-shadow:0 12px 32px rgba(0,0,0,.20)!important;cursor:pointer!important}.guard-map-status-action svg{width:17px!important;height:17px!important}
+@media(max-width:520px){.guard-map-status-action{bottom:16px!important;width:calc(100% - 32px)!important}}

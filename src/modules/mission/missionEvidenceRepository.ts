@@ -28,6 +28,32 @@ async function uploadMissionEvidence(input:UploadInput,kind:'photo'|'video'){
 export const uploadMissionPhoto=(input:UploadInput)=>uploadMissionEvidence(input,'photo')
 export const uploadMissionVideo=(input:UploadInput)=>uploadMissionEvidence(input,'video')
 export async function getMissionEvidence(jobId:string){const{data,error}=await db().rpc('get_mission_evidence_for_report_rc2',{p_job_id:jobId});if(error)throw error;return(data??[]) as MissionEvidenceMedia[]}
-export async function getMissionEvidenceUrl(path:string){const{data,error}=await db().storage.from(BUCKET).createSignedUrl(path,600);if(error)throw error;return data.signedUrl}
+function normalizeEvidencePath(path:string){
+ const raw=String(path||'').trim().replace(/^\/+/, '')
+ const prefix=BUCKET+'/'
+ return raw.startsWith(prefix)?raw.slice(prefix.length):raw
+}
+export async function getMissionEvidenceUrl(path:string){
+ const clean=normalizeEvidencePath(path)
+ // Download through the authenticated Storage endpoint first. The evidence bucket is
+ // private and its SELECT policies already authorize the report viewer. Blob URLs avoid
+ // relying on the Storage signer, which can return NoSuchKey for otherwise readable
+ // private objects when ownership/auth context differs from the original upload.
+ const downloaded=await db().storage.from(BUCKET).download(clean)
+ if(!downloaded.error&&downloaded.data)return URL.createObjectURL(downloaded.data)
+ const {data,error}=await db().storage.from(BUCKET).createSignedUrl(clean,600)
+ if(error)throw downloaded.error||error
+ if(!data?.signedUrl)throw new Error('Secured evidence URL was not created.')
+ return data.signedUrl
+}
 export type MissionEvidenceMediaWithUrl=MissionEvidenceMedia&{url:string}
-export async function getMissionEvidenceWithUrls(jobId:string){const rows=await getMissionEvidence(jobId);return Promise.all(rows.map(async row=>({...row,url:await getMissionEvidenceUrl(row.storage_path)}))) as Promise<MissionEvidenceMediaWithUrl[]>}
+export async function getMissionEvidenceWithUrls(jobId:string){
+ const rows=await getMissionEvidence(jobId)
+ if(!rows.length)return []
+ // Sign each exact stored object path. This avoids the batch signer returning HTTP 200
+ // while embedding a per-item authorization error for private evidence objects.
+ return Promise.all(rows.map(async row=>({
+  ...row,
+  url:await getMissionEvidenceUrl(row.storage_path),
+ }))) as Promise<MissionEvidenceMediaWithUrl[]>
+}

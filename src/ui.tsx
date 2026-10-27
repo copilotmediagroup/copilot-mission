@@ -52,7 +52,7 @@ export function PhoneShell({ children, light = false }: { children: ReactNode; l
     <div className="phone-screen">
       <div className="desktop-topbar">
         <div className="desktop-logo"><span><ShieldCheck /></span><div><strong>CO <em>PILOT</em></strong><small>SECURITY MARKETPLACE</small></div></div>
-        <div className="desktop-role"><span>GUARD PORTAL</span><b>David Martinez</b></div>
+        <div className="desktop-role"><span>GUARD PORTAL</span><b>FIELD OPERATIONS</b></div>
       </div>
       <div className="statusbar"><strong>9:41</strong><span>▮▮ ◔ ▰</span></div>
       {children}

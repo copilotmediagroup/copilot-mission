@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {nativePhotoFile} from './mobile/nativePlatform'
-import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, MapPin, Menu, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Send, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
+import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, LogOut, MapPin, Menu, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Send, Star, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
 import MissionReport from './MissionReport'
 import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
@@ -52,6 +52,7 @@ type GuardMessageRecord={id:string;channel:'all_guards'|'active_mission'|'post_j
 
 export interface GuardDashboardProps {
   state: MissionState
+  onSignOut?: () => void
   runtime?: MissionRuntime | null
   checkpoint?: number
   onAdvance?: () => void
@@ -75,22 +76,37 @@ export interface GuardDashboardProps {
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
 
-function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:GuardSettings|null }) { const name=profile?.name||'Guard',initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(); return <div className="profile-row"><div><small>Good Morning,</small><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div><div className="profile-avatar-identity"><div className={`avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div><small>{name}</small></div></div>
+function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:GuardSettings|null }) { const name=profile?.name||'Guard',initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(); return <div className="profile-row guard-identity-header"><div className="profile-avatar-identity"><div className={`avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div></div><div className="guard-identity-copy"><small>Good Morning,</small><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div></div>
 }
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
 function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { online: boolean; metrics: GuardDashboardMetrics; onGoOnline?: () => void; onGoOffline?: () => void; profile?:GuardSettings|null }) {
-  return <>
+  return <div className="guard-tab-content guard-home-content">
     <ProfileBlock online={online} profile={profile}/>
     <section className={online ? 'waiting-hero' : 'offline-hero'}>
-      {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className="shield-orbit"><ShieldCheck/></div>}
+      {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className="guard-home-brandmark"><img src="/copilot-auth-hero.png" alt="Co Pilot Security G-Wagon"/></div>}
       <h3>{online ? "You're online and available" : 'You are currently offline'}</h3>
       <p>{online ? <>We'll notify you when a new<br/>assignment is available.</> : <>Go online to receive<br/>assignments.</>}</p>
       {online ? <PrimaryButton onClick={onGoOffline}><Power/> GO OFFLINE</PrimaryButton> : <PrimaryButton onClick={onGoOnline}><Power/> GO ONLINE</PrimaryButton>}
     </section>
-    <h4 className="section-label">Today at a glance</h4>
-    <div className="metric-grid"><Metric value={String(metrics.jobsToday)} label="Jobs Today"/><Metric value={formatDutyTime(metrics.onDutySeconds)} label="On Duty"/><Metric value={online ? '—' : '0'} label={online ? 'Patrol Readiness' : 'Check-ins'}/></div>
-    <div className={online ? 'message-card dark' : 'message-card'}><MessageCircle/><div><strong>Messages</strong><small>No unread messages</small></div><ChevronRight/></div>
+  </div>
+}
+
+function GuardArchiveReportBody({report,media,mediaError}:{report:MissionReportRecord;media:MissionEvidenceMediaWithUrl[];mediaError:string}){
+  const snapshot:any=report.snapshot??{}, mission=snapshot.mission??{}, job=snapshot.job??{}, guard=snapshot.guard??{}, agency=snapshot.agency??{}
+  const evidence=Array.isArray(mission.evidence)?mission.evidence:[]
+  const incidents=Array.isArray(mission.incidents)?mission.incidents:[]
+  const started=mission.started_at?new Date(mission.started_at):null, completed=mission.completed_at?new Date(mission.completed_at):null
+  const duration=started&&completed?Math.max(0,Math.round((completed.getTime()-started.getTime())/60000)):null
+  return <>
+    <div className="guard-report-summary-grid">
+      <article><small>GUARD</small><strong>{guard.name??'Guard'}</strong><span>{guard.badge_number?`Badge ${guard.badge_number}`:'Badge not listed'}</span></article>
+      <article><small>AGENCY</small><strong>{agency.name??'Agency'}</strong><span>{job.priority?`${String(job.priority).toUpperCase()} priority`:'Security mission'}</span></article>
+      <article><small>STARTED</small><strong>{started?started.toLocaleString():'Not recorded'}</strong><span>{mission.arrived_at?'Arrival recorded':'Arrival not recorded'}</span></article>
+      <article><small>COMPLETED</small><strong>{completed?completed.toLocaleString():'Not recorded'}</strong><span>{duration===null?'Duration unavailable':`${duration} min mission`}</span></article>
+    </div>
+    <section className="guard-report-detail-section"><small>MISSION SUMMARY</small><h3>{evidence.length} evidence checkpoint{evidence.length===1?'':'s'} · {incidents.length} incident{incidents.length===1?'':'s'}</h3><p>{job.instructions||'No special client instructions were attached to this mission.'}</p></section>
+    <section className="guard-report-detail-section"><small>PHOTO & VIDEO EVIDENCE</small>{mediaError?<div className="guard-report-error">The mission report is available, but its secured media could not be opened. {mediaError}</div>:null}<div className="guard-archive-media">{media.length?media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt="Guard mission evidence"/></a>}<figcaption>Checkpoint {item.checkpoint_index+1}</figcaption></figure>):!mediaError?<div>No uploaded photo or video evidence.</div>:null}</div></section>
   </>
 }
 
@@ -101,11 +117,17 @@ function GuardJobsArchive({ developerGuardId }: { developerGuardId?:string }) {
   const [media,setMedia]=useState<MissionEvidenceMediaWithUrl[]>([])
   const [busy,setBusy]=useState<string|null>(null)
   const [error,setError]=useState('')
+  const [mediaError,setMediaError]=useState('')
   const load=async()=>{setLoading(true);try{setReports(await getMyGuardReports(developerGuardId));setError('')}catch(e){setError(e instanceof Error?e.message:'Unable to load report history.')}finally{setLoading(false)}}
   useEffect(()=>{void load()},[developerGuardId])
-  useEffect(()=>{let alive=true;if(!selected){setMedia([]);return()=>{alive=false}};void getMissionEvidenceWithUrls(selected.job_id).then(rows=>{if(alive)setMedia(rows)}).catch(()=>{if(alive)setMedia([])});return()=>{alive=false}},[selected?.job_id])
+  useEffect(()=>{let alive=true;if(!selected){setMedia([]);setMediaError('');return()=>{alive=false}};setMediaError('');void getMissionEvidenceWithUrls(selected.job_id).then(rows=>{if(alive){setMedia(rows);if(!rows.length)setMediaError('No evidence records were returned for this mission.')}}).catch(e=>{if(alive){setMedia([]);setMediaError(e instanceof Error?e.message:'Mission evidence could not be loaded.')}});return()=>{alive=false}},[selected?.job_id])
   const publish=async(report:MissionReportRecord)=>{if(busy)return;setBusy(report.id);setError('');try{await publishGuardMissionReport(report.job_id,developerGuardId);await load();setSelected(current=>current?.id===report.id?{...current,status:'published',published_at:new Date().toISOString()}:current)}catch(e){setError(e instanceof Error?e.message:'Unable to publish report.')}finally{setBusy(null)}}
-  return <section className="guard-jobs-archive"><header><div><small>JOBS & REPORTS</small><h3>Mission history</h3><p>Published and unpublished reports stay here so nothing gets stranded.</p></div><button onClick={()=>void load()}><RefreshCw/> Refresh</button></header>{error&&<div className="guard-report-error">{error}</div>}{loading?<p>Loading mission reports…</p>:reports.length?<div className="guard-report-list">{reports.map(report=>{const snapshot=report.snapshot??{};const publishable=report.status==='pending_review'||report.status==='clarification_requested';return <article key={report.id}><div><span className={`guard-report-status ${report.status}`}>{report.status==='published'?'PUBLISHED':report.status==='archived'?'ARCHIVED':'NEEDS PUBLISHING'}</span><small>{new Date(snapshot?.job?.completed_at??report.created_at).toLocaleString()}</small></div><h4>{snapshot?.property?.name??snapshot?.job?.title??'Completed mission'}</h4><p>{snapshot?.property?.address??'Mission report'}</p><footer><button onClick={()=>setSelected(report)}><Eye/> View report</button>{publishable&&<button className="publish" disabled={busy===report.id} onClick={()=>void publish(report)}><Send/> {busy===report.id?'Publishing…':'Publish to client'}</button>}</footer></article>})}</div>:<div className="guard-report-empty"><FileText/><strong>No completed reports yet</strong><span>Your completed missions will appear here.</span></div>}{selected&&<div className="guard-report-archive-overlay"><button className="guard-report-archive-close" onClick={()=>setSelected(null)}><X/></button><article><small>{selected.status==='published'?'PUBLISHED REPORT':'UNPUBLISHED REPORT'}</small><h2>{selected.snapshot?.job?.title??'Completed security mission'}</h2><p>{selected.snapshot?.property?.name??'Property'} · {selected.snapshot?.property?.address??''}</p><div className="guard-archive-media">{media.length?media.map(item=><figure key={item.id}>{item.kind==='video'?<video src={item.url} controls/>:<a href={item.url} target="_blank" rel="noreferrer"><img src={item.url} alt="Guard mission evidence"/></a>}<figcaption>Checkpoint {item.checkpoint_index+1}</figcaption></figure>):<div>No uploaded photo or video evidence.</div>}</div>{(selected.status==='pending_review'||selected.status==='clarification_requested')&&<button className="guard-archive-publish" disabled={busy===selected.id} onClick={()=>void publish(selected)}><Send/> {busy===selected.id?'PUBLISHING…':'PUBLISH TO CLIENT'}</button>}</article></div>}</section>
+  return <section className="guard-jobs-archive"><header><div><small>JOBS & REPORTS</small><h3>Mission history</h3><p>Published and unpublished reports stay here so nothing gets stranded.</p></div><button onClick={()=>void load()}><RefreshCw/> Refresh</button></header>{error&&<div className="guard-report-error">{error}</div>}{loading?<p>Loading mission reports…</p>:reports.length?<div className="guard-report-list">{reports.map(report=>{const snapshot=report.snapshot??{};const publishable=report.status==='pending_review'||report.status==='clarification_requested';return <article key={report.id}><div><span className={`guard-report-status ${report.status}`}>{report.status==='published'?'PUBLISHED':report.status==='archived'?'ARCHIVED':'NEEDS PUBLISHING'}</span><small>{new Date(snapshot?.job?.completed_at??report.created_at).toLocaleString()}</small></div><h4>{snapshot?.property?.name??snapshot?.job?.title??'Completed mission'}</h4><p>{snapshot?.property?.address??'Mission report'}</p><footer><button onClick={()=>setSelected(report)}><Eye/> View report</button>{publishable&&<button className="publish" disabled={busy===report.id} onClick={()=>void publish(report)}><Send/> {busy===report.id?'Publishing…':'Publish to client'}</button>}</footer></article>})}</div>:<div className="guard-report-empty"><FileText/><strong>No completed reports yet</strong><span>Your completed missions will appear here.</span></div>}{selected&&<div className="guard-report-archive-overlay"><button className="guard-report-archive-close" onClick={()=>setSelected(null)}><X/></button><article><small>{selected.status==='published'?'PUBLISHED REPORT':'UNPUBLISHED REPORT'}</small><h2>{selected.snapshot?.job?.title??'Completed security mission'}</h2><p>{selected.snapshot?.property?.name??'Property'} · {selected.snapshot?.property?.address??''}</p><GuardArchiveReportBody report={selected} media={media} mediaError={mediaError}/>{(selected.status==='pending_review'||selected.status==='clarification_requested')&&<button className="guard-archive-publish" disabled={busy===selected.id} onClick={()=>void publish(selected)}><Send/> {busy===selected.id?'PUBLISHING…':'PUBLISH TO CLIENT'}</button>}</article></div>}</section>
+}
+
+function GuardProfileView({profile,online}:{profile?:GuardSettings|null;online:boolean}){
+  const name=profile?.name||'Guard', initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
+  return <section className="guard-profile-page"><header><div className={`guard-profile-avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:initials}</div><div><small>GUARD PROFILE</small><h2>{name}</h2><span className={online?'online':'offline'}>{online?'ONLINE':'OFFLINE'}</span></div></header><div className="guard-profile-facts"><article><small>EMAIL</small><strong>{profile?.email||'Not available'}</strong></article><article><small>PHONE</small><strong>{profile?.phone||'Not added'}</strong></article><article><small>BADGE</small><strong>{profile?.badge_number||'Not assigned'}</strong></article><article><small>SHIFT</small><strong>{profile?.preferred_shift?.replaceAll('_',' ')||'Any shift'}</strong></article></div><section className="guard-profile-reputation"><small>CLIENT REPUTATION</small>{profile?.reputation&&profile.reputation.rating_count>0?<><strong><Star/> {Number(profile.reputation.average_rating).toFixed(1)}</strong><p>{profile.reputation.rating_count} verified client rating{profile.reputation.rating_count===1?'':'s'} · {profile.reputation.completed_mission_count??0} completed missions</p>{profile.reputation.recent_feedback?.length?<div className="guard-profile-reviews"><small>RECENT CLIENT REVIEWS</small>{profile.reputation.recent_feedback.map(review=><article key={review.id}><div><span><Star/> {review.rating}.0</span><time>{new Date(review.created_at).toLocaleDateString()}</time></div><p>“{review.comment}”</p></article>)}</div>:<div className="guard-profile-no-reviews">No written client reviews yet.</div>}</>:<><strong>New guard</strong><p>No client ratings yet. Completed mission ratings will appear here.</p></>}</section><p className="guard-profile-note">Profile is your public field identity. Use Settings to edit your photo, contact information, notifications and work preferences.</p></section>
 }
 
 function GuardSectionView({ section, online, metrics, developerGuardId, profile }: { section: GuardNavTarget; online: boolean; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
@@ -124,7 +146,7 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
     form.reset()
   }
   if(section==='settings')return <GuardSettingsPage guardId={developerGuardId}/>
-  if(section==='profile')return <GuardSettingsPage guardId={developerGuardId}/>
+  if(section==='profile')return <GuardProfileView profile={profile} online={online}/>
   if(section==='jobs')return <GuardJobsArchive developerGuardId={developerGuardId}/>
   if(section==='messages')return <>
     <ProfileBlock online={online} profile={profile}/>
@@ -164,19 +186,20 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
 
 function Offline({ next, metrics, developerGuardId, profile }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell light><main className="screen-content offline-screen">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+  return <PhoneShell light><main className="screen-content offline-screen"><div className="guard-offline-tab-stage">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</div></main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
 }
 
 function Waiting({ offline, metrics, developerGuardId, profile }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const name=profile?.name||'Guard'
   if(section)return <PhoneShell><main className="screen-content guard-drawer-screen"><button className="guard-back-map" onClick={()=>setSection(null)}><ChevronRight/> Back to map</button><GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/></main></PhoneShell>
   return <PhoneShell><main className="guard-map-home">
     <div className="guard-home-map"><MissionMap markers={[]} showViewerLocation zoom={14} visualTheme="light"/></div>
     <div className="guard-waiting-radar" aria-hidden="true"><span/><span/><span/><b className="guard-radar-crosshair horizontal"/><b className="guard-radar-crosshair vertical"/><em className="guard-radar-sweep"/><i/></div>
-    <header className="guard-map-top"><button onClick={()=>setSection('settings')} aria-label="Open guard menu"><Menu/></button><div><strong>CO PILOT</strong><small><i/> ONLINE</small></div><button onClick={()=>setSection('messages')} aria-label="Open messages"><MessageCircle/></button></header>
-    <section className="guard-ready-card"><span className="guard-ready-handle"/><small>YOU'RE ONLINE</small><h2>Ready for requests</h2><p>Stay available. Your next security assignment will appear here.</p><div className="guard-ready-meta"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span><span><strong>{name.split(' ')[0]}</strong><small>Guard</small></span></div><button className="guard-offline-pill" onClick={offline}><Power/> GO OFFLINE</button></section>
-    <nav className="guard-map-dock"><button onClick={()=>setSection('jobs')}><BriefcaseBusiness/><span>Jobs</span></button><button className="guard-dock-home"><Navigation/><span>Online</span></button><button onClick={()=>setSection('profile')}><UserRound/><span>Account</span></button></nav>
+    <header className="guard-map-top"><button onClick={()=>setMenuOpen(v=>!v)} aria-label={menuOpen?'Close guard menu':'Open guard menu'} aria-expanded={menuOpen}><Menu/></button><div><strong>CO PILOT</strong><small><i/> ONLINE</small></div><button onClick={()=>setSection('messages')} aria-label="Open messages"><MessageCircle/></button></header>
+    {menuOpen?<><button className="guard-menu-scrim" aria-label="Close guard menu" onClick={()=>setMenuOpen(false)}/><aside className="guard-slide-menu" aria-label="Guard menu"><div className="guard-slide-menu-head"><div><small>GUARD PORTAL</small><strong>{name}</strong><span><i/> ONLINE</span></div><button onClick={()=>setMenuOpen(false)} aria-label="Close guard menu"><X/></button></div><div className="guard-slide-stats"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span></div><nav><button onClick={()=>{setMenuOpen(false);setSection('jobs')}}><BriefcaseBusiness/><span><strong>Jobs & reports</strong><small>Mission history and reports</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('messages')}}><MessageCircle/><span><strong>Messages</strong><small>Agency communication</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('profile')}}><UserRound/><span><strong>Profile</strong><small>Identity and reputation</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('settings')}}><Activity/><span><strong>Settings</strong><small>Contact and work preferences</small></span><ChevronRight/></button></nav><button className="guard-slide-offline" onClick={()=>{setMenuOpen(false);offline()}}><Power/> GO OFFLINE</button></aside></>:null}
+    <button className="guard-map-status-action" onClick={offline}><Power/> GO OFFLINE</button>
   </main></PhoneShell>
 }
 function Assignment({ accept, decline, runtime }: { accept: () => void; decline: () => void; runtime?: MissionRuntime | null }) {
@@ -628,8 +651,9 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
   const [guardProfile,setGuardProfile]=useState<GuardSettings|null>(null)
   useEffect(()=>{let live=true;void getMyGuardSettings(props.developerGuardId).then(p=>{if(live)setGuardProfile(p)}).catch(error=>{if(live)console.error('Guard settings unavailable',error)});return()=>{live=false}},[props.developerGuardId])
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
-  if (state === 'offline') return <Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>
-  if (state === 'waiting') return <Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>
+  const withSession=(view:ReactNode)=><><button type="button" className="guard-session-logout" onClick={props.onSignOut} aria-label="Log out"><LogOut/><span>Log out</span></button>{view}</>
+  if (state === 'offline') return withSession(<Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>)
+  if (state === 'waiting') return withSession(<Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>)
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)} profile={guardProfile}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
