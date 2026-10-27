@@ -5689,3 +5689,14 @@ input:disabled, select:disabled{
 @media(max-width:380px){
   .client-v3-welcome h2{font-size:19px!important;max-width:175px!important}.client-v3-services button{min-height:90px!important}
 }
+
+/* Client reports mobile-only detail drawer. Desktop report center remains unchanged. */
+@media(max-width:760px){
+  .client-report-center-overlay .v4-report-center{width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;overflow:hidden!important}
+  .client-report-center-overlay .v4-report-center-body{position:relative!important;display:block!important;height:calc(100dvh - 104px)!important;overflow:hidden!important}
+  .client-report-center-overlay .v4-report-center-body>aside{width:100%!important;height:100%!important;max-width:none!important;overflow-y:auto!important;box-sizing:border-box!important}
+  .client-report-center-overlay .v4-report-center-body>main{position:absolute!important;z-index:8!important;inset:0!important;width:100%!important;height:100%!important;overflow-y:auto!important;background:#fff!important;transform:translateX(-102%)!important;transition:transform .26s cubic-bezier(.2,.8,.2,1)!important;pointer-events:none!important;box-shadow:12px 0 36px rgba(0,0,0,.18)!important}
+  .client-report-center-overlay .v4-report-center-body>main:has(.client-published-report){transform:translateX(0)!important;pointer-events:auto!important}
+  .client-report-center-overlay .client-published-report{width:100%!important;max-width:none!important;min-height:100%!important;max-height:none!important;margin:0!important;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 28px)!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important}
+  .client-report-center-overlay .client-published-report>button:first-child{position:sticky!important;top:0!important;z-index:10!important;float:none!important;margin-left:auto!important;display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border-radius:50%!important;background:#111!important;color:#fff!important;border:0!important}
+}
