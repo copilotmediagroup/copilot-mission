@@ -5700,3 +5700,10 @@ input:disabled, select:disabled{
   .client-report-center-overlay .client-published-report{width:100%!important;max-width:none!important;min-height:100%!important;max-height:none!important;margin:0!important;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 28px)!important;border-radius:0!important;box-sizing:border-box!important;overflow:visible!important}
   .client-report-center-overlay .client-published-report>button:first-child{position:sticky!important;top:0!important;z-index:10!important;float:none!important;margin-left:auto!important;display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border-radius:50%!important;background:#111!important;color:#fff!important;border:0!important}
 }
+/* Client reports phone fix: PublishedClientReport renders .client-report-overlay, not .client-published-report. */
+@media(max-width:760px){
+  .client-report-center-overlay .v4-report-center-body>main:has(.client-report-overlay){transform:translateX(0)!important;pointer-events:auto!important}
+  .client-report-center-overlay .v4-report-center-body>main>.client-report-overlay{position:absolute!important;inset:0!important;z-index:1!important;width:100%!important;height:100%!important;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 24px)!important;background:#fff!important;backdrop-filter:none!important;overflow-y:auto!important;box-sizing:border-box!important}
+  .client-report-center-overlay .v4-report-center-body>main>.client-report-overlay .client-report-shell{width:100%!important;max-width:none!important;margin:0!important}
+  .client-report-center-overlay .v4-report-center-body>main>.client-report-overlay .client-report-toolbar{top:0!important;border-radius:0!important;margin:0!important}
+}
