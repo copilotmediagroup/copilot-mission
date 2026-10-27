@@ -272,3 +272,46 @@
 /* Online map stays intentionally bare: navigation/details live in the drawer; only the duty toggle remains at the bottom. */
 .guard-map-status-action{position:fixed!important;z-index:60!important;left:50%!important;bottom:18px!important;transform:translateX(-50%)!important;width:min(360px,calc(100% - 40px))!important;height:54px!important;border:0!important;border-radius:999px!important;background:#111!important;color:#fff!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;font-size:11px!important;font-weight:900!important;letter-spacing:.02em!important;box-shadow:0 12px 32px rgba(0,0,0,.20)!important;cursor:pointer!important}.guard-map-status-action svg{width:17px!important;height:17px!important}
 @media(max-width:520px){.guard-map-status-action{bottom:16px!important;width:calc(100% - 32px)!important}}
+
+/* Mission Timeline — Guard portal premium light scheme */
+.guard-app .mission-timeline-panel{background:#fff!important;color:#000!important;border-color:#d9d9d9!important;box-shadow:-24px 0 64px rgba(0,0,0,.18)!important}
+.guard-app .mission-timeline-panel>header,.guard-app .mission-timeline-panel>nav,.guard-app .mission-timeline-panel>footer{background:#fff!important;border-color:#e5e5e5!important;color:#000!important}
+.guard-app .mission-timeline-panel h2,.guard-app .mission-timeline-panel header p,.guard-app .timeline-live,.guard-app .timeline-count strong,.guard-app .timeline-count span,.guard-app .mission-timeline-panel>footer,.guard-app .mission-timeline-panel>footer svg{color:#000!important}
+.guard-app .timeline-count{background:#fff!important;border-color:#111!important;color:#000!important}
+.guard-app .mission-timeline-panel>nav button{background:#fff!important;color:#000!important;border:1px solid #cfcfcf!important}
+.guard-app .mission-timeline-panel>nav button.active{background:#000!important;color:#fff!important;border-color:#000!important}
+.guard-app .timeline-feed{background:#fff!important}
+.guard-app .timeline-entry,.guard-app .timeline-entry.severity-critical{background:#fff!important;border-top-color:#d9d9d9!important;border-right-color:#d9d9d9!important;border-bottom-color:#d9d9d9!important}
+.guard-app .timeline-entry>button{background:#fff!important;color:#000!important}
+.guard-app .timeline-sequence,.guard-app .timeline-copy strong,.guard-app .timeline-copy small,.guard-app .timeline-entry time,.guard-app .timeline-entry button>svg{color:#000!important}
+.guard-app .timeline-metadata{background:#f4f4f4!important;border-color:#d9d9d9!important}
+.guard-app .timeline-metadata>div{background:#fff!important;color:#000!important}
+.guard-app .timeline-metadata span,.guard-app .timeline-metadata strong{color:#000!important}
+.guard-app .timeline-empty,.guard-app .timeline-empty strong,.guard-app .timeline-empty span,.guard-app .timeline-empty svg{color:#000!important}
+.guard-app .timeline-close{background:#fff!important;color:#000!important;border:1px solid #d0d0d0!important}
+
+/* Guard waiting map: messaging lives in the drawer; keep only the hamburger and centered status. */
+.guard-app.state-waiting .guard-map-top{grid-template-columns:48px 1fr 48px!important}
+.guard-app.state-waiting .guard-map-top>div{grid-column:2!important}
+
+/* Offline Guard portal uses the same uncluttered drawer navigation as Online. */
+.guard-app.state-offline .guard-offline-menu-trigger{position:fixed!important;z-index:74!important;left:clamp(18px,3vw,42px)!important;top:22px!important;width:50px!important;height:50px!important;border:0!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:#fff!important;color:#111!important;box-shadow:0 7px 24px rgba(0,0,0,.2)!important;cursor:pointer!important}
+.guard-app.state-offline .guard-offline-menu-trigger svg{width:20px!important;height:20px!important}
+.guard-slide-menu-head span.offline i{background:#111!important;box-shadow:none!important}
+.guard-slide-menu .guard-slide-online{background:#111!important;color:#fff!important}
+@media(max-width:520px){.guard-app.state-offline .guard-offline-menu-trigger{left:14px!important;top:16px!important;width:46px!important;height:46px!important}}
+/* Offline Guard home: identity is simplified; the central portrait is the guard avatar. */
+.guard-app.state-offline .guard-home-identity-copy .profile-avatar-identity{display:none!important}
+.guard-app.state-offline .guard-home-identity-copy{min-height:0!important;margin-bottom:28px!important}
+.guard-app.state-offline .guard-home-avatar{display:grid!important;place-items:center!important;background:#fff!important;color:#111!important;font-weight:900!important;font-size:24px!important}
+.guard-app.state-offline .guard-home-avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
+.guard-app.state-offline .guard-home-avatar span{display:grid!important;place-items:center!important;width:100%!important;height:100%!important}
+/* Offline home alignment pass — preserve the simple design, center the full identity/action stack. */
+.guard-app.state-offline .guard-home-content{align-items:center!important;text-align:center!important}
+.guard-app.state-offline .guard-home-identity-copy{justify-content:center!important;text-align:center!important;width:100%!important;max-width:360px!important;margin:0 auto 28px!important}
+.guard-app.state-offline .guard-home-identity-copy .guard-identity-copy{display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;width:100%!important}
+.guard-app.state-offline .guard-home-identity-copy h2{margin:0 0 10px!important;text-align:center!important}
+.guard-app.state-offline .offline-hero{align-items:center!important;text-align:center!important;width:100%!important;max-width:560px!important;margin-left:auto!important;margin-right:auto!important}
+.guard-app.state-offline .offline-hero .guard-home-avatar{margin-left:auto!important;margin-right:auto!important}
+.guard-app.state-offline .offline-hero h3{width:100%!important;text-align:center!important;margin:0 0 28px!important}
+.guard-app.state-offline .offline-hero .primary-button{width:min(100%,560px)!important;margin-left:auto!important;margin-right:auto!important}

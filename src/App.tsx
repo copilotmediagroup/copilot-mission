@@ -617,12 +617,10 @@ function GuardApp({
         onSubmitProof={() => void submitProof()}
         onPublishReport={() => publishReport()}
         onReturnOnline={() => void returnOnline()}
+        onOpenTimeline={() => setTimelineOpen(true)}
       />
       </div>
       <MissionTimeline className={timelineOpen ? 'timeline-open' : ''} onClose={() => setTimelineOpen(false)}/>
-    </div>
-    <div className="mission-utility-dock">
-      <button className="timeline-trigger" onClick={() => setTimelineOpen(true)} aria-label="Open mission timeline"><Clock3/><span>Timeline</span></button>
     </div>
     {timelineOpen && <button className="timeline-scrim" onClick={() => setTimelineOpen(false)} aria-label="Close mission timeline"><X/></button>}
     {!developerMode && <button className="developer-link" onClick={onEnableDeveloperMode} aria-label="Open Developer Mode"><Code2 /></button>}

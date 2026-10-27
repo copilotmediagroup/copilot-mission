@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {nativePhotoFile} from './mobile/nativePlatform'
-import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, LogOut, MapPin, Menu, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Send, Star, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
+import { Activity, AlertTriangle, BatteryMedium, BriefcaseBusiness, Camera, Clock3, Check, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Copy, Eye, FileText, Flame, Image, Lightbulb, LogOut, MapPin, Menu, MessageCircle, Navigation, Phone, Power, RadioTower, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, Send, Star, Trash2, UserRound, Video, Waves, Wifi, X } from 'lucide-react'
 import MissionReport from './MissionReport'
 import type { IncidentRecord, IncidentSeverity, MissionState, PatrolEvidence } from './types'
 import type { MissionRuntime } from './modules/mission-runtime/MissionRuntime'
@@ -72,6 +72,7 @@ export interface GuardDashboardProps {
   onIncidentsChange?: (records: IncidentRecord[]) => void | Promise<void>
   missionStartedAt?: number | null
   metrics?: GuardDashboardMetrics
+  onOpenTimeline?: () => void
 }
 
 const action = (preferred?: () => void, fallback?: () => void) => preferred ?? fallback ?? (() => undefined)
@@ -81,12 +82,13 @@ function ProfileBlock({ online = false, profile }: { online?: boolean; profile?:
 function PropertyHeader({ eyebrow, runtime }: { eyebrow: string; runtime?: MissionRuntime | null }) { const name=runtime?.property.name??'Property'; const address=runtime?.property.address??'Address unavailable'; return <><div className="eyebrow">{eyebrow}</div><h2 className="property-title">{name}</h2><p className="address">{address}</p></> }
 
 function GuardHomeView({ online, metrics, onGoOnline, onGoOffline, profile }: { online: boolean; metrics: GuardDashboardMetrics; onGoOnline?: () => void; onGoOffline?: () => void; profile?:GuardSettings|null }) {
+  const name=profile?.name||'Guard', initials=name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
   return <div className="guard-tab-content guard-home-content">
-    <ProfileBlock online={online} profile={profile}/>
+    <div className="guard-identity-header guard-home-identity-copy"><div className="guard-identity-copy"><h2>{name}</h2><StatusChip tone={online ? 'green' : 'gray'}>{online ? 'ONLINE' : 'OFFLINE'}</StatusChip></div></div>
     <section className={online ? 'waiting-hero' : 'offline-hero'}>
-      {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className="guard-home-brandmark"><img src="/copilot-auth-hero.png" alt="Co Pilot Security G-Wagon"/></div>}
+      {online ? <div className="radar"><div className="radar-sweep"/></div> : <div className={`guard-home-brandmark guard-home-avatar ${profile?.avatar_url?'has-photo':''}`}>{profile?.avatar_url?<img src={profile.avatar_url} alt={`${name} profile`}/>:<span>{initials}</span>}</div>}
       <h3>{online ? "You're online and available" : 'You are currently offline'}</h3>
-      <p>{online ? <>We'll notify you when a new<br/>assignment is available.</> : <>Go online to receive<br/>assignments.</>}</p>
+      {online ? <p>We'll notify you when a new<br/>assignment is available.</p> : null}
       {online ? <PrimaryButton onClick={onGoOffline}><Power/> GO OFFLINE</PrimaryButton> : <PrimaryButton onClick={onGoOnline}><Power/> GO ONLINE</PrimaryButton>}
     </section>
   </div>
@@ -186,19 +188,25 @@ function GuardSectionView({ section, online, metrics, developerGuardId, profile 
 
 function Offline({ next, metrics, developerGuardId, profile }: { next: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
   const [section, setSection] = useState<GuardNavTarget>('home')
-  return <PhoneShell light><main className="screen-content offline-screen"><div className="guard-offline-tab-stage">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</div></main><BottomNav light active={section} onSelect={setSection}/></PhoneShell>
+  const [menuOpen, setMenuOpen] = useState(false)
+  const name=profile?.name||'Guard'
+  return <PhoneShell light><main className="screen-content offline-screen">
+    <button className="guard-offline-menu-trigger" onClick={()=>setMenuOpen(v=>!v)} aria-label={menuOpen?'Close guard menu':'Open guard menu'} aria-expanded={menuOpen}><Menu/></button>
+    {menuOpen?<><button className="guard-menu-scrim" aria-label="Close guard menu" onClick={()=>setMenuOpen(false)}/><aside className="guard-slide-menu guard-slide-menu-offline" aria-label="Guard menu"><div className="guard-slide-menu-head"><div><small>GUARD PORTAL</small><strong>{name}</strong><span className="offline"><i/> OFFLINE</span></div><button onClick={()=>setMenuOpen(false)} aria-label="Close guard menu"><X/></button></div><div className="guard-slide-stats"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span></div><nav><button onClick={()=>{setMenuOpen(false);setSection('home')}}><Activity/><span><strong>Home</strong><small>Guard status and availability</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('jobs')}}><BriefcaseBusiness/><span><strong>Jobs & reports</strong><small>Mission history and reports</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('messages')}}><MessageCircle/><span><strong>Messages</strong><small>Agency communication</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('profile')}}><UserRound/><span><strong>Profile</strong><small>Identity and reputation</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('settings')}}><Activity/><span><strong>Settings</strong><small>Contact and work preferences</small></span><ChevronRight/></button></nav><button className="guard-slide-offline guard-slide-online" onClick={()=>{setMenuOpen(false);next()}}><Power/> GO ONLINE</button></aside></>:null}
+    <div className="guard-offline-tab-stage">{section==='home'?<GuardHomeView online={false} metrics={metrics} onGoOnline={next} profile={profile}/>:<GuardSectionView section={section} online={false} metrics={metrics} developerGuardId={developerGuardId} profile={profile}/>}</div>
+  </main></PhoneShell>
 }
 
-function Waiting({ offline, metrics, developerGuardId, profile }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null }) {
+function Waiting({ offline, metrics, developerGuardId, profile, onOpenTimeline }: { offline: () => void; metrics: GuardDashboardMetrics; developerGuardId?:string; profile?:GuardSettings|null; onOpenTimeline?:()=>void }) {
   const [section, setSection] = useState<GuardNavTarget | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const name=profile?.name||'Guard'
   if(section)return <PhoneShell><main className="screen-content guard-drawer-screen"><button className="guard-back-map" onClick={()=>setSection(null)}><ChevronRight/> Back to map</button><GuardSectionView section={section} online metrics={metrics} developerGuardId={developerGuardId} profile={profile}/></main></PhoneShell>
   return <PhoneShell><main className="guard-map-home">
-    <div className="guard-home-map"><MissionMap markers={[]} showViewerLocation zoom={14} visualTheme="light"/></div>
+    <div className="guard-home-map"><MissionMap markers={[]} showViewerLocation showCameraStatus={false} zoom={14} visualTheme="light"/></div>
     <div className="guard-waiting-radar" aria-hidden="true"><span/><span/><span/><b className="guard-radar-crosshair horizontal"/><b className="guard-radar-crosshair vertical"/><em className="guard-radar-sweep"/><i/></div>
-    <header className="guard-map-top"><button onClick={()=>setMenuOpen(v=>!v)} aria-label={menuOpen?'Close guard menu':'Open guard menu'} aria-expanded={menuOpen}><Menu/></button><div><strong>CO PILOT</strong><small><i/> ONLINE</small></div><button onClick={()=>setSection('messages')} aria-label="Open messages"><MessageCircle/></button></header>
-    {menuOpen?<><button className="guard-menu-scrim" aria-label="Close guard menu" onClick={()=>setMenuOpen(false)}/><aside className="guard-slide-menu" aria-label="Guard menu"><div className="guard-slide-menu-head"><div><small>GUARD PORTAL</small><strong>{name}</strong><span><i/> ONLINE</span></div><button onClick={()=>setMenuOpen(false)} aria-label="Close guard menu"><X/></button></div><div className="guard-slide-stats"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span></div><nav><button onClick={()=>{setMenuOpen(false);setSection('jobs')}}><BriefcaseBusiness/><span><strong>Jobs & reports</strong><small>Mission history and reports</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('messages')}}><MessageCircle/><span><strong>Messages</strong><small>Agency communication</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('profile')}}><UserRound/><span><strong>Profile</strong><small>Identity and reputation</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('settings')}}><Activity/><span><strong>Settings</strong><small>Contact and work preferences</small></span><ChevronRight/></button></nav><button className="guard-slide-offline" onClick={()=>{setMenuOpen(false);offline()}}><Power/> GO OFFLINE</button></aside></>:null}
+    <header className="guard-map-top"><button onClick={()=>setMenuOpen(v=>!v)} aria-label={menuOpen?'Close guard menu':'Open guard menu'} aria-expanded={menuOpen}><Menu/></button><div><strong>CO PILOT</strong><small><i/> ONLINE</small></div></header>
+    {menuOpen?<><button className="guard-menu-scrim" aria-label="Close guard menu" onClick={()=>setMenuOpen(false)}/><aside className="guard-slide-menu" aria-label="Guard menu"><div className="guard-slide-menu-head"><div><small>GUARD PORTAL</small><strong>{name}</strong><span><i/> ONLINE</span></div><button onClick={()=>setMenuOpen(false)} aria-label="Close guard menu"><X/></button></div><div className="guard-slide-stats"><span><strong>{metrics.jobsToday}</strong><small>Jobs today</small></span><span><strong>{formatDutyTime(metrics.onDutySeconds)}</strong><small>On duty</small></span></div><nav><button onClick={()=>{setMenuOpen(false);setSection('jobs')}}><BriefcaseBusiness/><span><strong>Jobs & reports</strong><small>Mission history and reports</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('messages')}}><MessageCircle/><span><strong>Messages</strong><small>Agency communication</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('profile')}}><UserRound/><span><strong>Profile</strong><small>Identity and reputation</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);setSection('settings')}}><Activity/><span><strong>Settings</strong><small>Contact and work preferences</small></span><ChevronRight/></button><button onClick={()=>{setMenuOpen(false);onOpenTimeline?.()}}><Clock3/><span><strong>Timeline</strong><small>Mission activity and events</small></span><ChevronRight/></button></nav><button className="guard-slide-offline" onClick={()=>{setMenuOpen(false);offline()}}><Power/> GO OFFLINE</button></aside></>:null}
     <button className="guard-map-status-action" onClick={offline}><Power/> GO OFFLINE</button>
   </main></PhoneShell>
 }
@@ -653,7 +661,7 @@ export default function GuardDashboard(props: GuardDashboardProps & {onPhotoCapt
   const { state, runtime, checkpoint=0, onAdvance, patrolEvidence=[], onEvidenceChange=()=>undefined, incidents=[], onIncidentsChange=()=>undefined, missionStartedAt=null } = props
   const withSession=(view:ReactNode)=><><button type="button" className="guard-session-logout" onClick={props.onSignOut} aria-label="Log out"><LogOut/><span>Log out</span></button>{view}</>
   if (state === 'offline') return withSession(<Offline next={action(props.onGoOnline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>)
-  if (state === 'waiting') return withSession(<Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile}/>)
+  if (state === 'waiting') return withSession(<Waiting offline={action(props.onGoOffline,onAdvance)} metrics={dashboardMetrics} developerGuardId={props.developerGuardId} profile={guardProfile} onOpenTimeline={props.onOpenTimeline}/>)
   if (state === 'assignment') return <Assignment runtime={runtime} accept={action(props.onAccept,onAdvance)} decline={action(props.onDecline)}/>
   if (state === 'enroute') return <EnRoute runtime={runtime} next={action(props.onStartRoute,onAdvance)} profile={guardProfile}/>
   if (state === 'arrived') return <Arrived runtime={runtime} next={action(props.onMarkArrived,onAdvance)}/>
