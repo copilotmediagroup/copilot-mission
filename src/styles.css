@@ -5720,3 +5720,32 @@ input:disabled, select:disabled{
   .client-report-center-overlay .v4-report-results>button time{display:block!important;position:static!important;width:100%!important;margin:0!important;line-height:1.25!important;color:#b9b9b9!important;-webkit-text-fill-color:#b9b9b9!important;white-space:normal!important}
 }
 @keyframes clientReportSlideIn{from{transform:translateX(-102%)}to{transform:translateX(0)}}
+
+/* Client report list mobile: scroll naturally; never compress report cards to fit viewport. */
+@media(max-width:760px){
+  .client-report-center-overlay .v4-report-center-body>aside{
+    display:flex!important;
+    flex-direction:column!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .client-report-center-overlay .v4-report-search{flex:0 0 auto!important}
+  .client-report-center-overlay .v4-report-results{
+    display:flex!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior:contain!important;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 120px)!important;
+  }
+  .client-report-center-overlay .v4-report-results>button{
+    flex:0 0 auto!important;
+    min-height:148px!important;
+  }
+  .client-report-center-overlay .v4-report-center-body.detail-open>aside{display:none!important}
+}
