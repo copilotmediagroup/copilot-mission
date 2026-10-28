@@ -34,7 +34,14 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
     window.addEventListener('co-pilot-native-push-action',onAction)
     return()=>window.removeEventListener('co-pilot-native-push-action',onAction)
   },[])
-  useEffect(()=>{const load=()=>void getMyNotificationUnreadCount().then(setNotificationUnreadCount).catch(cause=>setError(workspaceErrorMessage(cause,'Notifications are temporarily unavailable.')));load();return subscribeToMyNotifications(load)},[])
+  useEffect(()=>{
+    // Developer preview impersonates a client workspace while the authenticated user is still the platform admin.
+    // Do not subscribe to the admin's personal notification feed from the client preview; it can stall preview hydration.
+    if(isPreview)return
+    const load=()=>void getMyNotificationUnreadCount().then(setNotificationUnreadCount).catch(cause=>setError(workspaceErrorMessage(cause,'Notifications are temporarily unavailable.')))
+    load()
+    return subscribeToMyNotifications(load)
+  },[isPreview])
   const [properties, setProperties] = useState<ClientProperty[]>([])
   const [jobs, setJobs] = useState<ClientJob[]>([])
   const [clientId, setClientId] = useState<string | null>(null)

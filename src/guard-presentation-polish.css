@@ -503,3 +503,54 @@
 .guard-simple-warning{margin:12px 4px 0;padding:9px 11px;border-radius:12px;background:#fff5e8;color:#8b4d00;display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700}.guard-simple-warning svg{width:16px;flex:0 0 auto}
 .guard-options-sheet{background:#fff!important;color:#111!important;padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}.guard-options-sheet>button:not(.remove-evidence){width:100%;min-height:62px;margin:0 0 8px;padding:9px 12px;border:1px solid #e2e2e2;border-radius:16px;background:#fff;color:#111;display:grid;grid-template-columns:38px 1fr 18px;align-items:center;gap:10px;text-align:left}.guard-options-sheet>button>svg:first-child{width:19px;height:19px;margin:auto}.guard-options-sheet>button>span strong,.guard-options-sheet>button>span small{display:block}.guard-options-sheet>button>span strong{font-size:13px}.guard-options-sheet>button>span small{margin-top:2px;color:#8a9098;font-size:9px}.guard-options-sheet>button>svg:last-child{width:16px;color:#777}
 @media(max-width:520px){.guard-app.state-patrol .guard-simple-patrol{padding:72px 12px 86px!important}.guard-simple-progress{margin-bottom:18px}.guard-simple-copy h2{font-size:24px}.guard-simple-visual{min-height:300px}.guard-simple-visual>img{height:360px}}
+
+/* RC — mobile field-flow lock: map-first routing + one-screen checkpoint workspace. */
+@media(max-width:520px){
+  /* Route controls belong at the bottom edge; keep the map as the dominant surface. */
+  .guard-app.state-enroute .two-stats{
+    left:12px!important;right:12px!important;bottom:76px!important;width:auto!important;
+    border-radius:16px!important;
+  }
+  .guard-app.state-enroute .two-stats>div{padding:9px 12px!important}
+  .guard-app.state-enroute .two-stats small{font-size:7px!important}
+  .guard-app.state-enroute .two-stats strong{font-size:15px!important;margin-top:2px!important}
+  .guard-app.state-enroute .screen-content>.primary-button{
+    left:12px!important;right:12px!important;bottom:16px!important;width:calc(100% - 24px)!important;height:48px!important;
+    border-radius:999px!important;
+  }
+
+  /* Arrival card is only a compact action dock. */
+  .guard-app.state-arrived .guard-arrival-sheet{
+    left:12px!important;right:12px!important;bottom:12px!important;width:auto!important;
+    padding:7px 14px 11px!important;border-radius:20px!important;
+  }
+  .guard-app.state-arrived .guard-arrival-sheet .guard-ready-handle{margin:0 auto 5px!important;width:34px!important;height:3px!important}
+  .guard-app.state-arrived .guard-arrival-sheet>small{display:none!important}
+  .guard-app.state-arrived .guard-arrival-sheet h2{margin:0 0 1px!important;font-size:16px!important;line-height:1.1!important}
+  .guard-app.state-arrived .guard-arrival-sheet>p{margin:0!important;font-size:7px!important;line-height:1.2!important}
+  .guard-app.state-arrived .guard-details-link{height:22px!important;margin:3px 0!important;font-size:7px!important}
+  .guard-app.state-arrived .guard-arrived-pill{height:38px!important;margin-top:2px!important;border-radius:999px!important;font-size:9px!important}
+
+  /* Patrol is a fixed one-screen workspace: progress, instruction, photo, next, options. */
+  .guard-app.state-patrol .screen-content.guard-simple-patrol{
+    position:absolute!important;inset:0!important;height:100%!important;min-height:0!important;
+    padding:74px 12px 10px!important;overflow:hidden!important;
+    display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto auto!important;gap:7px!important;
+  }
+  .guard-simple-progress{margin:0!important;align-self:start!important}
+  .guard-simple-progress>div{gap:6px!important;margin-bottom:4px!important}
+  .guard-simple-progress i{height:3px!important}
+  .guard-simple-progress small{font-size:7px!important}
+  .guard-simple-copy{min-height:0!important}
+  .guard-simple-copy small{margin-bottom:2px!important;font-size:7px!important}
+  .guard-simple-copy h2{font-size:20px!important;line-height:1!important}
+  .guard-simple-copy p{margin:4px 0 0!important;font-size:9px!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .guard-simple-visual{min-height:0!important;height:100%!important;border-radius:18px!important}
+  .guard-simple-visual>img{height:100%!important;min-height:0!important;object-fit:cover!important}
+  .guard-simple-placeholder{height:100%!important;min-height:0!important;padding:18px!important}
+  .guard-simple-camera{bottom:12px!important;height:44px!important;min-width:176px!important;font-size:9px!important}
+  .guard-simple-captured{bottom:12px!important;height:38px!important;font-size:9px!important}
+  .guard-simple-warning{position:absolute!important;left:16px!important;right:16px!important;bottom:116px!important;z-index:5!important;margin:0!important;font-size:8px!important}
+  .guard-simple-next{height:48px!important;margin:0!important;border-radius:999px!important;font-size:10px!important}
+  .guard-simple-options{height:38px!important;margin:0 auto!important;padding:0 22px!important;font-size:9px!important}
+}
