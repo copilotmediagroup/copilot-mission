@@ -445,3 +445,15 @@
     box-sizing:border-box!important;
   }
 }
+
+/* Guard duty toggle regression lock — keep the online/offline action above every map/navigation layer.
+   Preserve the centering transform while pressed so touch feedback cannot displace its hit target. */
+.guard-app.state-waiting .guard-map-status-action{
+  z-index:2000!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  isolation:isolate!important;
+}
+.guard-app.state-waiting .guard-map-status-action:active{
+  transform:translateX(-50%) scale(.965)!important;
+}
