@@ -5749,3 +5749,41 @@ input:disabled, select:disabled{
   }
   .client-report-center-overlay .v4-report-center-body.detail-open>aside{display:none!important}
 }
+
+/* Client mobile drawer: keep session/logout controls fully reachable above browser chrome. */
+@media(max-width:760px){
+  .client-shell .client-sidebar{
+    height:100dvh!important;
+    max-height:100dvh!important;
+    box-sizing:border-box!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    padding-bottom:max(28px,env(safe-area-inset-bottom))!important;
+  }
+  .client-shell .client-sidebar nav{flex:none!important}
+  .client-shell .client-sidebar-bottom{
+    flex:none!important;
+    margin-top:22px!important;
+    padding:18px 0 max(28px,env(safe-area-inset-bottom))!important;
+    background:#f7f7f5!important;
+  }
+  .client-shell .client-sidebar-bottom>button{
+    display:flex!important;
+    min-height:58px!important;
+    margin:12px 0 0!important;
+    padding:0 18px!important;
+    border-radius:16px!important;
+    background:#111!important;
+    color:#fff!important;
+    opacity:1!important;
+    visibility:visible!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:12px!important;
+    font-weight:800!important;
+  }
+  .client-shell .client-sidebar-bottom>button,
+  .client-shell .client-sidebar-bottom>button span,
+  .client-shell .client-sidebar-bottom>button svg{color:#fff!important;stroke:#fff!important}
+}
