@@ -1,0 +1,35 @@
+{
+  "status": "FAILED_NOT_APPLIED",
+  "reason": "Agency retains Guard row but loses Guard name under existing profiles RLS",
+  "roles": [
+    {
+      "role": "client",
+      "view_rows_now": 1,
+      "rows_with_invoker": 0,
+      "names_with_invoker": 0,
+      "own_profile_readable": true
+    },
+    {
+      "role": "agency_admin",
+      "view_rows_now": 1,
+      "rows_with_invoker": 1,
+      "names_with_invoker": 0,
+      "own_profile_readable": true
+    },
+    {
+      "role": "guard",
+      "view_rows_now": 1,
+      "rows_with_invoker": 1,
+      "names_with_invoker": 1,
+      "own_profile_readable": true
+    },
+    {
+      "role": "platform_admin",
+      "view_rows_now": 1,
+      "rows_with_invoker": 1,
+      "names_with_invoker": 1,
+      "own_profile_readable": true
+    }
+  ],
+  "productionChanges": false
+}

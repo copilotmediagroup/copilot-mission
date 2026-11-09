@@ -1,0 +1,6 @@
+{
+  "definition": " SELECT g.id,\n    g.user_id,\n    g.agency_id,\n    p.full_name AS name,\n    g.availability,\n    g.avatar_url\n   FROM guards g\n     LEFT JOIN profiles p ON p.id = g.user_id;",
+  "options": null,
+  "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+  "anonymous_still_has_old_select": true
+}

@@ -1,0 +1,174 @@
+{
+  "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+  "owner": "postgres",
+  "grants": [
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "INSERT"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "SELECT"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "UPDATE"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "DELETE"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "TRUNCATE"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "REFERENCES"
+    },
+    {
+      "grantee": "postgres",
+      "grantable": "YES",
+      "privilege": "TRIGGER"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "INSERT"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "SELECT"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "UPDATE"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "DELETE"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "TRUNCATE"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "REFERENCES"
+    },
+    {
+      "grantee": "anon",
+      "grantable": "NO",
+      "privilege": "TRIGGER"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "INSERT"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "SELECT"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "DELETE"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "TRUNCATE"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "REFERENCES"
+    },
+    {
+      "grantee": "authenticated",
+      "grantable": "NO",
+      "privilege": "TRIGGER"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "INSERT"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "SELECT"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "UPDATE"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "DELETE"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "TRUNCATE"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "REFERENCES"
+    },
+    {
+      "grantee": "service_role",
+      "grantable": "NO",
+      "privilege": "TRIGGER"
+    }
+  ],
+  "options": null,
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "(is_platform_admin() OR (user_id = auth.uid()) OR has_agency_access(agency_id, false))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "guards",
+      "permissive": "PERMISSIVE",
+      "policyname": "guards_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((id = auth.uid()) OR is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    }
+  ],
+  "definition": " SELECT g.id,\n    g.user_id,\n    g.agency_id,\n    p.full_name AS name,\n    g.availability,\n    g.avatar_url\n   FROM guards g\n     LEFT JOIN profiles p ON p.id = g.user_id;"
+}
