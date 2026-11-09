@@ -118,11 +118,11 @@ export default function ClientPortal({ developerMode=false, accessMode='live',de
     setRequestOpen(true)
   }
 
-  const identityPhoto=clientIdentity?.avatar_url ?? auth.profile?.avatar_url ?? null
-  const identityName=clientIdentity?.full_name ?? auth.profile?.full_name ?? null
+  const identityPhoto=clientIdentity?.avatar_url ?? (isPreview ? null : auth.profile?.avatar_url) ?? null
+  const identityName=clientIdentity?.full_name ?? (isPreview ? null : auth.profile?.full_name) ?? null
 
   return <div className="client-shell">
-    {developerMode && <div className={`client-environment-banner ${isPreview?'preview':'live'}`}><strong>{isPreview?'ADMIN LIVE-ACCOUNT TEST — NO REAL CHARGES':'LIVE PRODUCTION ACCESS'}</strong><span>{isPreview?'Real account + real V4 data · payment processor and payout disabled':'Authenticated production workspace · real actions possible'}</span></div>}
+    {developerMode && <div className={`client-environment-banner ${isPreview?'preview':'live'}`}><strong>{isPreview?'ADMIN LIVE-ACCOUNT PREVIEW':'LIVE PRODUCTION ACCESS'}</strong><span>{isPreview?'Production preview is read-only. Use an isolated test backend for workflow testing.':'Authenticated production workspace · real actions possible'}</span></div>}
     {notice && <div className="client-toast"><CheckCircle2/>{notice}</div>}
     <aside className={`client-sidebar ${mobileNav ? 'open' : ''}`}>
       <div className="client-brand"><div className={identityPhoto ? 'has-brand-image' : ''}>{identityPhoto ? <img src={identityPhoto} alt="Client branding"/> : <Shield/>}</div><span><b>CO PILOT</b><small>CLIENT COMMAND</small></span></div>

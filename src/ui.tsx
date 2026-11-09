@@ -64,10 +64,11 @@ export type GuardNavTarget = 'home' | 'jobs' | 'messages' | 'profile' | 'setting
 
 export function AppHeader({ light = false, title, onNotifications, notificationCount = 0, avatarUrl, guardName = 'Guard' }: { light?: boolean; title?: string; onNotifications?: () => void; notificationCount?: number; avatarUrl?: string | null; guardName?: string }) {
   const [notificationsOpen,setNotificationsOpen]=useState(false)
+  const [failedAvatar,setFailedAvatar]=useState<string|null>(null)
   const openNotifications=()=>{if(onNotifications)onNotifications();else setNotificationsOpen(true)}
   const initials=guardName.trim().split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase()||'G'
   return <><div className={`app-header ${light ? 'light' : ''}`}>
-    <span className="app-header-action app-header-avatar" aria-label={`${guardName} profile photo`}>{avatarUrl?<img src={avatarUrl} alt=""/>:<b>{initials}</b>}</span>
+    <span className="app-header-action app-header-avatar" aria-label={`${guardName} profile photo`}>{avatarUrl&&failedAvatar!==avatarUrl?<img src={avatarUrl} alt={`${guardName} profile`} onError={()=>setFailedAvatar(avatarUrl)}/>:<b>{initials}</b>}</span>
     {title ? <strong className="app-title">{title}</strong> : <span />}
     <button type="button" className="app-header-action bell" aria-label="Guard notifications" onClick={openNotifications}><Bell size={17} />{notificationCount>0&&<b className="notification-badge">{notificationCount>9?'9+':notificationCount}</b>}</button>
   </div><NotificationCenter open={notificationsOpen} onClose={()=>setNotificationsOpen(false)}/></>

@@ -1295,7 +1295,7 @@ export default function MissionMap({
             : markers
 
         const validMarkers =
-          combined.filter(
+          [...new Map(combined.map(marker => [marker.id, marker])).values()].filter(
             marker =>
               Number.isFinite(
                 marker.latitude
@@ -1376,7 +1376,8 @@ export default function MissionMap({
             markerGlyph(marker)
 
           core.appendChild(glyph)
-          shell.appendChild(pulse)
+          // Device/agency viewer locations are not Guard beacons.
+          if (marker.type === 'guard') shell.appendChild(pulse)
           shell.appendChild(core)
 
           /*

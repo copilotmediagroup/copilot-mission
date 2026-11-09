@@ -2,7 +2,7 @@ import { BarChart3, Bell, CalendarClock, ClipboardList, Crosshair, DollarSign, L
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../modules/auth/AuthProvider'
 import { acceptMarketplaceJob, getAgencyWorkspace, subscribeToMarketplace, type MarketplaceJobRow } from '../modules/marketplace/marketplaceRepository'
-import { getAgencySettings } from '../modules/marketplace/agencySettingsRepository'
+import { getAgencySettings, getDeveloperAgencySettings } from '../modules/marketplace/agencySettingsRepository'
 import { useAgencyGuardState } from '../modules/marketplace/useAgencyGuardState'
 import { getGuardCredentials,type GuardCredentialRow } from '../modules/marketplace/guardOnboardingRepository'
 import { getDeveloperAgencyGuardCredentials } from '../modules/developer/developerLiveRepository'
@@ -56,7 +56,7 @@ export default function AgencyV4({preview=false,developerAgencyId}:{preview?:boo
     if(!live&&!preview)return
     if(preview&&!developerAgencyId)return
     try{
-      if(preview){const [{workspace,guards:realGuards},dispatchData,credentialRows]=await Promise.all([getDeveloperAgencyContext(developerAgencyId!),getDeveloperAgencyDispatchWorkspace(developerAgencyId!),getDeveloperAgencyGuardCredentials(developerAgencyId!)]);setAgencyName(workspace.name);setJobs(workspace.open);setClaimed(workspace.claimed);setDeveloperGuards(realGuards);setDispatch(dispatchData);setGuardCredentials(credentialRows);setNotice('');return}
+      if(preview){const [{workspace,guards:realGuards},dispatchData,credentialRows,settings]=await Promise.all([getDeveloperAgencyContext(developerAgencyId!),getDeveloperAgencyDispatchWorkspace(developerAgencyId!),getDeveloperAgencyGuardCredentials(developerAgencyId!),getDeveloperAgencySettings(developerAgencyId!)]);setAgencyName(workspace.name);setAgencyLogo(settings.logo_url??null);setServiceRadius(Number(settings.service_radius_miles)||25);setJobs(workspace.open);setClaimed(workspace.claimed);setDeveloperGuards(realGuards);setDispatch(dispatchData);setGuardCredentials(credentialRows);setNotice('');return}
       const [workspace,dispatchData,settings,rescues,credentialRows]=await Promise.all([getAgencyWorkspace(),getAgencyDispatchWorkspace(),getAgencySettings(),getMyRescueOffers(),getGuardCredentials()])
       setRescueOffers(rescues); setGuardCredentials(credentialRows); setAgencyName(workspace.name); setJobs(workspace.open); setClaimed(workspace.claimed); setDispatch(dispatchData); setServiceRadius(Number(settings.service_radius_miles)||25); setAgencyLogo(settings.logo_url??null); setNotice('')
     }catch(error){setNotice(error instanceof Error?error.message:'Unable to sync agency workspace.')}

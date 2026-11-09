@@ -51,7 +51,8 @@
     "mobile:googleplay:api36": "node scripts/prepare-google-play-api36.mjs",
     "mobile:googleplay:audit": "node scripts/google-play-release-audit.mjs",
     "audit:production-parity": "node scripts/production-parity-audit.mjs",
-    "audit:launch-integrity": "node scripts/launch-integrity-audit.mjs"
+    "audit:launch-integrity": "node scripts/launch-integrity-audit.mjs",
+    "test:audit": "node scripts/test-development-production.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

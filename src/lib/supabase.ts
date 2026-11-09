@@ -1,3 +1,4 @@
+import { developerSafeFetch } from './developerSafety'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // Vite normally reads these values from .env. The publishable fallback keeps
@@ -9,6 +10,7 @@ export const isSupabaseConfigured = Boolean(url && anonKey)
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(url, anonKey, {
+      global: { fetch: developerSafeFetch },
       auth: {
         persistSession: true,
         autoRefreshToken: true,

@@ -554,3 +554,17 @@
   .guard-simple-next{height:48px!important;margin:0!important;border-radius:999px!important;font-size:10px!important}
   .guard-simple-options{height:38px!important;margin:0 auto!important;padding:0 22px!important;font-size:9px!important}
 }
+
+/* Completion uses the same readable information rows as Patrol Complete. */
+.guard-app.state-completed .completion-processing,
+.guard-app.state-completed .completion-processing span,
+.guard-app.state-completed .summary-grid,
+.guard-app.state-completed .summary-grid>div{background:#fff!important;color:#111!important;border-color:#ddd!important;box-shadow:none!important}
+.guard-app.state-completed .completion-processing span,
+.guard-app.state-completed .summary-grid strong{color:#111!important}
+.guard-app.state-completed .summary-grid small,
+.guard-app.state-completed .command-complete>p{color:#525a61!important}
+@media(min-width:521px){
+ .guard-app.state-proof .screen-content.review-content,
+ .guard-app.state-completed .screen-content.completed-screen{padding-top:160px!important}
+}

@@ -1,3 +1,4 @@
+import { setDeveloperPreviewActive } from './lib/developerSafety'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Clock3, Code2, LogOut, ShieldCheck, X } from 'lucide-react'
 import GuardDashboard from './GuardDashboard'
@@ -48,11 +49,14 @@ function AppShell() {
     }).catch(error=>console.warn('Native push registration unavailable',error))
     return()=>{cancelled=true;if(cleanup)void cleanup()}
   },[nativeTarget,auth.phase,auth.user?.id,auth.role])
-  if(nativeTarget&&!roleAllowedForMobile(auth.role)) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>
+  const wrongMobileAccount = Boolean(nativeTarget&&!roleAllowedForMobile(auth.role))
+  // Keep hook order stable when the authenticated role changes.
+  /* mobile account fallback is rendered after hooks */
   const [developerMode, setDeveloperMode] = useState(() => developerPath || localStorage.getItem('co-pilot-developer-mode') === 'true')
   const [developerAccessMode, setDeveloperAccessMode] = useState<DeveloperAccessMode>('preview')
   const [previewRole, setPreviewRole] = useState<DeveloperPreview>(() => getStoredDeveloperPreview(auth.role ?? 'client'))
   const [developerAccounts,setDeveloperAccounts]=useState<DeveloperLiveAccounts|null>(null)
+  const [developerAccountError,setDeveloperAccountError]=useState('')
   const [developerTargets,setDeveloperTargets]=useState(()=>({client:localStorage.getItem('co-pilot-dev-client')||'',agency:localStorage.getItem('co-pilot-dev-agency')||'',guard:localStorage.getItem('co-pilot-dev-guard')||''}))
 
   useEffect(() => {
@@ -78,17 +82,19 @@ function AppShell() {
   }
 
   const adminDeveloperMode = developerMode && auth.role === 'platform_admin'
-  useEffect(()=>{if(!adminDeveloperMode)return;void getDeveloperLiveAccounts().then(accounts=>{setDeveloperAccounts(accounts);setDeveloperTargets(current=>{const client=accounts.clients.some(a=>a.id===current.client)?current.client:(accounts.clients[0]?.id||'');const agency=accounts.agencies.some(a=>a.id===current.agency)?current.agency:(accounts.agencies[0]?.id||'');const guard=accounts.guards.some(a=>a.id===current.guard)?current.guard:(accounts.guards[0]?.id||'');if(client)localStorage.setItem('co-pilot-dev-client',client);if(agency)localStorage.setItem('co-pilot-dev-agency',agency);if(guard)localStorage.setItem('co-pilot-dev-guard',guard);return{client,agency,guard}})}).catch(()=>setDeveloperAccounts(null))},[adminDeveloperMode])
+  useEffect(()=>{let alive=true;setDeveloperAccountError('');setDeveloperAccounts(null);if(!adminDeveloperMode)return;void getDeveloperLiveAccounts().then(accounts=>{if(!alive)return;setDeveloperAccounts(accounts);setDeveloperTargets(current=>{const client=accounts.clients.some(a=>a.id===current.client)?current.client:(accounts.clients[0]?.id||'');const agency=accounts.agencies.some(a=>a.id===current.agency)?current.agency:(accounts.agencies[0]?.id||'');const guard=accounts.guards.some(a=>a.id===current.guard)?current.guard:(accounts.guards[0]?.id||'');if(client)localStorage.setItem('co-pilot-dev-client',client);if(agency)localStorage.setItem('co-pilot-dev-agency',agency);if(guard)localStorage.setItem('co-pilot-dev-guard',guard);return{client,agency,guard}})}).catch(error=>{if(alive){setDeveloperAccounts(null);setDeveloperAccountError(error instanceof Error?error.message:'Unable to load test accounts.')}});return()=>{alive=false}},[adminDeveloperMode,auth.user?.id])
   const changeDeveloperTarget=(kind:'client'|'agency'|'guard',id:string)=>{setDeveloperTargets(current=>({...current,[kind]:id}));localStorage.setItem(`co-pilot-dev-${kind}`,id)}
   const activeRole: DeveloperPreview = adminDeveloperMode && developerAccessMode === 'preview' ? previewRole : (auth.role ?? 'client')
   const activeDeveloperTarget=activeRole==='client'?developerTargets.client:activeRole==='agency_admin'?developerTargets.agency:activeRole==='guard'?developerTargets.guard:''
   const portalKey = `${developerAccessMode}:${activeRole}:${activeDeveloperTarget}:${auth.user?.id ?? 'anonymous'}`
   const showDeveloperDock = auth.role === 'platform_admin'
+  setDeveloperPreviewActive(adminDeveloperMode && developerAccessMode === 'preview' && ['client','agency_admin','guard'].includes(activeRole))
+  if(wrongMobileAccount) return <PortalPlaceholder title="Wrong account type" body={nativeTarget==='guard'?'CO PILOT GUARD requires an approved Guard account.':'CO PILOT SECURITY requires an approved Client account.'} onLogout={()=>void auth.signOut()}/>
 
   return <div className={adminDeveloperMode ? 'developer-preview-active' : ''} data-route-probe="APP-SHELL-20261009-0320">
     {adminDeveloperMode && <DeveloperPortalSwitcher value={previewRole} actualRole={auth.role} accessMode={developerAccessMode} onAccessModeChange={setDeveloperAccessMode} onChange={setPreviewRole} onExit={exitDeveloperMode} onSignOut={() => void auth.signOut()} accounts={developerAccounts} targets={developerTargets} onTargetChange={changeDeveloperTarget} />}
     <div key={portalKey} className="portal-runtime-boundary">
-      {activeRole === 'guard_lab' ? <ExperienceLab /> :
+      {adminDeveloperMode && developerAccessMode === 'preview' && ['client','agency_admin','guard'].includes(activeRole) && (!developerAccounts || !activeDeveloperTarget) ? <div className="auth-state"><div className="auth-state-card" role="status">{developerAccountError || (developerAccounts ? 'No account is available for this role.' : 'Loading selected account…')}</div></div> : activeRole === 'guard_lab' ? <ExperienceLab /> :
         activeRole === 'guard' ? <GuardApp developerMode={adminDeveloperMode} accessMode={developerAccessMode} developerGuardId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.guard:undefined} onEnableDeveloperMode={enableDeveloperMode} /> :
         activeRole === 'agency_admin' ? <AgencyV4 preview={adminDeveloperMode && developerAccessMode === 'preview'} developerAgencyId={adminDeveloperMode&&developerAccessMode==='preview'?developerTargets.agency:undefined} /> :
         activeRole === 'platform_admin' ? <OwnerV4 /> :
