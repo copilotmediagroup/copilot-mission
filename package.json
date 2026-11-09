@@ -54,7 +54,9 @@
     "audit:launch-integrity": "node scripts/launch-integrity-audit.mjs",
     "test:audit": "node scripts/test-development-production.mjs",
     "test:payments": "node scripts/test-atomic-payments.mjs",
-    "test:guard-view": "node scripts/test-scoped-guard-view.mjs"
+    "test:guard-view": "node scripts/test-scoped-guard-view.mjs",
+    "test:replacement-preflight": "node scripts/test-replacement-production-preflight.mjs",
+    "test:integration-target": "node scripts/test-integration-target.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

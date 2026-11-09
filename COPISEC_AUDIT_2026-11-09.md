@@ -1,5 +1,11 @@
 # COPISEC — current audit and repair status, November 9, 2026
 
+## Latest read-only preflight: replacement also BLOCKED
+
+The deeper replacement preflight reproduces two cross-role membership leaks using the exact production helper definitions: a Client with active Agency membership sees three Guard identities (expected zero), and a Guard with Agency staff membership sees three (expected self only). The named replacement migration is unchanged and was not applied. 13 other scoped checks pass, including rollback. Production view/permissions and full-row fingerprints remain unchanged. See [fresh preflight evidence](docs/security/20261109-replacement-preflight/README.md). No execution plan is released for final approval while these failures remain.
+
+Isolated payment tests were expanded to 22 passing groups, including event-write rollback and suspended-admin rejection. [Authenticated workflow test preparation](docs/payments/AUTHENTICATED_WORKFLOW_TEST_MATRIX.md) includes a configuration gate that rejects production targets and non-stub processors. Full hosted signed-in journeys remain pending. Nothing was published or deployed in this read-only follow-up.
+
 ## Production preflight result: FAILED — original migration not applied
 
 The approved `20261109115144_harden_developer_guard_identity_view.sql` would remove Guard names from the Agency's identity-view reads. `guards_select_rc1` permits the Agency's Guard rows, but `profiles_select_rc1` permits only self or Platform Admin profiles. Client, Guard and Platform Admin checks ran in read-only role-scoped transactions; Agency retained one row and zero names under invoker-equivalent access.

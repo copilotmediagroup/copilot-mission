@@ -1,0 +1,70 @@
+{
+  "migrationSha256": "76cce48caad681c179e66aa5422f0168c77bd3afdd1834c16e548bf20ff246e0",
+  "productionChanged": false,
+  "checks": [
+    {
+      "name": "Agency owns only its Guard identities and retains names",
+      "pass": true
+    },
+    {
+      "name": "Unrelated Agency cannot see the first Agency roster",
+      "pass": true
+    },
+    {
+      "name": "Guard self-access and approved Platform Admin access",
+      "pass": true
+    },
+    {
+      "name": "Anonymous view and direct function calls denied",
+      "pass": true
+    },
+    {
+      "name": "Clients and suspended Guard/Admin denied",
+      "pass": true
+    },
+    {
+      "name": "JWT role and user-metadata spoofing cannot elevate Client",
+      "pass": true
+    },
+    {
+      "name": "Temporary profile and Guard tables cannot hijack name resolution",
+      "pass": true
+    },
+    {
+      "name": "Inactive Agency membership never grants access",
+      "pass": true
+    },
+    {
+      "name": "Client with erroneous active Agency membership still cannot read Guard identities",
+      "pass": false,
+      "error": "Expected values to be strictly equal:\n\n3 !== 0\n"
+    },
+    {
+      "name": "Guard with Agency staff membership remains limited to self",
+      "pass": false,
+      "error": "Expected values to be strictly equal:\n\n3 !== 1\n"
+    },
+    {
+      "name": "Authorized identity results never include private profile fields",
+      "pass": true
+    },
+    {
+      "name": "Service database role retains backend read access",
+      "pass": true
+    },
+    {
+      "name": "Underlying profile RLS remains unchanged",
+      "pass": true
+    },
+    {
+      "name": "Rollback restores original view definition, ACL/options and removes only introduced objects",
+      "pass": true
+    },
+    {
+      "name": "Authenticated database role cannot become service_role",
+      "pass": true
+    }
+  ],
+  "passed": 13,
+  "failed": 2
+}

@@ -1,0 +1,17 @@
+{
+  "view": {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "owner": "postgres",
+    "options": null,
+    "definition": " SELECT g.id,\n    g.user_id,\n    g.agency_id,\n    p.full_name AS name,\n    g.availability,\n    g.avatar_url\n   FROM guards g\n     LEFT JOIN profiles p ON p.id = g.user_id;"
+  },
+  "fingerprint": {
+    "guards": "e0f42d6da297681c6737ce3eb46e9a0c",
+    "members": "103170a657bdcd0965bce2e94960cad1",
+    "agencies": "e347e97630296f5266da385074093536",
+    "profiles": "a6dce8ef17e2c3a8fcc781831fbd7516"
+  },
+  "helper_schema_present": false,
+  "viewUnchanged": true,
+  "recordsUnchanged": true
+}

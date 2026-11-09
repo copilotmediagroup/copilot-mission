@@ -1,0 +1,123 @@
+{
+  "view": {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "owner": "postgres",
+    "options": null,
+    "definition": " SELECT g.id,\n    g.user_id,\n    g.agency_id,\n    p.full_name AS name,\n    g.availability,\n    g.avatar_url\n   FROM guards g\n     LEFT JOIN profiles p ON p.id = g.user_id;"
+  },
+  "counts": {
+    "guards": 1,
+    "clients": 1,
+    "agencies": 1,
+    "profiles": 4
+  },
+  "schemas": [
+    {
+      "acl": "{supabase_admin=UC/supabase_admin,anon=U/supabase_admin,authenticated=U/supabase_admin,service_role=U/supabase_admin,supabase_auth_admin=UC/supabase_admin,dashboard_user=UC/supabase_admin,postgres=U/supabase_admin}",
+      "name": "auth",
+      "owner": "supabase_admin"
+    },
+    {
+      "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}",
+      "name": "public",
+      "owner": "pg_database_owner"
+    }
+  ],
+  "version": "17.6",
+  "database": "postgres",
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "(is_platform_admin() OR (owner_user_id = auth.uid()) OR has_agency_access(id, false) OR (status = 'approved'::agency_status))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "agencies",
+      "permissive": "PERMISSIVE",
+      "policyname": "agencies_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(is_platform_admin() OR (user_id = auth.uid()) OR has_agency_access(agency_id, true))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "agency_members",
+      "permissive": "PERMISSIVE",
+      "policyname": "agency_members_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(is_platform_admin() OR (user_id = auth.uid()) OR has_agency_access(agency_id, false))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "guards",
+      "permissive": "PERMISSIVE",
+      "policyname": "guards_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "((id = auth.uid()) OR is_platform_admin())",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles_select_rc1",
+      "schemaname": "public",
+      "with_check": null
+    }
+  ],
+  "captured_at": "2026-11-09T12:39:52.105614+00:00",
+  "dependencies": null,
+  "role_escalation": [
+    {
+      "role": "authenticated",
+      "bypassrls": false,
+      "superuser": false,
+      "create_role": false,
+      "service_membership": false,
+      "public_schema_create": false
+    },
+    {
+      "role": "anon",
+      "bypassrls": false,
+      "superuser": false,
+      "create_role": false,
+      "service_membership": false,
+      "public_schema_create": false
+    },
+    {
+      "role": "service_role",
+      "bypassrls": true,
+      "superuser": false,
+      "create_role": false,
+      "service_membership": true,
+      "public_schema_create": false
+    }
+  ],
+  "helper_functions": [
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "has_agency_access",
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.has_agency_access(p_agency_id uuid, p_admin_only boolean DEFAULT false)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\n SET row_security TO 'off'\nAS $function$\n  select exists (\n    select 1\n    from public.agencies a\n    left join public.agency_members am\n      on am.agency_id = a.id\n     and am.user_id = auth.uid()\n     and am.is_active\n    join public.profiles p on p.id = auth.uid()\n    where a.id = p_agency_id\n      and p.account_status = 'approved'\n      and (\n        a.owner_user_id = auth.uid()\n        or (\n          am.user_id is not null\n          and (not p_admin_only or am.role = 'agency_admin')\n        )\n      )\n  );\n$function$\n",
+      "volatility": "s"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "name": "is_platform_admin",
+      "owner": "postgres",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_platform_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\n SET row_security TO 'off'\nAS $function$\n  select exists (\n    select 1\n    from public.profiles p\n    where p.id = auth.uid()\n      and p.role = 'platform_admin'\n      and p.account_status = 'approved'\n  );\n$function$\n",
+      "volatility": "s"
+    }
+  ],
+  "function_references": null
+}
